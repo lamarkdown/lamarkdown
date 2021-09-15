@@ -12,13 +12,13 @@ import time
 import webbrowser
 
 
-PORT = 8000
+PORT_RANGE = range(8000, 8020)
 
 class Content:
     def __init__(self):
         self.title = None
         self.fullHtml = None
-        self.updated = False
+        self.updateN = 0
     
     def update(self, targetFile: str):
         with open(targetFile) as f:
@@ -27,7 +27,7 @@ class Content:
         match = re.search('<title>(.*?)</title>', self.fullHtml, flags = re.IGNORECASE | re.DOTALL)
         self.title = match[1] if match else '[No Title]'
         
-        self.updated = True
+        self.updateN += 1
         
 
 def getHandler(content: Content):
@@ -43,16 +43,20 @@ def getHandler(content: Content):
                     <html>
                     <head>
                         <title>{content.title}</title>
+                        <meta charset="utf-8" />
                         <script>
+                            let lastUpdateN = 0;
+                        
                             setInterval(
                                 () => {{
                                     fetch("/query")
                                         .then(response => response.text())
                                         .then(text =>
                                         {{
-                                            console.log(text);
-                                            if(text == '1')
+                                            let newUpdateN = parseInt(text);
+                                            if(lastUpdateN != newUpdateN)
                                             {{
+                                                lastUpdateN = newUpdateN;
                                                 document.getElementById("frame").contentDocument.location.reload();
                                             }}
                                         }})
@@ -72,13 +76,12 @@ def getHandler(content: Content):
                 self.send_header('ContentType', 'text/html')
                 self.end_headers()
                 message = content.fullHtml
-                content.updated = False
 
             elif self.path == '/query':
                 self.send_response(200)
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
-                message = '1' if content.updated else '0'
+                message = str(content.updateN)
 
             else:
                 self.send_response(404)
@@ -96,7 +99,6 @@ def getHandler(content: Content):
 
 
 def watchLive(srcFile: str, targetFile: str, buildFiles: list[str], buildDir: str):
-    print(f'Monitoring changes to {srcFile}.\nBrowse to http://localhost:{PORT}\nPress Ctrl-C to quit.')
     
     content = Content()
     content.update(targetFile)    
@@ -120,13 +122,30 @@ def watchLive(srcFile: str, targetFile: str, buildFiles: list[str], buildDir: st
     
     try:
         mainThread = threading.current_thread()
-        def openBrowser():
-            time.sleep(0.5)
-            webbrowser.open(f'http://localhost:{PORT}')
-            mainThread.join()
-        
-        server = http.server.HTTPServer(('', PORT), getHandler(content))
-        threading.Thread(target=openBrowser).start()
+            
+        # Iterate over a port range, and pick the first free port.
+        for port in PORT_RANGE:
+            try:
+                # Create the server. This attempts to bind to the given port.
+                server = http.server.HTTPServer(('', port), getHandler(content))
+            
+            except OSError:
+                continue # Port in use; try next one.
+            
+            else:
+                print(f'Monitoring changes to {srcFile}.\nBrowse to http://localhost:{port}\nPress Ctrl-C to quit.')
+            
+                # We want to open a web browser at the address we're serving, but not before the 
+                # server is running. Hence, we start a new thread, which waits 0.5 secs while the 
+                # main thread calls serve_forever(), then runs the browser.
+                def openBrowser():
+                    time.sleep(0.5)
+                    webbrowser.open(f'http://localhost:{port}')
+                    mainThread.join()
+                    
+                threading.Thread(target=openBrowser).start()
+                break
+            
         server.serve_forever()
         
             
