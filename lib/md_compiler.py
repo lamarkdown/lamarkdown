@@ -1,5 +1,6 @@
 import html
 import importlib.util
+import locale
 import os
 import re
 
@@ -76,8 +77,8 @@ def compile(srcFile: str,
             titleHtml = html.escape(md.Meta['title'][0])
             contentHtml = f'<h1>{titleHtml}</h1>\n{contentHtml}'
             
-        # Then check the HTML heading tags
         else:
+            # Then check the HTML heading tags
             for n in range(1, 7):
                 matches = re.findall(f'<h{n}>(.*?)</h{n}>', contentHtml, flags = re.DOTALL)
                 if matches:
@@ -88,11 +89,26 @@ def compile(srcFile: str,
                         # to be ambiguous.
                         titleHtml = html.escape(matches[0])
                     break
+                
+        # Detect the language
+        if 'Meta' in md.__dict__ and 'lang' in md.Meta:
+            langHtml = html.escape(md.Meta['lang'][0])
+            
+        else:
+            # Quick-and-dirty extraction of language code, minus the region, from the default 
+            # locale. This is not 100% guaranteed to work, for a few reasons:
+            # (1) HTML lang="..." expects an IETF language tag, whereas Python's locale module
+            #     gives us an ISO locale.
+            # (2) The convention (for specifying the HTML language) allows a full language tag,
+            #     but the examples appear to favour the language only, without the region.
+            
+            localeParts = locale.getdefaultlocale()[0].split('_')
+            langHtml = html.escape('-'.join(localeParts[:-1] or localeParts))
                         
             
         fullHtml = '''
             <!DOCTYPE html>
-            <html>
+            <html lang="{langHtml:s}">
             <head>
                 <meta charset="utf-8" />
                 <title>{titleHtml:s}</title>
@@ -104,6 +120,7 @@ def compile(srcFile: str,
             </html>
         '''
         fullHtml = re.sub('\n\s*', '\n', fullHtml).format(
+            langHtml = langHtml,
             titleHtml = titleHtml,
             css = css,
             contentHtml = contentHtml
