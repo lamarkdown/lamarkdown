@@ -2,6 +2,7 @@
 
 from markdown import *
 from markdown.extensions import *
+from markdown.extensions.attr_list import AttrListTreeprocessor
 from markdown.blockprocessors import BlockProcessor
 from markdown.util import AtomicString
 
@@ -28,6 +29,9 @@ class TikzBlockProcessor(BlockProcessor):
     TIKZ_BEGIN = r'\begin{tikzpicture}'
     END = r'\end{tikzpicture}'
     
+    # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
+    ATTR_RE = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
+    
     def __init__(self, parser, buildDir):
         super().__init__(parser)
         self.buildDir = buildDir
@@ -40,9 +44,19 @@ class TikzBlockProcessor(BlockProcessor):
         
         # Gather latex code
         latex = blocks.pop(0)        
-        while blocks and not latex.rstrip().endswith(self.END):
+        while blocks and not self.END in latex:
             latex += '\n' + blocks.pop(0)
             
+        latexEnd = latex.rfind(self.END) + len(self.END)            
+        if latexEnd >= 0:
+            # There is possibly some extra text 'postText' after the last \end{tikzpicture}, which
+            # might contain (for instance) an attribute list.
+            postText = latex[latexEnd:].strip()
+            latex = latex[:latexEnd]            
+        else:
+            # \end{tikzpicture} is missing. This will be an error anyway at some point.
+            postText = ''
+                        
         # If not in cache, compile it.
         if latex not in self.cache:
             hasher = hashlib.sha1()
@@ -84,7 +98,7 @@ class TikzBlockProcessor(BlockProcessor):
             with open(svg) as svgReader:
                 # Encode SVG data as a Data URI.
                 dataUri = f'data:image/svg+xml;base64,{base64.b64encode(svgReader.read().strip().encode()).decode()}'
-                self.cache[latex] = ElementTree.fromstring(f'<img src="{dataUri}" />')
+                self.cache[latex] = dataUri
                 
                 # Note: embedding SVG tags directly in the HTML is possible, but I encountered an 
                 # issue where one SVG seemed to cause other subsequent SVGs to fail in rendering 
@@ -94,8 +108,27 @@ class TikzBlockProcessor(BlockProcessor):
                 # The issue appears not to arise when SVGs are encoded in base64 data URIs, perhaps
                 # because the browser then treats them as separate "files".                             
         
-        parent.append(self.cache.get(latex))
-
+        
+        element = ElementTree.fromstring(f'<img src="{self.cache.get(latex)}" />')
+        
+        if postText:
+            match = self.ATTR_RE.match(postText)
+            if match:
+                # Hijack parts of the attr_list extension to handle the attribute list we've just
+                # found here. 
+                #
+                # (Warning: there is a risk here that a future version of Markdown will change 
+                # the design of attr_list, such that this call doesn't work anymore. For now, it
+                # seems the easiest and most consistent way to go.)
+                AttrListTreeprocessor().assign_attrs(element, match[1])
+                
+            else:
+                # Miscellaneous trailing text -- put it back on the queue
+                blocks.insert(0, postText)
+                
+        parent.append(element)
+        
+            
 
 class TikzExtension(Extension, BlockProcessor):
     def __init__(self, **kwargs):
