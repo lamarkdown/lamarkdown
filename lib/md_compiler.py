@@ -17,6 +17,7 @@ class BuildParams:
         self.extensions = []
         self.extension_configs = {}
         self.css = ''
+        self.env = {}
 
             
 def compile(srcFile: str, 
@@ -35,15 +36,16 @@ def compile(srcFile: str,
             except Exception as e:
                 raise CompileException from e
             
-            initFn = buildMod.__dict__.get('init')
+            initFn = buildMod.__dict__.get('md_init')
             if initFn:
                 if not callable(initFn):
                     raise CompileException(f'In {buildFile}, expected "init" to be callable')
                 initFn(buildParams)
             
-            buildParams.extensions       .extend(buildMod.__dict__.get('extensions',        []))
-            buildParams.extension_configs.update(buildMod.__dict__.get('extension_configs', {}))
-            buildParams.css += buildMod.__dict__.get('css', '')
+            buildParams.extensions       .extend(buildMod.__dict__.get('md_extensions',        []))
+            buildParams.extension_configs.update(buildMod.__dict__.get('md_extension_configs', {}))
+            buildParams.css               +=     buildMod.__dict__.get('md_css', '')
+            buildParams.env              .update(buildMod.__dict__)
             
     css = buildParams.css
     
@@ -119,7 +121,7 @@ def compile(srcFile: str,
             </body>
             </html>
         '''
-        fullHtml = re.sub('\n\s*', '\n', fullHtml).format(
+        fullHtml = re.sub('\n\s*', '\n', fullHtml.strip()).format(
             langHtml = langHtml,
             titleHtml = titleHtml,
             css = css,

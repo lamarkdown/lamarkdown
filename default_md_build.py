@@ -1,3 +1,4 @@
+from lib import eval
 from lib import latex
 
 import markdown 
@@ -22,7 +23,7 @@ class HiderExtension(markdown.Extension,
         return None
 
 
-def init(buildParams):
+def md_init(buildParams):
     buildParams.extensions = [
         # Built-in
         'admonition', # 'Notes', 'warnings', etc.
@@ -39,6 +40,8 @@ def init(buildParams):
 
         # Custom
         latex.TikzExtension(build_dir=buildParams.build_dir),
+        
+        eval.EvalExtension(env=buildParams.env),
         
         # Defined above
         HiderExtension('tutor')
@@ -86,22 +89,22 @@ codeCss = r'''
 '''
 
 
-css = r'''
+md_css = r'''
     @import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&family=Merriweather&family=Merriweather+Sans&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
     @media screen {
         html { background: #404040; }
-        body {
+        /*body {
             background: 
-        }
+        }*/
     }
 
     html {
         font-family: 'Open Sans', sans-serif;
         line-height: 1.8em;
-        background: #404040;
+        /*background: #404040;*/
     }
 
     body {
@@ -330,4 +333,4 @@ css = r'''
 
 '''
 
-css += codeCss
+md_css += codeCss
