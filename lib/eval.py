@@ -11,8 +11,8 @@ from xml.etree import ElementTree
 # expression, you can refer to anything imported or defined in md_build.py, or any of the other 
 # build files.
 #
-# Thus, if your build file contains 'from datetime import date', then the expression $`date.today`
-# will cause the date of compilation to appear in the document at that point.
+# Thus, if your build file contains 'from datetime import date', then the expression 
+# $`date.today()` will cause the date of compilation to appear in the document at that point.
 #
 # If there is an error in the expression, the error message will instead appear in the document,
 # highlighted in red.
