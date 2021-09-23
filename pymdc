@@ -23,23 +23,25 @@ if __name__ == "__main__":
                         help='Keep running, recompile automatically when source changes are detected, and serve the resulting file from localhost.')
     
     args = parser.parse_args()
-    
+        
     srcFile = os.path.abspath(args.input)
     baseName = srcFile.removesuffix('.md')
-    targetFile = args.output or (baseName + '.html')
-    buildFiles = [
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), 'default_md_build.py'),
-        os.path.abspath('md_build.py'),
-        os.path.abspath(baseName + '.py'),
-        os.path.abspath(args.build) if args.build else None
-    ]
     
-    buildDir = os.path.join('build', os.path.basename(srcFile) + '.tmp')            
-    os.makedirs(buildDir, exist_ok = True)
+    buildParams = md_compiler.BuildParams(
+        srcFile = srcFile, 
+        targetFile = args.output or (baseName + '.html'), 
+        buildFiles = [
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), 'default_md_build.py'),
+            os.path.abspath('md_build.py'),
+            os.path.abspath(baseName + '.py'),
+            os.path.abspath(args.build) if args.build else None
+        ], 
+        buildDir = os.path.join('build', os.path.basename(srcFile) + '.tmp')
+    )
+    os.makedirs(buildParams.build_dir, exist_ok = True)
     
-    md_compiler.compile(srcFile=srcFile, targetFile=targetFile, buildFiles=buildFiles, buildDir=buildDir)
-        
+    md_compiler.compile(buildParams)
+    
     if args.live:
         from lib import live
-        live.watchLive(srcFile=srcFile, targetFile=targetFile, buildFiles=buildFiles, buildDir=buildDir)
-        
+        live.watchLive(buildParams)

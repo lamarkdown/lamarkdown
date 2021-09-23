@@ -3,24 +3,6 @@ from lib import latex
 
 import markdown 
 import pymdownx
-#import customblocks
-
-
-class HiderExtension(markdown.Extension, 
-                     markdown.treeprocessors.Treeprocessor):
-    def __init__(self, classes):
-        self._classes = {classes} if isinstance(classes, str) else set(classes)
-        
-    def extendMarkdown(self, md):
-        md.treeprocessors.register(self, 'hider', -100)
-        
-    def run(self, root):
-        for element in root:
-            elementClasses = (element.attrib.get('class') or '').split()
-            if not self._classes.isdisjoint(elementClasses):
-                element.clear()
-                
-        return None
 
 
 def md_init(buildParams):
@@ -42,9 +24,6 @@ def md_init(buildParams):
         latex.TikzExtension(build_dir=buildParams.build_dir),
         
         eval.EvalExtension(env=buildParams.env),
-        
-        # Defined above
-        HiderExtension('tutor')
     ]
 
 

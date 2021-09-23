@@ -1,3 +1,5 @@
+from lib import pruner
+import copy
 import html
 import importlib.util
 import locale
@@ -12,22 +14,43 @@ class BuildParams:
     def __init__(self, srcFile: str, targetFile: str, buildFiles: list[str], buildDir: str):
         self.src_file = srcFile
         self.target_file = targetFile
+        self.variants = {}
         self.build_files = buildFiles
         self.build_dir = buildDir
         self.extensions = []
         self.extension_configs = {}
         self.css = ''
         self.env = {}
-
-            
-def compile(srcFile: str, 
-            targetFile: str, 
-            buildFiles: list[str],
-            buildDir: str):
-    
-    buildParams = BuildParams(srcFile=srcFile, targetFile=targetFile, buildFiles=buildFiles, buildDir=buildDir)
         
-    for buildFile in buildFiles:
+    def altTargetFile(self, variant):
+        targetBaseName, targetFileExt = self.target_file.rsplit('.', 1)
+        return targetBaseName + variant + '.' + targetFileExt
+                    
+    @property
+    def targetFiles(self):        
+        if self.variants:
+            targetBaseName, targetFileExt = self.target_file.rsplit('.', 1)
+            return {variant: f'{targetBaseName}{variant}.{targetFileExt}' for variant in self.variants.keys()}
+            
+        else:
+            return {'': self.target_file}
+        
+    def copy(self):
+        return copy.deepcopy(self)
+        
+        
+def variantClassList(classSpec) -> list[str]:
+    if classSpec is None:
+        return []
+    elif isinstance(classSpec, str):
+        return [classSpec]
+    else:
+        return list(classSpec)
+
+                        
+def compile(buildParams: BuildParams):
+        
+    for buildFile in buildParams.build_files:
         if buildFile is not None and os.path.exists(buildFile):
             moduleSpec = importlib.util.spec_from_file_location('buildfile', buildFile)
             buildMod = importlib.util.module_from_spec(moduleSpec)
@@ -41,11 +64,34 @@ def compile(srcFile: str,
                 if not callable(initFn):
                     raise CompileException(f'In {buildFile}, expected "init" to be callable')
                 initFn(buildParams)
-            
+                
+            buildParams.variants         .update(buildMod.__dict__.get('md_variants',          {}))
             buildParams.extensions       .extend(buildMod.__dict__.get('md_extensions',        []))
             buildParams.extension_configs.update(buildMod.__dict__.get('md_extension_configs', {}))
             buildParams.css               +=     buildMod.__dict__.get('md_css', '')
             buildParams.env              .update(buildMod.__dict__)
+    
+    if buildParams.variants:
+        allClasses = {cls for classSpec in buildParams.variants.values() 
+                          for cls in variantClassList(classSpec)}
+        baseMdExtensions = buildParams.extensions
+        
+        for variant, retainedClasses in buildParams.variants.items():
+            
+            pruneClasses = allClasses.difference(variantClassList(retainedClasses))
+            if pruneClasses:
+                prunerExt = pruner.PrunerExtension(classes=pruneClasses)
+                buildParams.extensions = baseMdExtensions + [prunerExt]
+            else:
+                buildParams.extensions = baseMdExtensions
+            
+            compileVariant(buildParams, altTargetFile = buildParams.altTargetFile(variant))
+            
+    else:
+        compileVariant(buildParams)
+            
+            
+def compileVariant(buildParams: BuildParams, altTargetFile: str = None):
             
     css = buildParams.css
     
@@ -63,8 +109,8 @@ def compile(srcFile: str,
                            extension_configs = buildParams.extension_configs)
     
     with (
-        open(srcFile, 'r') as src,
-        open(targetFile, 'w') as target
+        open(buildParams.src_file, 'r') as src,
+        open(altTargetFile or buildParams.target_file, 'w') as target
     ):
         contentHtml = md.convert(src.read())
         
@@ -72,7 +118,7 @@ def compile(srcFile: str,
         contentHtml = re.sub('<!--.*?-->', '', contentHtml, flags = re.DOTALL)
         
         # Default title, if we can't a better one
-        titleHtml = os.path.basename(targetFile.removesuffix('.html'))
+        titleHtml = os.path.basename(buildParams.target_file.removesuffix('.html'))
         
         # Find a better title, first by checking the embedded metadata (if any)
         if 'Meta' in md.__dict__ and 'title' in md.Meta:            
@@ -82,7 +128,7 @@ def compile(srcFile: str,
         else:
             # Then check the HTML heading tags
             for n in range(1, 7):
-                matches = re.findall(f'<h{n}>(.*?)</h{n}>', contentHtml, flags = re.DOTALL)
+                matches = re.findall(f'<h{n}[^>]*>(.*?)</\s*h{n}\s*>', contentHtml, flags = re.IGNORECASE | re.DOTALL)
                 if matches:
                     if len(matches) == 1:
                         # Only use the <hN> element as a title if there's exactly one it, for
