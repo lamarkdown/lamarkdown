@@ -20,6 +20,11 @@ class BuildParams:
         self.extensions = []
         self.extension_configs = {}
         self.css = ''
+        self.css_files = []
+        self.js = ''
+        self.js_files = []
+        self.content_start = ''
+        self.content_end = ''
         self.env = {}
         
     def altTargetFile(self, variant):
@@ -37,6 +42,18 @@ class BuildParams:
         
     def copy(self):
         return copy.deepcopy(self)
+    
+    def reset(self):
+        self.variants = {}
+        self.extensions = []
+        self.extension_configs = {}
+        self.css = ''
+        self.css_files = []
+        self.js = ''
+        self.js_files = []
+        self.content_start = ''
+        self.content_end = ''
+        self.env = {}
         
         
 def variantClassList(classSpec) -> list[str]:
@@ -47,8 +64,15 @@ def variantClassList(classSpec) -> list[str]:
     else:
         return list(classSpec)
 
+
+CONFIG_ITEMS = { 
+    'init', 'variants', 'extensions', 'extension_configs', 'css', 'js', 
+    'css_files', 'js_files', 'content_start', 'content_end'
+}
                         
 def compile(buildParams: BuildParams):
+        
+    buildParams.reset()
         
     for buildFile in buildParams.build_files:
         if buildFile is not None and os.path.exists(buildFile):
@@ -58,6 +82,10 @@ def compile(buildParams: BuildParams):
                 moduleSpec.loader.exec_module(buildMod)
             except Exception as e:
                 raise CompileException from e
+            
+            for key in buildMod.__dict__:
+                if key.startswith('md_') and key[3:] not in CONFIG_ITEMS:
+                    print(f'*** WARNING: possibly misspelt config item "{key}"; should be one of: {", ".join(sorted("md_" + k for k in CONFIG_ITEMS))}.')
             
             initFn = buildMod.__dict__.get('md_init')
             if initFn:
@@ -69,8 +97,13 @@ def compile(buildParams: BuildParams):
             buildParams.extensions       .extend(buildMod.__dict__.get('md_extensions',        []))
             buildParams.extension_configs.update(buildMod.__dict__.get('md_extension_configs', {}))
             buildParams.css               +=     buildMod.__dict__.get('md_css', '')
+            buildParams.js                +=     buildMod.__dict__.get('md_js', '')
+            buildParams.css_files        .extend(buildMod.__dict__.get('md_css_files', []))
+            buildParams.js_files         .extend(buildMod.__dict__.get('md_js_files', []))
+            buildParams.content_start     =      buildMod.__dict__.get('md_content_start', '') + buildParams.content_start
+            buildParams.content_end       +=     buildMod.__dict__.get('md_content_end', '')
             buildParams.env              .update(buildMod.__dict__)
-    
+            
     if buildParams.variants:
         allClasses = {cls for classSpec in buildParams.variants.values() 
                           for cls in variantClassList(classSpec)}
@@ -94,6 +127,7 @@ def compile(buildParams: BuildParams):
 def compileVariant(buildParams: BuildParams, altTargetFile: str = None):
             
     css = buildParams.css
+    js = buildParams.js
     
     # Strip CSS comments at the beginning of lines
     css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
@@ -103,7 +137,9 @@ def compileVariant(buildParams: BuildParams, altTargetFile: str = None):
         
     # Normalise line breaks
     css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
-        
+    
+    # TODO: we could run the 'slimit' Javascript minifier here.
+    
     import markdown
     md = markdown.Markdown(extensions = buildParams.extensions,
                            extension_configs = buildParams.extension_configs)
@@ -156,21 +192,26 @@ def compileVariant(buildParams: BuildParams, altTargetFile: str = None):
             
         fullHtml = '''
             <!DOCTYPE html>
-            <html lang="{langHtml:s}">
+            <html lang="{lang_html:s}">
             <head>
                 <meta charset="utf-8" />
-                <title>{titleHtml:s}</title>
-                <style>{css:s}</style>
+                <title>{title_html:s}</title>
+                {css_list:s}<style>{css:s}</style>
             </head>
             <body>
-                {contentHtml:s}
-            </body>
+            {content_start:s}{content_html:s}{content_end:s}
+            {js_list:s}{js:s}</body>
             </html>
         '''
         fullHtml = re.sub('\n\s*', '\n', fullHtml.strip()).format(
-            langHtml = langHtml,
-            titleHtml = titleHtml,
+            lang_html = langHtml,
+            title_html = titleHtml,
+            css_list = ''.join(f'<link rel="stylesheet" href="{f}" />\n' for f in buildParams.css_files),
             css = css,
-            contentHtml = contentHtml
+            content_start = buildParams.content_start,
+            content_html = contentHtml,
+            content_end = buildParams.content_end,
+            js_list = ''.join(f'<script src="{f}"></script>\n' for f in buildParams.js_files),
+            js = f'<script>\n{js}\n</script>\n' if js else ''
         )        
         target.write(fullHtml)

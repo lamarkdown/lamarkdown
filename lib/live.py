@@ -20,6 +20,7 @@ class Content:
         self.title = {}
         self.fullHtml = {}
         self.updateN = 0
+        self.path = {}
         
     def update(self, buildParams: md_compiler.BuildParams):
         self.title = {}
@@ -32,6 +33,7 @@ class Content:
             self.title[variant] = match[1] if match else '[No Title]'
             self.fullHtml[variant] = fullHtml
             self.filename[variant] = os.path.basename(targetFile)
+            self.path[variant] = os.path.dirname(targetFile)
             
         self.updateN += 1
         
@@ -41,7 +43,7 @@ def getHandler(content: Content):
     
     class _handler(http.server.BaseHTTPRequestHandler):
         
-        def sendFile(self, variant: str):
+        def send_main_content(self, variant: str):
             self.send_response(200)
             self.send_header('ContentType', 'text/html')
             self.end_headers()
@@ -75,14 +77,38 @@ def getHandler(content: Content):
                 
                 # If we have at least two variants, insert a special panel showing a link to each separate variant.
                 message = message.replace(
+                    '</head>',
+                    '''
+                    <style> 
+                        @media print {
+                            #variantspanel { display: none; }
+                        }
+                        
+                        @media screen {
+                            #variantspanel { position: fixed; background: white; border-radius: 0.5ex; color: black; padding: 1em; right: 1ex; top: 1ex; }
+                        }
+                    </style>
+                    </head>
+                    '''
+                )
+                
+                message = message.replace(
                     '<body>',
-                    '<body><div style="position: fixed; background: white; color: black; padding: 1em; right: 1em; top: 1em;">' + 
+                    '<body><div id="variantspanel">' + 
                         '<strong>Variants</strong><br>' +
-                        '<br>'.join(f'<a href="/{v}.html">{f}</a>' for v, f in content.filename.items()) + 
+                        '<br>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' for v, f in content.filename.items()) + 
                         '</div>',
                 )
                 
             self.wfile.write(message.encode('utf-8'))
+            
+            
+        def send_file(self, path: str):
+            self.send_response(200)
+            #self.send_header('ContentType', 'text/plain')
+            self.end_headers()
+            #self.wfile.write('404 - Yeah nah mate.'.encode('utf-8'))
+            self.wfile.write(open(path, 'rb').read())
             
         
         def do_GET(self):
@@ -91,28 +117,45 @@ def getHandler(content: Content):
                 # whichever variant comes out first.
                 
                 if '' in content.title:
-                    message = self.sendFile('')
+                    self.send_main_content('')
                 else:
-                    message = self.sendFile(next(iter(content.title.keys)))
-                                
-            elif (
-                (match := re.fullmatch(r'/(.*)\.html', self.path)) and 
-                (variant := match[1]) in content.title
-            ):
-                # Having verified that the URL contains the name of a variant, send that variant.
-                message = self.sendFile(variant)
-
-            elif self.path == '/query':
+                    self.send_main_content(next(iter(content.title.keys)))
+                                                
+            if self.path == '/query':
                 self.send_response(200)
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
                 self.wfile.write(str(content.updateN).encode('utf-8'))
-
+                
+            elif (
+                (match := re.fullmatch(f'/(?P<variant>[^/]*)/?index.html', self.path)) and
+                (variant := match['variant']) in content.title
+            ):
+                # Having verified that the URL contains the name of a variant, send that variant.
+                self.send_main_content(variant)
+                
+            elif (
+                (match := re.fullmatch(f'/(?P<variant>[^/]*)/(?P<file>.+)', self.path)) and
+                ((variant := match['variant']) in content.title) and
+                (full_path := os.path.join(content.path[variant], match['file'].replace('/', os.sep))) and
+                os.path.isfile(full_path)
+            ):                
+                self.send_file(full_path)
+                
+            elif (
+                (match := re.fullmatch(f'/(?P<file>.+)', self.path)) and
+                ('' in content.title) and
+                (full_path := os.path.join(content.path[''], match['file'].replace('/', os.sep))) and
+                os.path.isfile(full_path)
+            ):
+                self.send_file(full_path)
+                
             else:
                 self.send_response(404)
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
                 self.wfile.write('404 - Yeah nah mate.'.encode('utf-8'))
+                
             
         def log_message(self, format, *args):
             pass

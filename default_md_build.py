@@ -1,5 +1,7 @@
 from lib import eval
 from lib import latex
+from lib import marker_elements
+from lib import sectioner
 
 import markdown 
 import pymdownx
@@ -14,6 +16,7 @@ def md_init(buildParams):
         'attr_list',
         
         # 3rd Party: pymdown
+        'pymdownx.highlight', # Needed for control over whether 'super-fences' uses Pygments or not
         'pymdownx.extra',
         
         # 3rd Party: custom blocks
@@ -21,10 +24,19 @@ def md_init(buildParams):
         #'customblocks',
 
         # Custom
-        latex.TikzExtension(build_dir=buildParams.build_dir),
-        
-        eval.EvalExtension(env=buildParams.env),
+        latex.TikzExtension(build_dir=buildParams.build_dir),        
+        eval.EvalExtension(env=buildParams.env),        
+        marker_elements.MarkerElementExtension(),
+        sectioner.SectionerExtension()
     ]
+
+    
+md_extension_configs = {
+    'toc': {
+        'title': 'Contents',
+        'toc_depth': '2-6'
+    }
+}  
 
 
 # Based on https://github.com/richleland/pygments-css/blob/master/default.css
@@ -75,24 +87,22 @@ md_css = r'''
 
     @media screen {
         html { background: #404040; }
-        /*body {
-            background: 
-        }*/
+        body {
+            box-shadow: 5px 5px 10px black;        
+            max-width: 50em;
+            padding: 4em;
+            margin-left: auto;
+            margin-right: auto;
+        }
     }
-
+        
     html {
         font-family: 'Open Sans', sans-serif;
         line-height: 1.8em;
-        /*background: #404040;*/
     }
 
     body {
-        background: white;
-        max-width: 50em;
-        margin-left: auto;
-        margin-right: auto;
-        padding: 4em;
-        
+        background: white;        
         counter-reset: section;
     }
 
@@ -132,6 +142,36 @@ md_css = r'''
         content: counter(section) "." counter(subsection) "." counter(subsubsection);
         margin-right: 1em;
     }
+    
+    
+    
+    /* Table of Contents */
+    @media screen {
+        .toc {
+            position: fixed;
+            z-index: -1;
+            left: 1ex;
+            top: 1ex;
+            width: 20em;
+            border-radius: 0.5ex;
+            background: white;
+            box-shadow: 5px 5px 10px black;
+        }
+        
+        .toc:hover, .toc:focus {
+            z-index: 1;
+        }
+    }
+    
+    .toc {
+        padding: 1em;
+    }
+    
+    .toc .toctitle {
+        font-weight: bold;
+        margin: 0;
+    }
+    
 
 
     /* Code */
