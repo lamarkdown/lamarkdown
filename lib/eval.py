@@ -3,7 +3,7 @@ from xml.etree import ElementTree
 
 # This extension lets markdown authors write Python expressions, to be executed, within markdown 
 # documents. The expressions are of the form the form $`...`. Each expression will be replaced with
-# the result of its execution, converted to a string.
+# the result of its execution, converted to a string; e.g. $`1+1` will insert '2' into the document.
 #
 # Expressions are evaluated within the (combined) scope of any build files. Thus, from a $`...` 
 # expression, you can refer to anything imported or defined in md_build.py, or any of the other 
