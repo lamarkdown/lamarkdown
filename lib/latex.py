@@ -16,18 +16,87 @@ from xml.etree import ElementTree
 
 
 class CommandException(Exception): pass
+
+class SyntaxException(Exception): pass
     
 def check_run(command, **kwargs):
     proc = subprocess.run(command, **kwargs)
     if proc.returncode != 0:
         raise CommandException
+
+
+
+class LatexFormatter:
+    def extractBlocks(self, blocks) -> str: raise NotImplementedError
+    def end(self) -> str:                   raise NotImplementedError
+    def format(self, latex: str) -> str:    raise NotImplementedError
+    
+    
+    
+class FullLatex(LatexFormatter):
+    def extractBlocks(self, blocks) -> str:
+        end = self.end()
+        latex = blocks.pop(0)
+        while blocks and not end in latex:
+            latex += '\n' + blocks.pop(0)
+            
+    def end(self) -> str: 
+        return r'\end{document}'
+
+    def format(self, latex: str) -> str:
+        return latex
+    
+
+            
+class SingleEnvironment(LatexFormatter):
+    START_REGEX = re.compile(r'\\begin\{([^}]+)\}')
+
+    def extractBlocks(self, blocks) -> str:
+        latex = blocks.pop(0)
+        match = self.START_REGEX.search(latex)
+        while blocks and not match:
+            nextBlock = blocks.pop(0)
+            latex += '\n' + nextBlock
+            match = self.START_REGEX.search(nextBlock)
+            
+        if match:            
+            self._start = match.group(0)            
+            self._envName = match.group(1)
+            self._end = f'\\end{{{self._envName}}}'
+            while blocks and not self._end in latex:
+                latex += '\n' + blocks.pop(0)
+                
+        else:
+            # This is an error. The following values are just to ensure the message is sensible.
+            self._start = r'\begin{...}'
+            self._envName = '...'
+            self._end = r'\end{...}'            
+            
+        return latex
         
+    def end(self) -> str:
+        return self._end
+
+    def format(self, latex: str) -> str:
+        startIndex = latex.find(self._start)
+        preamble = latex[:startIndex]
+        main = latex[startIndex:]
+        
+        if self._envName != 'document':
+            main = r'\begin{document}' + main + r'\end{document}'
+            
+        return f'''
+            \\documentclass{{standalone}}
+            \\usepackage{{tikz}}
+            \\usepackage[default]{{opensans}}
+            {preamble}
+            {main}
+            '''
+            
+
 
 class TikzBlockProcessor(BlockProcessor):
-    cache = {}
-    PREAMBLE_BEGIN = r'\usetikzlibrary'
-    TIKZ_BEGIN = r'\begin{tikzpicture}'
-    END = r'\end{tikzpicture}'
+    cache = {}    
     
     # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
     ATTR_RE = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
@@ -35,54 +104,53 @@ class TikzBlockProcessor(BlockProcessor):
     def __init__(self, parser, buildDir):
         super().__init__(parser)
         self.buildDir = buildDir
-
+        
     def test(self, parent, block):
         b = block.lstrip()
-        return b.startswith(self.PREAMBLE_BEGIN) or b.startswith(self.TIKZ_BEGIN)
+        return (
+            b.startswith(r'\documentclass') or 
+            b.startswith(r'\usepackage') or 
+            b.startswith(r'\usetikzlibrary') or
+            b.startswith(r'\begin')
+        )
+    
 
     def run(self, parent, blocks):
         
-        # Gather latex code
-        latex = blocks.pop(0)        
-        while blocks and not self.END in latex:
-            latex += '\n' + blocks.pop(0)
-            
-        latexEnd = latex.rfind(self.END) + len(self.END)            
+        if blocks[0].lstrip().startswith(r'\documentclass'):
+            formatter = FullLatex()        
+        else:
+            formatter = SingleEnvironment()
+        
+        latex = formatter.extractBlocks(blocks)
+        end = formatter.end()
+                        
+        latexEnd = latex.rfind(end)
+        if latexEnd < 0:
+            raise SyntaxException(f'Couldn\'t find closing "{end}" for latex code """{latex}"""')
+        latexEnd += len(end)
+        
         if latexEnd >= 0:
-            # There is possibly some extra text 'postText' after the last \end{tikzpicture}, which
+            # There is possibly some extra text 'postText' after the last \end{...}, which
             # might contain (for instance) an attribute list.
             postText = latex[latexEnd:].strip()
             latex = latex[:latexEnd]            
         else:
-            # \end{tikzpicture} is missing. This will be an error anyway at some point.
+            # \end{...} is missing. This will be an error anyway at some point.
             postText = ''
+                        
                         
         # If not in cache, compile it.
         if latex not in self.cache:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
-            fileBuildDir = os.path.join(self.buildDir, 'tikz-' + hasher.hexdigest())
+            fileBuildDir = os.path.join(self.buildDir, 'latex-' + hasher.hexdigest())
             os.makedirs(fileBuildDir, exist_ok=True)
             tex = os.path.join(fileBuildDir, 'job.tex')
             svg = os.path.join(fileBuildDir, 'job.svg')
-            
-            if latex.lstrip().startswith(self.PREAMBLE_BEGIN):
-                tikzIndex = latex.find(self.TIKZ_BEGIN)
-                latexPreamble = latex[:tikzIndex]
-                tikz = latex[tikzIndex:]                
-            else:
-                latexPreamble = ''                
-                tikz = latex
-            
+                                
             with open(tex, 'w') as f:
-                f.write(f'''
-                    \\documentclass{{standalone}}
-                    \\usepackage{{tikz}}
-                    \\usepackage[default]{{opensans}}
-                    {latexPreamble}
-                    \\begin{{document}}\Large
-                    {tikz}
-                    \\end{{document}}''')
+                f.write(formatter.format(latex))
 
             check_run(
                 ['xelatex', '-interaction', 'nonstopmode', 'job'],
