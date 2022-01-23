@@ -1,9 +1,5 @@
-from lib import eval
-from lib import latex
-from lib import marker_elements
-from lib import sectioner
-
-import markdown 
+from lamarkdown.ext import eval, latex, marker_elements
+#import markdown 
 import pymdownx
 
 
@@ -27,7 +23,7 @@ def md_init(buildParams):
         latex.TikzExtension(build_dir=buildParams.build_dir),        
         eval.EvalExtension(env=buildParams.env),        
         marker_elements.MarkerElementExtension(),
-        sectioner.SectionerExtension()
+        #sectioner.SectionerExtension()
     ]
 
     

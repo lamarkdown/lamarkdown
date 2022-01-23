@@ -1,4 +1,4 @@
-from lib import md_compiler
+from lamarkdown import md_compiler
 
 import watchdog.observers
 import watchdog.events

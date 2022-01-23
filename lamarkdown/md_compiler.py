@@ -1,4 +1,4 @@
-from lib import pruner
+from lamarkdown.ext import pruner
 import copy
 import html
 import importlib.util

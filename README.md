@@ -1,6 +1,6 @@
-# Python Markdown Compiler
+# Lamarkdown
 
-Pymdc compiles .md (markdown) files to .html using the Python Markdown library.
+Standalone document compiler based on Python-Markdown, fulfiling the role of Latex but for the Markdown/HTML formats. Lamarkdown compiles .md (markdown) files to .html.
 
 
 ## Requirements
@@ -12,9 +12,9 @@ Pymdc compiles .md (markdown) files to .html using the Python Markdown library.
 
 ## Build Files
 
-Pymdc will load the following build files, in the following order, as part of the compilation process:
+Lamarkdown will load the following build files, in the following order, as part of the compilation process:
 
-* {PYMDC-DIR}/default_md_build.py
+* {LAMD-DIR}/default_md_build.py
 * ./md_build.py
 * ./{INPUT-FILE-WITHOUT-EXTENSION}.py
 

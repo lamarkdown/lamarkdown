@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-from lib import md_compiler
+from lamarkdown import md_compiler
 
 import argparse
 import os.path
 import time
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description='Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.')
     
@@ -43,5 +43,8 @@ if __name__ == "__main__":
     md_compiler.compile(buildParams)
     
     if args.live:
-        from lib import live
+        from lamarkdown import live
         live.watchLive(buildParams)
+
+if __name__ == "__main__":
+    main()
