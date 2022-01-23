@@ -14,9 +14,9 @@ setup(
     license = 'BSD',
     keywords = 'markdown',
     url = 'https://bitbucket.org/cooperdja/lamarkdown',
-    packages = ['lamarkdown', 'lamarkdown.ext', 'lamarkdown.pres'],
+    packages = ['lamarkdown', 'lamarkdown.lib', 'lamarkdown.ext'],
     entry_points = {
-        'console_scripts': ['lamd=lamarkdown.lamd:main'],
+        'console_scripts': ['lamd=lamarkdown.lib.lamd:main'],
     },
     install_requires=[
         'markdown', 'pymdown-extensions', 'watchdog'
