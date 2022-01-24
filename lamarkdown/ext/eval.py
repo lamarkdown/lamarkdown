@@ -29,7 +29,7 @@ class EvalInlineProcessor(markdown.inlinepatterns.InlineProcessor):
     def handleMatch(self, match, data):
         element = ElementTree.Element('span')
         try:
-            element.text = str(eval(match.group(1), self.env))
+            element.text = str(eval(match.group('code'), self.env))
         except Exception as e:
             element.text = str(e)
             element.attrib['style'] = self.ERROR_STYLE
@@ -39,13 +39,24 @@ class EvalInlineProcessor(markdown.inlinepatterns.InlineProcessor):
 class EvalExtension(markdown.extensions.Extension):
     def __init__(self, **kwargs):
         self.config = {
-            'env': [{}, 'Environment in which to evaluate expressions'],
+            'env':       [{},  'Environment in which to evaluate expressions'],
+            'start':     ['$', 'Character (or string) marking the start of an eval expression'],
+            'end':       ['',  'Character (or string) marking the end of an eval expression'],
+            'delimiter': ['`', 'Character (or string) enclosing an eval expression (after the start and before the end strings)'],
         }
         super().__init__(**kwargs)
         
     def extendMarkdown(self, md):
-        proc = EvalInlineProcessor(r'\$`(.*?)`', md, self.getConfig('env'))
+        start = re.escape(self.getConfig('start'))
+        end   = re.escape(self.getConfig('end'))
+        delim = re.escape(self.getConfig('delimiter'))
+    
+        proc = EvalInlineProcessor(f'{start}(?P<bt>{delim}+)(?P<code>.*?)(?P=bt){end}', md, self.getConfig('env'))
         
         # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have 
         # a higher priority than that (or not use backticks).
         md.inlinePatterns.register(proc, 'eval', 200)
+
+
+def makeExtension(**kwargs):
+    return EvalExtension(**kwargs)
