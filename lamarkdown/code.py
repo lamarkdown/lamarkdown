@@ -1,9 +1,7 @@
-print('code.py')
+from lamarkdown import *
 
-import lamarkdown as md
-
-#Based on https://github.com/richleland/pygments-css/blob/master/default.css
-md.css(r'''
+# Based on https://github.com/richleland/pygments-css/blob/master/default.css
+css(r'''
     /*
     code .hll { background-color: #ffffcc }
     code  { background: #f8f8f8; }

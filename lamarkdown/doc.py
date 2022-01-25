@@ -1,7 +1,4 @@
-print('doc.py')
-
 import lamarkdown as md
-from lamarkdown.ext import eval, latex, marker_elements
 import pymdownx
 
 md.extensions(
@@ -15,11 +12,10 @@ md.extensions(
     'pymdownx.extra',
 
     # Lamarkdown internal extensions
-    latex.TikzExtension(build_dir = md.get_build_dir()),
-    eval.EvalExtension(env = md.get_env()),
-    marker_elements.MarkerElementExtension(),
+    'lamarkdown.latex',
+    'lamarkdown.eval',
+    'lamarkdown.markers',
 )
-
 
 md.css(r'''
     @import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap');
@@ -85,7 +81,6 @@ md.css(r'''
     }
 
 
-
     /* Code */
 
     pre {
@@ -95,7 +90,6 @@ md.css(r'''
     code {
         font-family: 'Inconsolata', monospace;
     }
-
 
 
     /* Boxes */
@@ -120,11 +114,6 @@ md.css(r'''
     .admonition.warning {
         border: 1px solid #c03030;
         background: #ffc0c0;
-    }
-
-    .admonition.answer {
-        border: 1px solid #c000c0;
-        background: #ffe0ff;
     }
 
 

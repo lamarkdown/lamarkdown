@@ -10,15 +10,15 @@ from typing import Any, Union
 
 class BuildParamsException(Exception): pass
 
-def __params():
+def _params():
     if BuildParams.current is None:
         raise BuildParamsException(f'Build params not yet initialised')
     return BuildParams.current
 
 
-def use(*module_names, pkg = 'lamarkdown'):
+def include(*module_names, pkg = 'lamarkdown'):
     """
-    Imports a build module, or modules, by name. You can also use the standard 'import' statement,
+    Applies a build module, or modules, by name. You can also use the standard 'import' statement,
     but that breaks on live updating, because we need build modules to reload in that case.
     """
 
@@ -36,13 +36,13 @@ def use(*module_names, pkg = 'lamarkdown'):
 
 
 def get_build_dir():
-    return __params().build_dir
+    return _params().build_dir
 
 def get_env():
-    return __params().env
+    return _params().env
 
 def get_params():
-    return __params()
+    return _params()
 
 def variant(name: str, classes: Union[str, list[str], None]):
     if classes is None:
@@ -51,7 +51,7 @@ def variant(name: str, classes: Union[str, list[str], None]):
         classes = [classes]
     else:
         classes = list(classes)
-    __params().variants[name] = classes
+    _params().variants[name] = classes
 
 def base_variant(classes: Union[str, list[str], None]):
     variant('', classes)
@@ -62,39 +62,36 @@ def variants(variant_dict = {}, **variant_kwargs):
     for name, classes in variant_kwargs.items():
         variant(name, classes)
 
-def extension(ext: Union[str,markdown.extensions.Extension], config: dict[str,Any] = None):
-    if config:
-        if isinstance(ext, markdown.extensions.Extension):
-            raise BuildParamsException('extension(): the 2nd "config" parameter is only supported when adding an extension by name (string). When adding an extension object directly, configure it directly.')
-        else:
-            __params().extension_configs[ext] = config
-
-    __params().extensions.append(ext)
-
 def extensions(*extensions: list[Union[str,markdown.extensions.Extension]]):
-    __params().extensions.extend(extensions)
+    _params().extensions.extend(extensions)
 
-def extension_configs(**configs: dict[str,dict[str,Any]]):
-    __params().extension_configs.update(configs)
+def config(configs: dict[str,dict[str,Any]]):
+    p = _params()    
+    exts = set(p.extensions)    
+    for key in configs.keys():
+        if key not in exts:
+            raise BuildParamsException(f'config(): "{key}" is not an applied markdown extension.')
+        
+    p.extension_configs.update(configs)
 
 def css(css: str):
-    __params().css += css + '\n'
+    _params().css += css + '\n'
 
-def css_files(css_files: list[str]):
-    __params().css_files.extend(css_files)
+def css_files(*css_files: list[str]):
+    _params().css_files.extend(css_files)
 
 def js(js: str):
-    __params().js += js + '\n'
+    _params().js += js + '\n'
 
-def js_files(js_files: list[str]):
-    __params().js_files.extend(js_files)
+def js_files(*js_files: list[str]):
+    _params().js_files.extend(js_files)
 
 def wrap_content(start: str, end: str):
-    p = __params()
+    p = _params()
     p.content_start = start + p.content_start
-    p.content_end += content_end
+    p.content_end += end
 
 def wrap_content_inner(start: str, end: str):
-    p = __params()
+    p = _params()
     p.content_start += start
     p.content_end = end + p.content_end

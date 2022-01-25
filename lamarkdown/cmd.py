@@ -1,6 +1,6 @@
-import lamarkdown as md
+from lamarkdown import *
 
-md.css(r'''
+css(r'''
     .unixcmd::before, .wincmd::before, [prompt]::before, .unixcmd br+::before, .wincmd br+::before, [prompt] br+::before {
         font-family: 'Inconsolata', monospace;
         color: #808080;

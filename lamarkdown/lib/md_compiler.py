@@ -1,5 +1,6 @@
 from lamarkdown.lib import build_params
 from lamarkdown.ext import pruner
+import markdown
 import html
 import importlib.util
 import locale
@@ -23,16 +24,18 @@ def compile(buildParams: build_params.BuildParams):
                 moduleSpec.loader.exec_module(buildMod)
             except Exception as e:
                 raise CompileException from e
+            
+            buildParams.env.update(buildMod.__dict__)
 
 
     if buildParams.variants:
         allClasses = {cls for classSpec in buildParams.variants.values()
-                          for cls in variantClassList(classSpec)}
+                          for cls in classSpec}
         baseMdExtensions = buildParams.extensions
 
         for variant, retainedClasses in buildParams.variants.items():
 
-            pruneClasses = allClasses.difference(variantClassList(retainedClasses))
+            pruneClasses = allClasses.difference(retainedClasses)
             if pruneClasses:
                 prunerExt = pruner.PrunerExtension(classes=pruneClasses)
                 buildParams.extensions = baseMdExtensions + [prunerExt]
@@ -61,7 +64,6 @@ def compileVariant(buildParams: build_params.BuildParams, altTargetFile: str = N
 
     # TODO: we could run the 'slimit' Javascript minifier here.
 
-    import markdown
     md = markdown.Markdown(extensions = buildParams.extensions,
                            extension_configs = buildParams.extension_configs)
 

@@ -1,11 +1,15 @@
-import lamarkdown as md
+from lamarkdown import *
 
-md.extension('toc', {
-    'title': 'Contents',
-    'toc_depth': '2-6'
+extensions('toc')
+
+config({
+    'toc': {
+        'title': 'Contents',
+        'toc_depth': '2-6',
+    }
 })
 
-md.css(r'''
+css(r'''
     @media screen {
         .toc {
             position: fixed;

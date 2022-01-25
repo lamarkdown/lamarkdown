@@ -1,5 +1,7 @@
 import lamarkdown as md
 
+md.extensions('admonition')
+
 md.css(r'''
     [nmarks]:not([nmarks="1"])::after {
         content: "[" attr(nmarks) " marks]";
@@ -24,5 +26,10 @@ md.css(r'''
         position: absolute;
         right: 0pt;
         bottom: 0pt;
+    }
+    
+    .admonition.answer {
+        border: 1px solid #c000c0;
+        background: #ffe0ff;
     }
 ''')

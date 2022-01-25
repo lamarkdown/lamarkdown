@@ -9,6 +9,7 @@ import os.path
 import re
 import threading
 import time
+import traceback
 import webbrowser
 
 
@@ -175,7 +176,9 @@ def watchLive(buildParams: build_params.BuildParams):
                     md_compiler.compile(buildParams)
                     content.update(buildParams)
                 except Exception as e:
-                    print(e)
+                    print('---')
+                    traceback.print_exception(e)
+                    print('---')
 
     paths = {os.path.dirname(p) for p in [buildParams.src_file] + buildParams.build_files if p}
 

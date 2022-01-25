@@ -3,7 +3,7 @@ import re
 from xml.etree import ElementTree
 
 
-class MarkerElementProcessor(markdown.treeprocessors.Treeprocessor):
+class MarkersProcessor(markdown.treeprocessors.Treeprocessor):
     REGEX = re.compile('/(\{[^}]*\})')
     
     def __init__(self, md):
@@ -22,11 +22,11 @@ class MarkerElementProcessor(markdown.treeprocessors.Treeprocessor):
     
 
 
-class MarkerElementExtension(markdown.Extension):
+class MarkersExtension(markdown.Extension):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
     def extendMarkdown(self, md):
-        proc = MarkerElementProcessor(md)
-        md.treeprocessors.register(proc, 'marker_elements', 100)
+        proc = MarkersProcessor(md)
+        md.treeprocessors.register(proc, 'lamarkdown.markers', 100)
         

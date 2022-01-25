@@ -34,5 +34,5 @@ class PrunerExtension(markdown.Extension):
         
     def extendMarkdown(self, md):
         proc = PrunerTreeProcessor(md, set(self.getConfig('classes')))
-        md.treeprocessors.register(proc, 'pruner', -100)
+        md.treeprocessors.register(proc, 'lamarkdown.pruner', -100)
         
