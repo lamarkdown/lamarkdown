@@ -24,6 +24,8 @@ method of embedding SVG, optional common Latex code to be inserted after '\\docu
 
 # Originally adapted from https://github.com/neapel/tikz-markdown, but since modified extensively
 
+from lamarkdown.lib import error
+
 from markdown import *
 from markdown.extensions import *
 from markdown.extensions.attr_list import AttrListTreeprocessor
@@ -43,19 +45,25 @@ from xml.etree import ElementTree
 
 
 class CommandException(Exception):
-    def __init__(self, command: Union[str,list[str]], msg: str):
-        if isinstance(command, list):
-            command = " ".join(command)
-        super().__init__(f'Command "{command}" {msg}')
+    def __init__(self, msg: str, output: str):
+        super().__init__(msg)
+        self.output = output
 
 class SyntaxException(Exception): pass
 
 def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs):
     start_time = time.time_ns()
+    command_str = ' '.join(command) if isinstance(command, list) else command
 
-    proc = subprocess.run(command, shell=isinstance(command, str), **kwargs)
+    proc = subprocess.run(command,
+                          shell=isinstance(command, str),
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT,
+                          **kwargs)
     if proc.returncode != 0:
-        raise CommandException(command, f'reported error code {proc.returncode}')
+        raise CommandException(
+            f'Command "{command_str}" reported error code {proc.returncode}',
+            proc.stdout)
 
     try:
         file_time = os.stat(expected_output_file).st_mtime_ns
@@ -63,7 +71,9 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
         file_time = 0
 
     if file_time < start_time:
-        raise CommandException(command, f'did not create expected file "{expected_output_file}"')
+        raise CommandException(
+            f'Command "{command_str}" did not create expected file "{expected_output_file}"',
+            proc.stdout)
 
 
 
@@ -274,7 +284,12 @@ class LatexBlockProcessor(BlockProcessor):
 
         latexEnd = latex.rfind(end)
         if latexEnd < 0:
-            raise SyntaxException(f'Couldn\'t find closing "{end}" for latex code """{latex}"""')
+            #raise SyntaxException(f'Couldn\'t find closing "{end}" for latex code """{latex}"""')
+            begin = latex.lstrip().split('\n', 1)[0]
+            parent.append(error.with_message(
+                f'Couldn\'t find closing "{end}" after "{begin}"', latex))
+            return
+
         latexEnd += len(end)
 
         if latexEnd >= 0:
@@ -305,18 +320,22 @@ class LatexBlockProcessor(BlockProcessor):
             with open(tex_file, 'w') as f:
                 f.write(formatter.format(self.prepend, latex))
 
-            check_run(
-                self.tex_cmdline,
-                pdf_file,
-                cwd=fileBuildDir,
-                env={**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
-            )
+            try:
+                check_run(
+                    self.tex_cmdline,
+                    pdf_file,
+                    cwd=fileBuildDir,
+                    env={**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
+                )
 
-            check_run(
-                self.converter_cmdline,
-                svg_file,
-                cwd=fileBuildDir
-            )
+                check_run(
+                    self.converter_cmdline,
+                    svg_file,
+                    cwd=fileBuildDir
+                )
+            except CommandException as e:
+                parent.append(error.with_message(str(e), e.output))
+                return
 
             self.cache[input_repr] = self.embedder.generate_html(svg_file)
 
