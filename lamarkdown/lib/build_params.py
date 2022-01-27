@@ -1,5 +1,12 @@
-from __future__ import annotations # For Python 3.7 compatibility
+'''
+The 'build parameters' are all the information (apart from the source markdown file) needed to
+build a completed HTML document.
 
+This file also maintains a global instance of this state, BuildParams.current, which is accessed by
+build modules.
+'''
+
+from __future__ import annotations # For Python 3.7 compatibility
 import copy
 from dataclasses import dataclass, field, InitVar
 from typing import Any, ClassVar, Optional, Union

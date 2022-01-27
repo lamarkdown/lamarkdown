@@ -1,3 +1,13 @@
+'''
+Implements the '--live/-l' mode, to give the user immediate feedback while editing.
+
+We launch a simple web server, open a web browser, monitor source files (both the .md file and .py
+build modules), and reload the page when anything changes.
+
+*DO NOT* make this web server publically accessible. It is intended only as a productivity
+improvement for a single local user, and is not designed for security or performance.
+'''
+
 from lamarkdown.lib import md_compiler, build_params
 
 import watchdog.observers

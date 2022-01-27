@@ -7,11 +7,11 @@ def read(fname):
 setup(
     name = 'lamarkdown',
     version = '0.1',
+    description = 'A command-line tool for compiling a markdown document into a complete, static HTML page, using Python Markdown.',
     author = 'David J A Cooper',
     author_email = 'david.cooper@curtin.edu.au',
-    description = ('A command-line tool for compiling a markdown document into a complete, static HTML page, using Python Markdown.'),
     long_description = read('README.md'),
-    license = 'BSD',
+    license = 'MIT',
     keywords = 'markdown',
     url = 'https://bitbucket.org/cooperdja/lamarkdown',
     install_requires=[
@@ -30,4 +30,21 @@ setup(
             'lamarkdown.sections = lamarkdown.ext.sections:SectionsExtension',
         ]
     },
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Intended Audience :: Education',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Topic :: Documentation',
+        'Topic :: Text Processing :: Markup :: Markdown',
+    ]
 )

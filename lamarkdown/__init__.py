@@ -1,12 +1,18 @@
+'''
+# Build Module API
+
+The functions here are to be used by build modules (md_build.py, etc) to define extensions,
+variants, css styles, etc. Build modules just need to 'import lamarkdown'.
+
+(The get_params() function further exposes the BuildParams object directly, which permits greater
+flexibility.)
+'''
+
 from lamarkdown.lib.build_params import BuildParams
 import markdown
 import importlib
 from typing import Any, Union
 
-# The functions defined here form (most of) the API exposed to md_build.py setup files.
-#
-# (The get_params() function further exposes the BuildParams object directly, which permits greater
-# flexibility.)
 
 class BuildParamsException(Exception): pass
 
@@ -66,12 +72,12 @@ def extensions(*extensions: list[Union[str,markdown.extensions.Extension]]):
     _params().extensions.extend(extensions)
 
 def config(configs: dict[str,dict[str,Any]]):
-    p = _params()    
-    exts = set(p.extensions)    
+    p = _params()
+    exts = set(p.extensions)
     for key in configs.keys():
         if key not in exts:
             raise BuildParamsException(f'config(): "{key}" is not an applied markdown extension.')
-        
+
     p.extension_configs.update(configs)
 
 def css(css: str):

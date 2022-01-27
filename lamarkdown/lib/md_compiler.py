@@ -1,3 +1,11 @@
+'''
+This is where we invoke Python Markdown, but also:
+
+* We find and invoke the build modules ('md_build.py', etc.)
+* We determine what variants (if any) the document has.
+* We build the complete HTML document around Python Markdown's output.
+'''
+
 from lamarkdown.lib import build_params
 from lamarkdown.ext import pruner
 import markdown
@@ -24,7 +32,7 @@ def compile(buildParams: build_params.BuildParams):
                 moduleSpec.loader.exec_module(buildMod)
             except Exception as e:
                 raise CompileException from e
-            
+
             buildParams.env.update(buildMod.__dict__)
 
 
