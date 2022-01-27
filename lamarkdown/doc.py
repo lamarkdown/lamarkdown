@@ -12,9 +12,9 @@ md.extensions(
     'pymdownx.extra',
 
     # Lamarkdown internal extensions
-    'lamarkdown.latex',
-    'lamarkdown.eval',
-    'lamarkdown.markers',
+    'lamarkdown.ext.latex',
+    'lamarkdown.ext.eval',
+    'lamarkdown.ext.markers',
 )
 
 md.css(r'''
