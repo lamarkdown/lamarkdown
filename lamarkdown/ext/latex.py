@@ -76,12 +76,41 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
             proc.stdout)
 
 
+def get_blocks(blocks):
+    while blocks:
+        yield blocks.pop(0)
+     
+     
+HTML_COMMENT_REGEX = re.compile(f'<!--.*?-->', re.DOTALL)    
+     
+     
+def get_blocks_strip_html_comments(blocks):
+    in_comment = False
+    while blocks:
+        b = blocks.pop(0)
+        if in_comment:
+            if (i := b.find('-->')) != -1:
+                # Strip out comment started in a previous block
+                b = b[i + 3:]
+                in_comment = False
+                
+        if not in_comment:
+            # Strip out within-block any comments
+            b = HTML_COMMENT_REGEX.sub('', b)
+        
+            if (i := b.find('<!--')) != -1:
+                # Strip out start of multi-block comment
+                b = b[:i]
+                in_comment = True
+                
+            # Send on what's left of the block
+            yield b
+
 
 class LatexFormatter:
-    def extractBlocks(self, blocks) -> str:           raise NotImplementedError
+    def extractBlocks(self, block_generator) -> str:  raise NotImplementedError
     def end(self) -> str:                             raise NotImplementedError
     def format(self,prepend: str, latex: str) -> str: raise NotImplementedError
-
 
 
 class FullLatex(LatexFormatter):
@@ -89,9 +118,13 @@ class FullLatex(LatexFormatter):
 
     def extractBlocks(self, blocks) -> str:
         end = self.end()
-        latex = blocks.pop(0)
-        while blocks and not end in latex:
-            latex += '\n' + blocks.pop(0)
+        latex = ''
+        for block in blocks:
+            latex += '\n' + block
+            if end in block:
+                break
+            
+        return latex
 
     def end(self) -> str:
         return r'\end{document}'
@@ -112,21 +145,26 @@ class SingleEnvironment(LatexFormatter):
     def __init__(self, doc_class: str, doc_class_options: str):
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
-
+        
     def extractBlocks(self, blocks) -> str:
-        latex = blocks.pop(0)
-        match = self.START_REGEX.search(latex)
-        while blocks and not match:
-            nextBlock = blocks.pop(0)
-            latex += '\n' + nextBlock
-            match = self.START_REGEX.search(nextBlock)
-
+        block_iter = iter(blocks)        
+        match = False
+        latex = ''
+        for block in block_iter:
+            latex += '\n' + block
+            match = self.START_REGEX.search(block)
+            if match:
+                break
+            
         if match:
             self._start = match.group(0)
             self._envName = match.group(1)
             self._end = f'\\end{{{self._envName}}}'
-            while blocks and not self._end in latex:
-                latex += '\n' + blocks.pop(0)
+            
+            for block in block_iter:
+                latex += '\n' + block
+                if self._end in block:
+                    break
 
         else:
             # This is an error. The following values are just to ensure the message is sensible.
@@ -218,8 +256,8 @@ class LatexBlockProcessor(BlockProcessor):
     cache = {}
 
     # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
-    ATTR_RE = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
-
+    ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
+    
     TEX_CMDLINES = {
         'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
         'xelatex':  ['xelatex', '-interaction', 'nonstopmode', 'job'],
@@ -236,7 +274,8 @@ class LatexBlockProcessor(BlockProcessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str, prepend: str, doc_class: str, doc_class_options: str):
+    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str, 
+                 prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
         super().__init__(parser)
         self.build_dir = build_dir
 
@@ -256,6 +295,7 @@ class LatexBlockProcessor(BlockProcessor):
         self.prepend = prepend
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
+        self.strip_html_comments = strip_html_comments
 
 
     def reset(self):
@@ -273,14 +313,37 @@ class LatexBlockProcessor(BlockProcessor):
 
 
     def run(self, parent, blocks):
-
+        # Which of the two forms of Latex code determines how we discover the end of the snippet,
+        # and of course how we build the complete .tex file.
         if blocks[0].lstrip().startswith(r'\documentclass'):
             formatter = FullLatex()
         else:
             formatter = SingleEnvironment(self.doc_class, self.doc_class_options)
 
-        latex = formatter.extractBlocks(blocks)
+        # The process of extracting blocks must be HTML-comment-aware (if we're intending to 
+        # strip such comments), because one of the sentinel strings we're looking for may first be
+        # within a comment.
+        if self.strip_html_comments:
+            block_iter = get_blocks_strip_html_comments(blocks)
+        else:
+            block_iter = get_blocks(blocks)
+
+        latex = formatter.extractBlocks(block_iter)
         end = formatter.end()
+        
+        # Run postprocessors. Python markdown's _pre_processors replace certain constructs 
+        # (particularly HTML snippets) with special "placeholders" (containing invalid characters). 
+        # These are again replaced by postprocessors once all the block processing and tree 
+        # manipulation is done.
+        #
+        # Except the 'latex' code we have is not subject to that process. We have to explicitly 
+        # run the postprocessors here so that Latex doesn't encounter the raw placeholder text.
+        for post_proc in self.parser.md.postprocessors:
+            latex = post_proc.run(latex)
+            
+        # But now that we've done that, we may have additional HTML comments to strip out:
+        if self.strip_html_comments:
+            latex = HTML_COMMENT_REGEX.sub('', latex)
 
         latexEnd = latex.rfind(end)
         if latexEnd < 0:
@@ -300,11 +363,11 @@ class LatexBlockProcessor(BlockProcessor):
         else:
             # \end{...} is missing. This will be an error anyway at some point.
             postText = ''
-
+            
         # Build a representation of all the input information sources.
         input_repr = repr((latex,
                            self.tex_cmdline, self.converter_cmdline, self.embedding,
-                           self.prepend, self.doc_class, self.doc_class_options))
+                           self.prepend, self.doc_class, self.doc_class_options, self.strip_html_comments))
 
         # If not in cache, compile it.
         if input_repr not in self.cache:
@@ -345,7 +408,7 @@ class LatexBlockProcessor(BlockProcessor):
         element = copy.copy(self.cache.get(input_repr))
 
         if postText:
-            match = self.ATTR_RE.match(postText)
+            match = self.ATTR_REGEX.match(postText)
             if match:
                 # Hijack parts of the attr_list extension to handle the attribute list we've just
                 # found here.
@@ -385,7 +448,7 @@ class LatexExtension(Extension, BlockProcessor):
                 'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'
             ],
             'pdf_svg_converter': [
-                'pdf2svg',
+                'dvisvgm',
                 'Program used to convert PDF files (produced by Tex) to SVG files to be embedded in the HTML output. Generally, this should be a complete command-line containing the strings "in.pdf" and "out.svg" (which will be replaced with the real names as needed). However, it can also be simply  "dvisvgm", "pdf2svg" or "inkscape", in which case pre-defined command-lines for those commands will be used.'
             ],
             'embedding': [
@@ -403,6 +466,10 @@ class LatexExtension(Extension, BlockProcessor):
             'doc_class_options': [
                 '',
                 'Options provided to the Latex document class, as a single string.'
+            ],
+            'strip_html_comments': [
+                True,
+                r'Considers "<!--...-->" to be a comment, and removes them before compiling with Latex. Latex would (in most cases) interpret these sequences as ordinary characters, whereas in markdown they would normally be (effectively) ignored. If you need to write a literal "<!--", you can do so by inserting "{}" between the characters. (This option does not affect normal Tex "%" comments.)'
             ]
         }
         super().__init__(**kwargs)
@@ -415,13 +482,14 @@ class LatexExtension(Extension, BlockProcessor):
 
         self.processor = LatexBlockProcessor(
             md.parser,
-            build_dir         = self.getConfig('build_dir'),
-            tex               = self.getConfig('tex'),
-            pdf_svg_converter = self.getConfig('pdf_svg_converter'),
-            embedding         = self.getConfig('embedding'),
-            prepend           = self.getConfig('prepend'),
-            doc_class         = self.getConfig('doc_class'),
-            doc_class_options = self.getConfig('doc_class_options'),
+            build_dir           = self.getConfig('build_dir'),
+            tex                 = self.getConfig('tex'),
+            pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
+            embedding           = self.getConfig('embedding'),
+            prepend             = self.getConfig('prepend'),
+            doc_class           = self.getConfig('doc_class'),
+            doc_class_options   = self.getConfig('doc_class_options'),
+            strip_html_comments = self.getConfig('strip_html_comments'),
         )
 
         # Priority must be:
