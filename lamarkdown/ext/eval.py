@@ -20,25 +20,24 @@ WARNING: **this has security implications!** This extension should not be enable
 question about whether to trust the author of the markdown.
 '''
 
+from lamarkdown.lib import error
 import markdown
 import re
 from xml.etree import ElementTree
 
 
 class EvalInlineProcessor(markdown.inlinepatterns.InlineProcessor):
-    ERROR_STYLE = 'font-weight: bold; color: white; background: #800000;'
-
     def __init__(self, regex, md, env):
         super().__init__(regex, md)
         self.env = env
 
     def handleMatch(self, match, data):
-        element = ElementTree.Element('span')
         try:
+            element = ElementTree.Element('span')
             element.text = str(eval(match.group('code'), self.env))
         except Exception as e:
-            element.text = str(e)
-            element.attrib['style'] = self.ERROR_STYLE
+            element = error.from_exception('eval', e, match.group('code'))
+
         return element, match.start(0), match.end(0)
 
 

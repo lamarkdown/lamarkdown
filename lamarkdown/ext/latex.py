@@ -56,9 +56,10 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
     command_str = ' '.join(command) if isinstance(command, list) else command
 
     proc = subprocess.run(command,
-                          shell=isinstance(command, str),
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT,
+                          shell = isinstance(command, str),
+                          stdout = subprocess.PIPE,
+                          stderr = subprocess.STDOUT,
+                          encoding = 'utf-8',
                           **kwargs)
     if proc.returncode != 0:
         raise CommandException(
@@ -79,11 +80,11 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
 def get_blocks(blocks):
     while blocks:
         yield blocks.pop(0)
-     
-     
-HTML_COMMENT_REGEX = re.compile(f'<!--.*?-->', re.DOTALL)    
-     
-     
+
+
+HTML_COMMENT_REGEX = re.compile(f'<!--.*?-->', re.DOTALL)
+
+
 def get_blocks_strip_html_comments(blocks):
     in_comment = False
     while blocks:
@@ -93,16 +94,16 @@ def get_blocks_strip_html_comments(blocks):
                 # Strip out comment started in a previous block
                 b = b[i + 3:]
                 in_comment = False
-                
+
         if not in_comment:
             # Strip out within-block any comments
             b = HTML_COMMENT_REGEX.sub('', b)
-        
+
             if (i := b.find('<!--')) != -1:
                 # Strip out start of multi-block comment
                 b = b[:i]
                 in_comment = True
-                
+
             # Send on what's left of the block
             yield b
 
@@ -123,7 +124,7 @@ class FullLatex(LatexFormatter):
             latex += '\n' + block
             if end in block:
                 break
-            
+
         return latex
 
     def end(self) -> str:
@@ -145,26 +146,28 @@ class SingleEnvironment(LatexFormatter):
     def __init__(self, doc_class: str, doc_class_options: str):
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
-        
+
     def extractBlocks(self, blocks) -> str:
-        block_iter = iter(blocks)        
+        block_iter = iter(blocks)
         match = False
         latex = ''
         for block in block_iter:
             latex += '\n' + block
             match = self.START_REGEX.search(block)
             if match:
+                first_block = block
                 break
-            
+
         if match:
             self._start = match.group(0)
             self._envName = match.group(1)
             self._end = f'\\end{{{self._envName}}}'
-            
-            for block in block_iter:
-                latex += '\n' + block
-                if self._end in block:
-                    break
+
+            if not self._end in first_block:
+                for block in block_iter:
+                    latex += '\n' + block
+                    if self._end in block:
+                        break
 
         else:
             # This is an error. The following values are just to ensure the message is sensible.
@@ -185,13 +188,14 @@ class SingleEnvironment(LatexFormatter):
         if self._envName != 'document':
             main = r'\begin{document}' + main + r'\end{document}'
 
-        return f'''
-            \\documentclass[{self.doc_class_options}]{{{self.doc_class}}}
-            {prepend}
-            \\usepackage{{tikz}}
-            {preamble}
-            {main}
-            '''
+        return (
+            f'\\documentclass[{self.doc_class_options}]{{{self.doc_class}}}\n' +
+            prepend +
+            f'\\usepackage{{tikz}}' +
+            preamble +
+            main
+        )
+
 
 
 class Embedder:
@@ -257,10 +261,10 @@ class LatexBlockProcessor(BlockProcessor):
 
     # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
     ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
-    
+
     TEX_CMDLINES = {
-        'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
-        'xelatex':  ['xelatex', '-interaction', 'nonstopmode', 'job'],
+        'pdflatex': ['pdflatex', '-interaction', 'scrollmode', 'job'],
+        'xelatex':  ['xelatex', '-interaction', 'scrollmode', 'job'],
     }
 
     CONVERTER_CMDLINES = {
@@ -274,7 +278,7 @@ class LatexBlockProcessor(BlockProcessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str, 
+    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str,
                  prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
         super().__init__(parser)
         self.build_dir = build_dir
@@ -320,7 +324,7 @@ class LatexBlockProcessor(BlockProcessor):
         else:
             formatter = SingleEnvironment(self.doc_class, self.doc_class_options)
 
-        # The process of extracting blocks must be HTML-comment-aware (if we're intending to 
+        # The process of extracting blocks must be HTML-comment-aware (if we're intending to
         # strip such comments), because one of the sentinel strings we're looking for may first be
         # within a comment.
         if self.strip_html_comments:
@@ -330,40 +334,36 @@ class LatexBlockProcessor(BlockProcessor):
 
         latex = formatter.extractBlocks(block_iter)
         end = formatter.end()
-        
-        # Run postprocessors. Python markdown's _pre_processors replace certain constructs 
-        # (particularly HTML snippets) with special "placeholders" (containing invalid characters). 
-        # These are again replaced by postprocessors once all the block processing and tree 
+
+        # Run postprocessors. Python markdown's _pre_processors replace certain constructs
+        # (particularly HTML snippets) with special "placeholders" (containing invalid characters).
+        # These are again replaced by postprocessors once all the block processing and tree
         # manipulation is done.
         #
-        # Except the 'latex' code we have is not subject to that process. We have to explicitly 
+        # Except the 'latex' code we have is not subject to that process. We have to explicitly
         # run the postprocessors here so that Latex doesn't encounter the raw placeholder text.
         for post_proc in self.parser.md.postprocessors:
             latex = post_proc.run(latex)
-            
+
         # But now that we've done that, we may have additional HTML comments to strip out:
         if self.strip_html_comments:
             latex = HTML_COMMENT_REGEX.sub('', latex)
 
         latexEnd = latex.rfind(end)
         if latexEnd < 0:
-            #raise SyntaxException(f'Couldn\'t find closing "{end}" for latex code """{latex}"""')
             begin = latex.lstrip().split('\n', 1)[0]
             parent.append(error.with_message(
-                f'Couldn\'t find closing "{end}" after "{begin}"', latex))
+                'latex',
+                f'Couldn\'t find closing "{end}" after "{begin}"',
+                latex))
             return
 
+        # There could be some extra 'postText' after the last \end{...}, which might contain (for
+        # instance) an attribute list.
         latexEnd += len(end)
+        postText = latex[latexEnd:].strip()
+        latex = latex[:latexEnd]
 
-        if latexEnd >= 0:
-            # There is possibly some extra text 'postText' after the last \end{...}, which
-            # might contain (for instance) an attribute list.
-            postText = latex[latexEnd:].strip()
-            latex = latex[:latexEnd]
-        else:
-            # \end{...} is missing. This will be an error anyway at some point.
-            postText = ''
-            
         # Build a representation of all the input information sources.
         input_repr = repr((latex,
                            self.tex_cmdline, self.converter_cmdline, self.embedding,
@@ -380,8 +380,13 @@ class LatexBlockProcessor(BlockProcessor):
             pdf_file = os.path.join(fileBuildDir, 'job.pdf')
             svg_file = os.path.join(fileBuildDir, 'job.svg')
 
-            with open(tex_file, 'w') as f:
-                f.write(formatter.format(self.prepend, latex))
+            try:
+                with open(tex_file, 'w') as f:
+                    full_doc = formatter.format(self.prepend, latex)
+                    f.write(full_doc)
+            except OSError as e:
+                parent.append(error.from_exception('latex', e))
+                return
 
             try:
                 check_run(
@@ -397,7 +402,7 @@ class LatexBlockProcessor(BlockProcessor):
                     cwd=fileBuildDir
                 )
             except CommandException as e:
-                parent.append(error.with_message(str(e), e.output))
+                parent.append(error.with_message('latex', str(e), e.output, full_doc))
                 return
 
             self.cache[input_repr] = self.embedder.generate_html(svg_file)
