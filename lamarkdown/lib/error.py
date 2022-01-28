@@ -13,7 +13,7 @@ TITLE_STYLE = 'font-weight: bold; color: white;'
 WHERE_STYLE = 'color: yellow;'
 DETAILS_STYLE = ''
 
-MAX_ROWS = 50
+MAX_ROWS = 30
 MAX_COLS = 110
 
 def with_message(where: str, title: str, *details_list: list[str]) -> ElementTree.Element:
@@ -33,7 +33,7 @@ def with_message(where: str, title: str, *details_list: list[str]) -> ElementTre
             details_elem = ElementTree.SubElement(panel_elem,
                 'textarea',
                 style = DETAILS_STYLE,
-                rows = str(details.count('\n') + 1),
+                rows = str(max(1, min(MAX_ROWS, details.count('\n') + 1))),
                 cols = cols,
                 readonly = ''
             )

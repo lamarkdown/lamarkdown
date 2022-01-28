@@ -63,7 +63,7 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
                           **kwargs)
     if proc.returncode != 0:
         raise CommandException(
-            f'Command "{command_str}" reported error code {proc.returncode}',
+            f'"{command_str}" returned error code {proc.returncode}',
             proc.stdout)
 
     try:
@@ -73,7 +73,7 @@ def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs
 
     if file_time < start_time:
         raise CommandException(
-            f'Command "{command_str}" did not create expected file "{expected_output_file}"',
+            f'"{command_str}" did not create expected file "{expected_output_file}"',
             proc.stdout)
 
 
@@ -263,8 +263,8 @@ class LatexBlockProcessor(BlockProcessor):
     ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
 
     TEX_CMDLINES = {
-        'pdflatex': ['pdflatex', '-interaction', 'scrollmode', 'job'],
-        'xelatex':  ['xelatex', '-interaction', 'scrollmode', 'job'],
+        'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
+        'xelatex':  ['xelatex', '-interaction', 'nonstopmode', 'job'],
     }
 
     CONVERTER_CMDLINES = {
