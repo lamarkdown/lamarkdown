@@ -187,7 +187,7 @@ def watchLive(buildParams: build_params.BuildParams):
                     content.update(buildParams)
                 except Exception as e:
                     print('---')
-                    traceback.print_exc(e)
+                    traceback.print_exc()
                     print('---')
 
     paths = {os.path.dirname(p) for p in [buildParams.src_file] + buildParams.build_files if p}
