@@ -20,7 +20,7 @@ WARNING: **this has security implications!** This extension should not be enable
 question about whether to trust the author of the markdown.
 '''
 
-from lamarkdown.lib import error
+from lamarkdown.lib.error import Error
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 import re
@@ -37,7 +37,7 @@ class EvalInlineProcessor(InlineProcessor):
             element = ElementTree.Element('span')
             element.text = str(eval(match.group('code'), self.env))
         except Exception as e:
-            element = error.from_exception('eval', e, match.group('code'))
+            element = Error.from_exception('eval', e, match.group('code')).to_element()
 
         return element, match.start(0), match.end(0)
 

@@ -24,7 +24,7 @@ method of embedding SVG, optional common Latex code to be inserted after '\\docu
 
 # Originally adapted from https://github.com/neapel/tikz-markdown, but since modified extensively
 
-from lamarkdown.lib import error
+from lamarkdown.lib.error import Error
 
 from markdown import *
 from markdown.extensions import *
@@ -354,10 +354,11 @@ class LatexBlockProcessor(BlockProcessor):
         latex_end = latex.rfind(end)
         if latex_end < 0:
             begin = latex.lstrip().split('\n', 1)[0]
-            parent.append(error.with_message(
-                'latex',
-                f'Couldn\'t find closing "{end}" after "{begin}"',
-                latex))
+            parent.append(
+                Error('latex',
+                      f'Couldn\'t find closing "{end}" after "{begin}"',
+                      latex).to_element()
+            )
             return
 
         # There could be some extra 'post_text' after the last \end{...}, which might contain (for
@@ -387,7 +388,7 @@ class LatexBlockProcessor(BlockProcessor):
                     full_doc = formatter.format(self.prepend, latex)
                     f.write(full_doc)
             except OSError as e:
-                parent.append(error.from_exception('latex', e))
+                parent.append(Error.from_exception('latex', e).to_element())
                 return
 
             try:
@@ -404,7 +405,7 @@ class LatexBlockProcessor(BlockProcessor):
                     cwd = file_build_dir
                 )
             except CommandException as e:
-                parent.append(error.with_message('latex', str(e), e.output, full_doc))
+                parent.append(Error('latex', str(e), e.output, full_doc).to_element())
                 return
 
             self.cache[input_repr] = self.embedder.generate_html(svg_file)
