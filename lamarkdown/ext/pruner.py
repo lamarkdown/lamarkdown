@@ -6,22 +6,23 @@ same source.
 '''
 
 import markdown
+from typing import Set
 from xml.etree import ElementTree
 
 
 class PrunerTreeProcessor(markdown.treeprocessors.Treeprocessor):
-    def __init__(self, md, pruneClasses: set[str]):
+    def __init__(self, md, prune_classes: Set[str]):
         super().__init__(md)
-        self.pruneClasses = pruneClasses
+        self.prune_classes = prune_classes
 
     def run(self, root):
-        pruneElements = []
+        prune_elements = []
         for element in root:
-            elementClasses = (element.attrib.get('class') or '').split()
-            if not self.pruneClasses.isdisjoint(elementClasses):
-                pruneElements.append(element)
+            element_classes = (element.attrib.get('class') or '').split()
+            if not self.prune_classes.isdisjoint(element_classes):
+                prune_elements.append(element)
 
-        for element in pruneElements:
+        for element in prune_elements:
             root.remove(element)
 
         # Recurse

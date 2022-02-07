@@ -8,7 +8,8 @@ build modules), and reload the page when anything changes.
 improvement for a single local user, and is not designed for security or performance.
 '''
 
-from lamarkdown.lib import md_compiler, build_params
+from lamarkdown.lib import md_compiler
+from lamarkdown.lib.build_params import BuildParams
 
 import watchdog.observers
 import watchdog.events
@@ -29,28 +30,28 @@ class Content:
     def __init__(self):
         self.filename = {}
         self.title = {}
-        self.fullHtml = {}
-        self.updateN = 0
+        self.full_html = {}
+        self.update_n = 0
         self.path = {}
 
-    def update(self, buildParams: build_params.BuildParams):
+    def update(self, build_params: BuildParams):
         self.title = {}
-        self.fullHtml = {}
-        for variant, targetFile in buildParams.target_files.items():
-            with open(targetFile) as f:
-                fullHtml = f.read()
+        self.full_html = {}
+        for variant, target_file in build_params.target_files.items():
+            with open(target_file) as f:
+                full_html = f.read()
 
-            match = re.search('<title[^>]*>(.*?)</\s*title\s*>', fullHtml, flags = re.IGNORECASE | re.DOTALL)
+            match = re.search('<title[^>]*>(.*?)</\s*title\s*>', full_html, flags = re.IGNORECASE | re.DOTALL)
             self.title[variant] = match[1] if match else '[No Title]'
-            self.fullHtml[variant] = fullHtml
-            self.filename[variant] = os.path.basename(targetFile)
-            self.path[variant] = os.path.dirname(targetFile)
+            self.full_html[variant] = full_html
+            self.filename[variant] = os.path.basename(target_file)
+            self.path[variant] = os.path.dirname(target_file)
 
-        self.updateN += 1
+        self.update_n += 1
 
 
 
-def getHandler(content: Content):
+def get_handler(content: Content):
 
     class _handler(http.server.BaseHTTPRequestHandler):
 
@@ -70,7 +71,7 @@ def getHandler(content: Content):
                                     .then(response => response.text())
                                     .then(text =>
                                     {{
-                                        if(text != '{content.updateN}')
+                                        if(text != '{content.update_n}')
                                         {{
                                             document.location.reload();
                                         }}
@@ -81,7 +82,7 @@ def getHandler(content: Content):
                     </script>
                     </head>
                 ''',
-                content.fullHtml[variant]
+                content.full_html[variant]
             )
 
             if len(content.title) >= 2:
@@ -135,7 +136,7 @@ def getHandler(content: Content):
                 self.send_response(200)
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
-                self.wfile.write(str(content.updateN).encode('utf-8'))
+                self.wfile.write(str(content.update_n).encode('utf-8'))
 
             elif (
                 (match := re.fullmatch(f'/(?P<variant>[^/]*)/?index.html', self.path)) and
@@ -174,23 +175,23 @@ def getHandler(content: Content):
 
 
 
-def watchLive(buildParams: build_params.BuildParams):
+def watch_live(build_params: BuildParams):
 
     content = Content()
-    content.update(buildParams)
+    content.update(build_params)
 
     class SourceFileEventHandler(watchdog.events.FileSystemEventHandler):
         def on_closed(self, event): # When something else finishes writing to a file
-            if event.src_path == buildParams.src_file or event.src_path in buildParams.build_files:
+            if event.src_path == build_params.src_file or event.src_path in build_params.build_files:
                 try:
-                    md_compiler.compile(buildParams)
-                    content.update(buildParams)
+                    md_compiler.compile(build_params)
+                    content.update(build_params)
                 except Exception as e:
                     print('---')
                     traceback.print_exc()
                     print('---')
 
-    paths = {os.path.dirname(p) for p in [buildParams.src_file] + buildParams.build_files if p}
+    paths = {os.path.dirname(p) for p in [build_params.src_file] + build_params.build_files if p}
 
     handler = SourceFileEventHandler()
     observer = watchdog.observers.Observer()
@@ -199,13 +200,13 @@ def watchLive(buildParams: build_params.BuildParams):
     observer.start()
 
     try:
-        mainThread = threading.current_thread()
+        main_thread = threading.current_thread()
 
         # Iterate over a port range, and pick the first free port.
         for port in PORT_RANGE:
             try:
                 # Create the server. This attempts to bind to the given port.
-                server = http.server.HTTPServer(('', port), getHandler(content))
+                server = http.server.HTTPServer(('', port), get_handler(content))
 
             except OSError:
                 continue # Port in use; try next one.
@@ -216,12 +217,12 @@ def watchLive(buildParams: build_params.BuildParams):
                 # We want to open a web browser at the address we're serving, but not before the
                 # server is running. Hence, we start a new thread, which waits 0.5 secs while the
                 # main thread calls serve_forever(), then runs the browser.
-                def openBrowser():
+                def open_browser():
                     time.sleep(0.5)
                     webbrowser.open(f'http://localhost:{port}')
-                    mainThread.join()
+                    main_thread.join()
 
-                threading.Thread(target=openBrowser).start()
+                threading.Thread(target = open_browser).start()
                 break
 
         server.serve_forever()

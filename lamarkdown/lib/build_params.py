@@ -6,62 +6,52 @@ This file also maintains a global instance of this state, BuildParams.current, w
 build modules.
 '''
 
-from __future__ import annotations # For Python 3.7 compatibility
-import copy
-from dataclasses import dataclass, field, InitVar
-from typing import Any, ClassVar, Optional, Union
+from markdown.extensions import Extension
 
-def _list(): return field(default_factory=list)
-def _dict(): return field(default_factory=dict)
+import copy
+from dataclasses import dataclass, field
+from typing import Any, ClassVar, Dict, List, Optional, Union
+
 
 @dataclass
 class BuildParams:
-    current: ClassVar[Optional[BuildParams]] = None
+    current: ClassVar[Optional['BuildParams']] = None
 
-    src_file: InitVar[str]
-    target_file: InitVar[str]
-    build_files: InitVar[list[str]]
-    build_dir: InitVar[str]
+    # These fields are not intended to be modified once set:
+    src_file: str
+    target_file: str
+    build_files: List[str]
+    build_dir: str
 
-    variants: dict[str,list[str]] = _dict()
-    extensions: list[Union[str,markdown.extensions.Extension]] = _list()
-    extension_configs: dict[str,dict[str,Any]] = _dict()
-    css: str = ''
-    css_files: list[str] = _list()
-    js: str = ''
-    js_files: list[str] = _list()
-    content_start: str = ''
-    content_end: str = ''
-    env: dict[str,Any] = _dict()
-
-    def __post_init__(self, src_file: str, target_file: str, build_files: list[str], build_dir: str):
-        self.__src_file = src_file
-        self.__target_file = target_file
-        self.__build_files = build_files
-        self.__build_dir = build_dir
+    # These fields *are* modifiable by build modules:
+    variants:          Dict[str,List[str]]        = field(default_factory=dict)
+    extensions:        List[Union[str,Extension]] = field(default_factory=list)
+    extension_configs: Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    css:               str                        = ''
+    css_files:         List[str]                  = field(default_factory=list)
+    js:                str                        = ''
+    js_files:          List[str]                  = field(default_factory=list)
+    content_start:     str                        = ''
+    content_end:       str                        = ''
+    env:               Dict[str,Any]              = field(default_factory=dict)
 
     def set_current(self):
         BuildParams.current = self
 
-    @property
-    def src_file(self): return self.__src_file
-
-    @property
-    def target_file(self): return self.__target_file
-
-    @property
-    def build_files(self): return list(self.__build_files)
-
-    @property
-    def build_dir(self): return self.__build_dir
-
-
     def alt_target_file(self, variant):
-        target_base_name, target_file_ext = self.target_file.rsplit('.', 1)
-        return target_base_name + variant + '.' + target_file_ext
+        base, ext = self.target_file.rsplit('.', 1)
+        return base + variant + '.' + ext
 
     @property
-    def target_files(self) -> dict[str,str]:
+    def src_base(self):
+        return self.src_file.rsplit('.', 1)[0]
+
+    @property
+    def target_base(self):
+        return self.target_file.rsplit('.', 1)[0]
+
+    @property
+    def target_files(self) -> Dict[str,str]:
         if self.variants:
             target_base_name, target_file_ext = self.target_file.rsplit('.', 1)
             return {variant: f'{target_base_name}{variant}.{target_file_ext}' for variant in self.variants.keys()}

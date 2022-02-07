@@ -21,12 +21,13 @@ question about whether to trust the author of the markdown.
 '''
 
 from lamarkdown.lib import error
-import markdown
+from markdown.extensions import Extension
+from markdown.inlinepatterns import InlineProcessor
 import re
 from xml.etree import ElementTree
 
 
-class EvalInlineProcessor(markdown.inlinepatterns.InlineProcessor):
+class EvalInlineProcessor(InlineProcessor):
     def __init__(self, regex, md, env):
         super().__init__(regex, md)
         self.env = env
@@ -41,7 +42,7 @@ class EvalInlineProcessor(markdown.inlinepatterns.InlineProcessor):
         return element, match.start(0), match.end(0)
 
 
-class EvalExtension(markdown.extensions.Extension):
+class EvalExtension(Extension):
     def __init__(self, **kwargs):
         try:
             # Try to get the default environment (the set of names that the embedded snippet will
@@ -56,7 +57,7 @@ class EvalExtension(markdown.extensions.Extension):
             default_env = {}
 
         self.config = {
-            'env': [default_env, 'Environment in which to evaluate expressions'],
+            'env':       [default_env, 'Environment in which to evaluate expressions'],
             'start':     ['$', 'Character (or string) marking the start of an eval expression'],
             'end':       ['',  'Character (or string) marking the end of an eval expression'],
             'delimiter': ['`', 'Character (or string) enclosing an eval expression (after the start and before the end strings)'],

@@ -16,7 +16,7 @@ DETAILS_STYLE = ''
 MAX_ROWS = 30
 MAX_COLS = 110
 
-def with_message(where: str, title: str, *details_list: list[str]) -> ElementTree.Element:
+def with_message(where: str, title: str, *details_list: str) -> ElementTree.Element:
     panel_elem = ElementTree.Element('form', style = PANEL_STYLE)
     title_elem = ElementTree.SubElement(panel_elem, 'div', style = TITLE_STYLE)
     where_elem = ElementTree.SubElement(title_elem, 'span', style = WHERE_STYLE)
@@ -42,5 +42,5 @@ def with_message(where: str, title: str, *details_list: list[str]) -> ElementTre
     return panel_elem
 
 
-def from_exception(where: str, e: Exception, *details_list: list[str]) -> ElementTree.Element:
+def from_exception(where: str, e: Exception, *details_list: str) -> ElementTree.Element:
     return with_message(where, str(e), ''.join(traceback.format_exc()), *details_list)

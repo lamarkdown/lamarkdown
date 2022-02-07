@@ -40,7 +40,7 @@ import os
 import re
 import subprocess
 import time
-from typing import Union
+from typing import Dict, List, Union
 from xml.etree import ElementTree
 
 
@@ -51,7 +51,9 @@ class CommandException(Exception):
 
 class SyntaxException(Exception): pass
 
-def check_run(command: Union[str,list[str]], expected_output_file: str, **kwargs):
+def check_run(command: Union[str,List[str]],
+              expected_output_file: str,
+              **kwargs):
     start_time = time.time_ns()
     command_str = ' '.join(command) if isinstance(command, list) else command
 
@@ -109,15 +111,15 @@ def get_blocks_strip_html_comments(blocks):
 
 
 class LatexFormatter:
-    def extractBlocks(self, block_generator) -> str:  raise NotImplementedError
-    def end(self) -> str:                             raise NotImplementedError
-    def format(self,prepend: str, latex: str) -> str: raise NotImplementedError
+    def extract_blocks(self, block_generator) -> str:  raise NotImplementedError
+    def end(self) -> str:                              raise NotImplementedError
+    def format(self, prepend: str, latex: str) -> str: raise NotImplementedError
 
 
 class FullLatex(LatexFormatter):
     DOCUMENTCLASS_REGEX = re.compile(r'^[^%]*\documentclass\s*\[[^]*\]\s*\{[^}]*\}', re.MULTILINE)
 
-    def extractBlocks(self, blocks) -> str:
+    def extract_blocks(self, blocks) -> str:
         end = self.end()
         latex = ''
         for block in blocks:
@@ -147,9 +149,9 @@ class SingleEnvironment(LatexFormatter):
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
 
-    def extractBlocks(self, blocks) -> str:
+    def extract_blocks(self, blocks) -> str:
         block_iter = iter(blocks)
-        match = False
+        match = None
         latex = ''
         for block in block_iter:
             latex += '\n' + block
@@ -199,11 +201,11 @@ class SingleEnvironment(LatexFormatter):
 
 
 class Embedder:
-    def generate_html(self, svg_file: str) -> str: raise NotImplementedError
+    def generate_html(self, svg_file: str) -> ElementTree.Element: raise NotImplementedError
 
 
 class DataUriEmbedder(Embedder):
-    def generate_html(self, svg_file: str) -> str:
+    def generate_html(self, svg_file: str) -> ElementTree.Element:
         with open(svg_file) as reader:
             # Encode SVG data as a data URI in an <img> element.
             data_uri = f'data:image/svg+xml;base64,{base64.b64encode(reader.read().strip().encode()).decode()}'
@@ -214,7 +216,7 @@ class SvgElementEmbedder(Embedder):
     def __init__(self):
         self.svg_index = 0
 
-    def generate_html(self, svg_file: str) -> str:
+    def generate_html(self, svg_file: str) -> ElementTree.Element:
         with open(svg_file) as reader:
             svg_element = ElementTree.fromstring(reader.read())
 
@@ -257,7 +259,7 @@ class SvgElementEmbedder(Embedder):
 
 
 class LatexBlockProcessor(BlockProcessor):
-    cache = {}
+    cache: Dict[str,ElementTree.Element] = {}
 
     # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
     ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
@@ -283,12 +285,12 @@ class LatexBlockProcessor(BlockProcessor):
         super().__init__(parser)
         self.build_dir = build_dir
 
-        self.tex_cmdline: Union[list[str],str] = (
+        self.tex_cmdline: Union[List[str],str] = (
             self.TEX_CMDLINES.get(tex) or
             tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
         )
 
-        self.converter_cmdline: Union[list[str],str] = (
+        self.converter_cmdline: Union[List[str],str] = (
             self.CONVERTER_CMDLINES.get(pdf_svg_converter) or
             pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
         )
@@ -332,7 +334,7 @@ class LatexBlockProcessor(BlockProcessor):
         else:
             block_iter = get_blocks(blocks)
 
-        latex = formatter.extractBlocks(block_iter)
+        latex = formatter.extract_blocks(block_iter)
         end = formatter.end()
 
         # Run postprocessors. Python markdown's _pre_processors replace certain constructs
@@ -349,8 +351,8 @@ class LatexBlockProcessor(BlockProcessor):
         if self.strip_html_comments:
             latex = HTML_COMMENT_REGEX.sub('', latex)
 
-        latexEnd = latex.rfind(end)
-        if latexEnd < 0:
+        latex_end = latex.rfind(end)
+        if latex_end < 0:
             begin = latex.lstrip().split('\n', 1)[0]
             parent.append(error.with_message(
                 'latex',
@@ -358,11 +360,11 @@ class LatexBlockProcessor(BlockProcessor):
                 latex))
             return
 
-        # There could be some extra 'postText' after the last \end{...}, which might contain (for
+        # There could be some extra 'post_text' after the last \end{...}, which might contain (for
         # instance) an attribute list.
-        latexEnd += len(end)
-        postText = latex[latexEnd:].strip()
-        latex = latex[:latexEnd]
+        latex_end += len(end)
+        post_text = latex[latex_end:].strip()
+        latex = latex[:latex_end]
 
         # Build a representation of all the input information sources.
         input_repr = repr((latex,
@@ -373,12 +375,12 @@ class LatexBlockProcessor(BlockProcessor):
         if input_repr not in self.cache:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
-            fileBuildDir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
-            os.makedirs(fileBuildDir, exist_ok=True)
+            file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
+            os.makedirs(file_build_dir, exist_ok=True)
 
-            tex_file = os.path.join(fileBuildDir, 'job.tex')
-            pdf_file = os.path.join(fileBuildDir, 'job.pdf')
-            svg_file = os.path.join(fileBuildDir, 'job.svg')
+            tex_file = os.path.join(file_build_dir, 'job.tex')
+            pdf_file = os.path.join(file_build_dir, 'job.pdf')
+            svg_file = os.path.join(file_build_dir, 'job.svg')
 
             try:
                 with open(tex_file, 'w') as f:
@@ -392,14 +394,14 @@ class LatexBlockProcessor(BlockProcessor):
                 check_run(
                     self.tex_cmdline,
                     pdf_file,
-                    cwd=fileBuildDir,
-                    env={**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
+                    cwd = file_build_dir,
+                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                 )
 
                 check_run(
                     self.converter_cmdline,
                     svg_file,
-                    cwd=fileBuildDir
+                    cwd = file_build_dir
                 )
             except CommandException as e:
                 parent.append(error.with_message('latex', str(e), e.output, full_doc))
@@ -412,8 +414,8 @@ class LatexBlockProcessor(BlockProcessor):
         # conceivably be assigned different attributes below.
         element = copy.copy(self.cache.get(input_repr))
 
-        if postText:
-            match = self.ATTR_REGEX.match(postText)
+        if post_text:
+            match = self.ATTR_REGEX.match(post_text)
             if match:
                 # Hijack parts of the attr_list extension to handle the attribute list we've just
                 # found here.
@@ -425,7 +427,7 @@ class LatexBlockProcessor(BlockProcessor):
 
             else:
                 # Miscellaneous trailing text -- put it back on the queue
-                blocks.insert(0, postText)
+                blocks.insert(0, post_text)
 
         parent.append(element)
 

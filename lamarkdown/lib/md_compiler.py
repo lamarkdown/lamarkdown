@@ -6,7 +6,7 @@ This is where we invoke Python Markdown, but also:
 * We build the complete HTML document around Python Markdown's output.
 '''
 
-from lamarkdown.lib import build_params
+from lamarkdown.lib.build_params import BuildParams
 from lamarkdown.ext import pruner
 import markdown
 import html
@@ -14,52 +14,55 @@ import importlib.util
 import locale
 import os
 import re
+from typing import Dict, List
 
 
 class CompileException(Exception): pass
 
 
-def compile(buildParams: build_params.BuildParams):
+def compile(build_params: BuildParams):
 
-    buildParams.reset()
-    buildParams.set_current()
+    build_params.reset()
+    build_params.set_current()
 
-    for buildFile in buildParams.build_files:
-        if buildFile is not None and os.path.exists(buildFile):
-            moduleSpec = importlib.util.spec_from_file_location('buildfile', buildFile)
-            buildMod = importlib.util.module_from_spec(moduleSpec)
+    for build_file in build_params.build_files:
+        if build_file is not None and os.path.exists(build_file):
+            module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
+            if module_spec is None:
+                raise CompileException(f'Could not load build module "{build_file}"')
+            build_module = importlib.util.module_from_spec(module_spec)
             try:
-                moduleSpec.loader.exec_module(buildMod)
+                module_spec.loader.exec_module(build_module)
             except Exception as e:
                 raise CompileException from e
 
-            buildParams.env.update(buildMod.__dict__)
+            build_params.env.update(build_module.__dict__)
 
 
-    if buildParams.variants:
-        allClasses = {cls for classSpec in buildParams.variants.values()
-                          for cls in classSpec}
-        baseMdExtensions = buildParams.extensions
+    if build_params.variants:
+        all_classes = {cls for class_spec in build_params.variants.values()
+                           for cls in class_spec}
+        base_md_extensions = build_params.extensions
 
-        for variant, retainedClasses in buildParams.variants.items():
+        for variant, retained_classes in build_params.variants.items():
 
-            pruneClasses = allClasses.difference(retainedClasses)
-            if pruneClasses:
-                prunerExt = pruner.PrunerExtension(classes=pruneClasses)
-                buildParams.extensions = baseMdExtensions + [prunerExt]
+            prune_classes = all_classes.difference(retained_classes)
+            if prune_classes:
+                pruner_ext = pruner.PrunerExtension(classes = prune_classes)
+                build_params.extensions = base_md_extensions + [pruner_ext]
             else:
-                buildParams.extensions = baseMdExtensions
+                build_params.extensions = base_md_extensions
 
-            compileVariant(buildParams, altTargetFile = buildParams.alt_target_file(variant))
+            compile_variant(build_params, alt_target_file = build_params.alt_target_file(variant))
 
     else:
-        compileVariant(buildParams)
+        compile_variant(build_params)
 
 
-def compileVariant(buildParams: build_params.BuildParams, altTargetFile: str = None):
+def compile_variant(build_params: BuildParams, alt_target_file: str = None):
 
-    css = buildParams.css
-    js = buildParams.js
+    css = build_params.css
+    js = build_params.js
 
     # Strip CSS comments at the beginning of lines
     css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
@@ -72,42 +75,43 @@ def compileVariant(buildParams: build_params.BuildParams, altTargetFile: str = N
 
     # TODO: we could run the 'slimit' Javascript minifier here.
 
-    md = markdown.Markdown(extensions = buildParams.extensions,
-                           extension_configs = buildParams.extension_configs)
+    md = markdown.Markdown(extensions = build_params.extensions,
+                           extension_configs = build_params.extension_configs)
 
     with (
-        open(buildParams.src_file, 'r') as src,
-        open(altTargetFile or buildParams.target_file, 'w') as target
+        open(build_params.src_file, 'r') as src,
+        open(alt_target_file or build_params.target_file, 'w') as target
     ):
-        contentHtml = md.convert(src.read())
+        content_html = md.convert(src.read())
+        meta: Dict[str,List[str]] = md.__dict__.get('Meta', {})
 
         # Strip HTML comments
-        contentHtml = re.sub('<!--.*?-->', '', contentHtml, flags = re.DOTALL)
+        content_html = re.sub('<!--.*?-->', '', content_html, flags = re.DOTALL)
 
         # Default title, if we can't a better one
-        titleHtml = os.path.basename(buildParams.target_file.removesuffix('.html'))
+        title_html = os.path.basename(build_params.target_base)
 
         # Find a better title, first by checking the embedded metadata (if any)
-        if 'Meta' in md.__dict__ and 'title' in md.Meta:
-            titleHtml = html.escape(md.Meta['title'][0])
-            contentHtml = f'<h1>{titleHtml}</h1>\n{contentHtml}'
+        if 'title' in meta:
+            title_html = html.escape(meta['title'][0])
+            content_html = f'<h1>{title_html}</h1>\n{content_html}'
 
         else:
             # Then check the HTML heading tags
             for n in range(1, 7):
-                matches = re.findall(f'<h{n}[^>]*>(.*?)</\s*h{n}\s*>', contentHtml, flags = re.IGNORECASE | re.DOTALL)
+                matches = re.findall(f'<h{n}[^>]*>(.*?)</\s*h{n}\s*>', content_html, flags = re.IGNORECASE | re.DOTALL)
                 if matches:
                     if len(matches) == 1:
                         # Only use the <hN> element as a title if there's exactly one it, for
                         # whichever N is the lowest. e.g., if there's no <H1> elements but one
                         # <H2>, use the <H2>. But if there's two <H1> elements, we consider that
                         # to be ambiguous.
-                        titleHtml = html.escape(matches[0])
+                        title_html = html.escape(matches[0])
                     break
 
         # Detect the language
-        if 'Meta' in md.__dict__ and 'lang' in md.Meta:
-            langHtml = html.escape(md.Meta['lang'][0])
+        if 'lang' in meta:
+            lang_html = html.escape(meta['lang'][0])
 
         else:
             # Quick-and-dirty extraction of language code, minus the region, from the default
@@ -117,11 +121,11 @@ def compileVariant(buildParams: build_params.BuildParams, altTargetFile: str = N
             # (2) The convention (for specifying the HTML language) allows a full language tag,
             #     but the examples appear to favour the language only, without the region.
 
-            localeParts = locale.getdefaultlocale()[0].split('_')
-            langHtml = html.escape('-'.join(localeParts[:-1] or localeParts))
+            locale_parts = (locale.getdefaultlocale()[0] or 'en').split('_')
+            lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 
-        fullHtml = '''
+        full_html = '''
             <!DOCTYPE html>
             <html lang="{lang_html:s}">
             <head>
@@ -134,15 +138,15 @@ def compileVariant(buildParams: build_params.BuildParams, altTargetFile: str = N
             {js_list:s}{js:s}</body>
             </html>
         '''
-        fullHtml = re.sub('\n\s*', '\n', fullHtml.strip()).format(
-            lang_html = langHtml,
-            title_html = titleHtml,
-            css_list = ''.join(f'<link rel="stylesheet" href="{f}" />\n' for f in buildParams.css_files),
+        full_html = re.sub('\n\s*', '\n', full_html.strip()).format(
+            lang_html = lang_html,
+            title_html = title_html,
+            css_list = ''.join(f'<link rel="stylesheet" href="{f}" />\n' for f in build_params.css_files),
             css = css,
-            content_start = buildParams.content_start,
-            content_html = contentHtml,
-            content_end = buildParams.content_end,
-            js_list = ''.join(f'<script src="{f}"></script>\n' for f in buildParams.js_files),
+            content_start = build_params.content_start,
+            content_html = content_html,
+            content_end = build_params.content_end,
+            js_list = ''.join(f'<script src="{f}"></script>\n' for f in build_params.js_files),
             js = f'<script>\n{js}\n</script>\n' if js else ''
         )
-        target.write(fullHtml)
+        target.write(full_html)

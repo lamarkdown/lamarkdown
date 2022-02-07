@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from lamarkdown.lib import md_compiler
-from lamarkdown.lib import build_params
+from lamarkdown.lib.build_params import BuildParams
 
 import argparse
 import os.path
@@ -25,27 +25,26 @@ def main():
 
     args = parser.parse_args()
 
-    srcFile = os.path.abspath(args.input)
-    baseName = srcFile.removesuffix('.md')
+    src_file = os.path.abspath(args.input)
+    base_name = src_file.rsplit('.', 1)[0]
 
-    buildParams = build_params.BuildParams(
-        src_file = srcFile,
-        target_file = args.output or (baseName + '.html'),
+    build_params = BuildParams(
+        src_file = src_file,
+        target_file = args.output or (base_name + '.html'),
         build_files = [
-            #os.path.join(os.path.dirname(os.path.realpath(__file__)), 'default_md_build.py'),
             os.path.abspath('md_build.py'),
-            os.path.abspath(baseName + '.py'),
+            os.path.abspath(base_name + '.py'),
             os.path.abspath(args.build) if args.build else None
         ],
-        build_dir = os.path.join('build', os.path.basename(srcFile) + '.tmp')
+        build_dir = os.path.join('build', os.path.basename(src_file) + '.tmp')
     )
-    os.makedirs(buildParams.build_dir, exist_ok = True)
+    os.makedirs(build_params.build_dir, exist_ok = True)
 
-    md_compiler.compile(buildParams)
+    md_compiler.compile(build_params)
 
     if args.live:
         from lamarkdown.lib import live
-        live.watchLive(buildParams)
+        live.watch_live(build_params)
 
 if __name__ == "__main__":
     main()

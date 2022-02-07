@@ -11,7 +11,7 @@ flexibility.)
 from lamarkdown.lib.build_params import BuildParams
 import markdown
 import importlib
-from typing import Any, Union
+from typing import Any, Dict, List, Union
 
 
 class BuildParamsException(Exception): pass
@@ -22,7 +22,7 @@ def _params():
     return BuildParams.current
 
 
-def include(*module_names, pkg = 'lamarkdown'):
+def include(*module_names: str, pkg = 'lamarkdown'):
     """
     Applies a build module, or modules, by name. You can also use the standard 'import' statement,
     but that breaks on live updating, because we need build modules to reload in that case.
@@ -50,7 +50,7 @@ def get_env():
 def get_params():
     return _params()
 
-def variant(name: str, classes: Union[str, list[str], None]):
+def variant(name: str, classes: Union[str, List[str], None]):
     if classes is None:
         classes = []
     elif isinstance(classes, str):
@@ -59,7 +59,7 @@ def variant(name: str, classes: Union[str, list[str], None]):
         classes = list(classes)
     _params().variants[name] = classes
 
-def base_variant(classes: Union[str, list[str], None]):
+def base_variant(classes: Union[str, List[str], None]):
     variant('', classes)
 
 def variants(variant_dict = {}, **variant_kwargs):
@@ -68,10 +68,10 @@ def variants(variant_dict = {}, **variant_kwargs):
     for name, classes in variant_kwargs.items():
         variant(name, classes)
 
-def extensions(*extensions: list[Union[str,markdown.extensions.Extension]]):
+def extensions(*extensions: Union[str,markdown.extensions.Extension]):
     _params().extensions.extend(extensions)
 
-def config(configs: dict[str,dict[str,Any]]):
+def config(configs: Dict[str,Dict[str,Any]]):
     p = _params()
     exts = set(p.extensions)
     for key in configs.keys():
@@ -83,13 +83,13 @@ def config(configs: dict[str,dict[str,Any]]):
 def css(css: str):
     _params().css += css + '\n'
 
-def css_files(*css_files: list[str]):
+def css_files(*css_files: List[str]):
     _params().css_files.extend(css_files)
 
 def js(js: str):
     _params().js += js + '\n'
 
-def js_files(*js_files: list[str]):
+def js_files(*js_files: List[str]):
     _params().js_files.extend(js_files)
 
 def wrap_content(start: str, end: str):
