@@ -14,11 +14,13 @@ element. If a divider appears before any other content, then it *won't* create a
 '''
 
 import markdown
+from markdown.extensions.attr_list import AttrListTreeprocessor
+
 import re
 from xml.etree import ElementTree
 
-
-_SEPARATOR_CLASS = 'lamarkdown-sections-b25e560abe34c46aff67f5681e21a6a84eb10012'
+_SEPARATOR_ATTR = 'lamarkdown-sections-b25e560abe34c46aff67f5681e21a6a84eb10012'
+_SEPARATOR_ATTR_VALUE = '1'
 
 class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
     """
@@ -29,14 +31,19 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
 
     def __init__(self, md, separator):
         super().__init__(md)
-        self._regex = re.compile('^[ ]*' + re.escape(separator) + '([ ]*\n)*(\n[ ]*\{[^}]*\}\s*)?$')
+        self._regex = re.compile('^[ ]*' + re.escape(separator) + '([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
 
     def test(self, parent, block):
-        return self._regex.fullmatch(block)
+        self._match = self._regex.fullmatch(block)
+        return self._match
 
     def run(self, parent, blocks):
-        blocks.pop(0) # We don't actually need the block, but we have to discard it.
-        ElementTree.SubElement(parent, 'div', {'class': _SEPARATOR_CLASS})
+        blocks.pop(0) # We don't actually need the block, but we have to discard it.        
+        elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: _SEPARATOR_ATTR_VALUE})        
+        attr_list = self._match.group("attr")
+        if attr_list:
+            AttrListTreeprocessor().assign_attrs(elem, attr_list)
+        
 
 
 class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
@@ -52,7 +59,7 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
         section.tail = '\n'
 
         for element in root:
-            if element.tag == 'div' and element.attrib['class'] == _SEPARATOR_CLASS:
+            if element.tag == 'div' and element.attrib[_SEPARATOR_ATTR] == _SEPARATOR_ATTR_VALUE:
                 sections_found = True
                 if not first:
                     # Allow for a 'separator' right at the start, which serves purely to specify
@@ -63,6 +70,7 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 section.text = '\n'
                 section.tail = '\n'
                 section.attrib = element.attrib
+                del section.attrib[_SEPARATOR_ATTR]
 
             else:
                 section.append(element)
