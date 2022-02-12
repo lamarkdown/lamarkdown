@@ -6,16 +6,20 @@ This is where we invoke Python Markdown, but also:
 * We build the complete HTML document around Python Markdown's output.
 '''
 
-from lamarkdown.lib.build_params import BuildParams
+from lamarkdown.lib.build_params import BuildParams, Resource
 from lamarkdown.lib.error import Error
-from lamarkdown.ext import pruner
+from lamarkdown.ext.pruner import PrunerExtension
+
+import lxml.html
 import markdown
+
 import html
 import importlib.util
+from io import StringIO
 import locale
 import os
 import re
-from typing import Dict, List
+from typing import Dict, List, Set
 from xml.etree import ElementTree
 
 
@@ -59,7 +63,7 @@ def compile(build_params: BuildParams):
 
             prune_classes = all_classes.difference(retained_classes)
             if prune_classes:
-                pruner_ext = pruner.PrunerExtension(classes = prune_classes)
+                pruner_ext = PrunerExtension(classes = prune_classes)
                 build_params.extensions = base_md_extensions + [pruner_ext]
             else:
                 build_params.extensions = base_md_extensions
@@ -73,24 +77,34 @@ def compile(build_params: BuildParams):
                         pre_errors = pre_errors)
 
 
+def _find_xpaths(content_html: str, xpaths: Set[str]) -> Set[str]:
+    '''
+    Re-parses the Python-Markdown-produced HTML using lxml, and attempts to match a set of XPath
+    expressions against it. Returns the expressions that matched.
+    '''
+    root = lxml.html.parse(StringIO(content_html))
+    return {xp for xp in xpaths if root.xpath(xp)}
+
+
+def _resource_values(res_list: List[Resource], xpaths_found: Set[str]):
+    '''
+    Generates a sequence of resource values (which could be CSS/JS code, or CSS/JS URLs),
+    by calling the value factory for each resource.
+
+    The value factory needs to know the subset of its XPaths that matched. *In most cases*, it will
+    either return a fixed value regardless, OR return a single specific value iff any of the
+    XPaths matched, and None otherwise. (However, it is technically free to use more elaborate
+    decision making.)
+    '''
+    for res in res_list:
+        value = res.value_factory(xpaths_found.intersection(res.xpaths))
+        if value:
+            yield value
+
+
 def compile_variant(build_params: BuildParams,
                     alt_target_file: str = None,
                     pre_errors: List[ElementTree.Element] = []):
-
-    css = build_params.css
-    js = build_params.js
-
-    # Strip CSS comments at the beginning of lines
-    css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
-
-    # Strip CSS comments at the end of lines
-    css = re.sub('/\*.*?\*/\s*($|\n)', '\n', css, flags = re.DOTALL)
-
-    # Normalise line breaks
-    css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
-
-    # TODO: we could run the 'slimit' Javascript minifier here.
-
 
     content_html = ''
     meta: Dict[str,List[str]] = {}
@@ -116,6 +130,10 @@ def compile_variant(build_params: BuildParams,
     for error in pre_errors:
         error.print()
         print()
+
+    # Determien which XPath expressions match the document. This helps us understand which
+    # 'resources' (CSS/JS code) we need to include in the output.
+    xpaths_found = _find_xpaths(content_html, build_params.xpaths)
 
     # Strip HTML comments
     content_html = re.sub('<!--.*?-->', '', content_html, flags = re.DOTALL)
@@ -157,7 +175,27 @@ def compile_variant(build_params: BuildParams,
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 
-    full_html = '''
+    # Stylesheets
+    css = '\n'.join(_resource_values(build_params.css, xpaths_found))
+
+    # Strip CSS comments at the beginning of lines
+    css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
+
+    # Strip CSS comments at the end of lines
+    css = re.sub('/\*.*?\*/\s*($|\n)', '\n', css, flags = re.DOTALL)
+
+    # Normalise line breaks
+    css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
+
+
+    # Scripts
+    js = '\n'.join(_resource_values(build_params.js, xpaths_found))
+    if js:
+        # TODO: run the 'slimit' Javascript minifier here?
+        js = f'<script>{js}\n</script>\n'
+
+
+    full_html_template = '''
         <!DOCTYPE html>
         <html lang="{lang_html:s}">
         <head>
@@ -170,17 +208,19 @@ def compile_variant(build_params: BuildParams,
         {js_list:s}{js:s}</body>
         </html>
     '''
-    full_html = re.sub('\n\s*', '\n', full_html.strip()).format(
+    full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css_list = ''.join(f'<link rel="stylesheet" href="{f}" />\n' for f in build_params.css_files),
+        css_list = ''.join(f'<link rel="stylesheet" href="{value}" />\n'
+                           for value in _resource_values(build_params.css_files, xpaths_found)),
         css = css,
         pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
         content_start = build_params.content_start,
         content_html = content_html,
         content_end = build_params.content_end,
-        js_list = ''.join(f'<script src="{f}"></script>\n' for f in build_params.js_files),
-        js = f'<script>\n{js}\n</script>\n' if js else ''
+        js_list = ''.join(f'<script src="{value}"></script>\n'
+                          for value in _resource_values(build_params.js_files, xpaths_found)),
+        js = js
     )
 
     with open(alt_target_file or build_params.target_file, 'w') as target:

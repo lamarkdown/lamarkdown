@@ -15,7 +15,7 @@ setup(
     keywords = 'markdown',
     url = 'https://bitbucket.org/cooperdja/lamarkdown',
     install_requires=[
-        'markdown', 'pymdown-extensions', 'watchdog'
+        'markdown', 'lxml', 'cssselect', 'pymdown-extensions', 'watchdog'
     ],
     packages = [
         'lamarkdown', 'lamarkdown.lib', 'lamarkdown.ext'

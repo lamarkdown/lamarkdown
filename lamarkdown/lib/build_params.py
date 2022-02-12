@@ -10,7 +10,17 @@ from markdown.extensions import Extension
 
 import copy
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Union
+
+@dataclass
+class Resource:
+    '''
+    A resource represents a snippet of CSS/JS code, or a CSS/JS URL, produced conditionally
+    depending on whether a set/subset of XPath expressions were found in the document. That is, the
+    resource "knows when it's needed".
+    '''
+    value_factory: Callable[[Set[str]],Optional[str]]
+    xpaths: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -27,10 +37,10 @@ class BuildParams:
     variants:          Dict[str,List[str]]        = field(default_factory=dict)
     extensions:        List[Union[str,Extension]] = field(default_factory=list)
     extension_configs: Dict[str,Dict[str,Any]]    = field(default_factory=dict)
-    css:               str                        = ''
-    css_files:         List[str]                  = field(default_factory=list)
-    js:                str                        = ''
-    js_files:          List[str]                  = field(default_factory=list)
+    css:               List[Resource]             = field(default_factory=list)
+    css_files:         List[Resource]             = field(default_factory=list)
+    js:                List[Resource]             = field(default_factory=list)
+    js_files:          List[Resource]             = field(default_factory=list)
     content_start:     str                        = ''
     content_end:       str                        = ''
     env:               Dict[str,Any]              = field(default_factory=dict)
@@ -59,6 +69,15 @@ class BuildParams:
         else:
             return {'': self.target_file}
 
+    @property
+    def xpaths(self) -> Set[str]:
+        '''
+        The set of all XPath expressions specified by all CSS/JS resources.
+        '''
+        return {xpath for res_list in (self.css, self.css_files, self.js, self.js_files)
+                      for res in res_list
+                      for xpath in res.xpaths}
+
     def copy(self):
         return copy.deepcopy(self)
 
@@ -66,9 +85,9 @@ class BuildParams:
         self.variants = {}
         self.extensions = []
         self.extension_configs = {}
-        self.css = ''
+        self.css = []
         self.css_files = []
-        self.js = ''
+        self.js = []
         self.js_files = []
         self.content_start = ''
         self.content_end = ''

@@ -8,10 +8,13 @@ variants, css styles, etc. Build modules just need to 'import lamarkdown'.
 flexibility.)
 '''
 
-from lamarkdown.lib.build_params import BuildParams
+from lamarkdown.lib.build_params import BuildParams, Resource
 import markdown
+from lxml.cssselect import CSSSelector
+
 import importlib
-from typing import Any, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
+from collections.abc import Iterable
 
 
 class BuildParamsException(Exception): pass
@@ -80,17 +83,72 @@ def config(configs: Dict[str,Dict[str,Any]]):
 
     p.extension_configs.update(configs)
 
-def css(css: str):
-    _params().css += css + '\n'
 
-def css_files(*css_files: List[str]):
-    _params().css_files.extend(css_files)
+def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
+         if_xpaths:    Union[str,Iterable[str]] = [],
+         if_selectors: Union[str,Iterable[str]] = []):
+    '''
+    Creates a Resource object, based on either a value or a value factory, and a set of
+    zero-or-more XPath expressions and/or CSS selectors (which are compiled to XPaths).
+    '''
 
-def js(js: str):
-    _params().js += js + '\n'
+    # FIXME: this arrangement doesn't allow value factories to query selectors properly, because
+    # it's expected to supply the xpath equivalent, which it never sees.
 
-def js_files(*js_files: List[str]):
-    _params().js_files.extend(js_files)
+    if callable(value):
+        value_factory = value
+    elif if_xpaths or if_selectors:
+        # If a literal value is given as well as one or more XPath expressions, we'll produce that
+        # value if any of the expressions are found.
+        value_factory = lambda subset_found: value if subset_found else None
+    else:
+        # If a literal value is given with no XPaths, then we'll produce that value unconditionally.
+        value_factory = lambda _: value
+
+    if isinstance(if_xpaths, str):
+        if_xpaths = [if_xpaths]
+
+    if isinstance(if_selectors, str):
+        if_selectors = [if_selectors]
+
+    xpaths = []
+    xpaths.extend(if_xpaths)
+    xpaths.extend(CSSSelector(sel).path for sel in if_selectors)
+    return Resource(value_factory, xpaths)
+
+
+def css_rule(selectors: Union[str,Iterable[str]], properties: str):
+    '''
+    Sets a CSS rule, consisting of one or more selectors and a set of properties (together in a
+    single string).
+
+    The selector(s) are used at 'compile-time' as well as 'load-time', to determine whether the
+    rule becomes part of the output document at all. Only selectors that actually match the
+    document are included in the output.
+    '''
+    if isinstance(selectors, str):
+        selectors = [selectors]
+
+    xpath_to_sel = {CSSSelector(sel).path: sel for sel in selectors}
+
+    def value_factory(found: Set[str]) -> Optional[str]:
+        if not found: return None
+        return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
+
+    _params().css.append(_res(value_factory, if_xpaths = xpath_to_sel.keys()))
+
+
+def css(value: str, **kwargs):
+    _params().css.append(_res(value, **kwargs))
+
+def js(value: str, **kwargs):
+    _params().js.append(_res(value, **kwargs))
+
+def css_files(*values: List[str], **kwargs):
+    _params().css_files.extend(_res(value, **kwargs) for value in values)
+
+def js_files(*values: List[str], **kwargs):
+    _params().js_files.extend(_res(value, **kwargs) for value in values)
 
 def wrap_content(start: str, end: str):
     p = _params()

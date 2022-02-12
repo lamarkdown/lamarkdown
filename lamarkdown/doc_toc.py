@@ -9,7 +9,8 @@ config({
     }
 })
 
-css(r'''
+css(
+    r'''
     @media screen {
         .toc {
             position: fixed;
@@ -35,4 +36,6 @@ css(r'''
         font-weight: bold;
         margin: 0;
     }
-''')
+    ''',
+    if_selectors = '.toc'
+)
