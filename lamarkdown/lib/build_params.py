@@ -32,6 +32,7 @@ class BuildParams:
     target_file: str
     build_files: List[str]
     build_dir: str
+    build_defaults: bool
 
     # These fields *are* modifiable by build modules:
     variants:          Dict[str,List[str]]        = field(default_factory=dict)

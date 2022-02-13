@@ -6,6 +6,7 @@ This is where we invoke Python Markdown, but also:
 * We build the complete HTML document around Python Markdown's output.
 '''
 
+import lamarkdown
 from lamarkdown.lib.build_params import BuildParams, Resource
 from lamarkdown.lib.error import Error
 from lamarkdown.ext.pruner import PrunerExtension
@@ -26,6 +27,10 @@ from xml.etree import ElementTree
 class CompileException(Exception): pass
 
 
+def set_default_build_params(build_parms: BuildParams):
+    lamarkdown.include('doc')
+
+
 def compile(build_params: BuildParams):
 
     build_params.reset()
@@ -33,8 +38,11 @@ def compile(build_params: BuildParams):
 
     pre_errors: List[Error] = []
 
+    any_build_modules = False
+
     for build_file in build_params.build_files:
-        if build_file is not None and os.path.exists(build_file):
+        if os.path.exists(build_file):
+            any_build_modules = True
             module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
             if module_spec is None:
                 pre_errors.append(Error(
@@ -53,6 +61,8 @@ def compile(build_params: BuildParams):
 
             build_params.env.update(build_module.__dict__)
 
+    if not any_build_modules and build_params.build_defaults:
+        set_default_build_params(build_params)
 
     if build_params.variants:
         all_classes = {cls for class_spec in build_params.variants.values()
@@ -131,7 +141,7 @@ def compile_variant(build_params: BuildParams,
         error.print()
         print()
 
-    # Determien which XPath expressions match the document. This helps us understand which
+    # Determine which XPath expressions match the document. This helps us understand which
     # 'resources' (CSS/JS code) we need to include in the output.
     xpaths_found = _find_xpaths(content_html, build_params.xpaths)
 
@@ -187,6 +197,9 @@ def compile_variant(build_params: BuildParams,
     # Normalise line breaks
     css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
 
+    if css:
+        css = f'<style>{css}</style>'
+
 
     # Scripts
     js = '\n'.join(_resource_values(build_params.js, xpaths_found))
@@ -199,10 +212,9 @@ def compile_variant(build_params: BuildParams,
         <!DOCTYPE html>
         <html lang="{lang_html:s}">
         <head>
-            <meta charset="utf-8" />
-            <title>{title_html:s}</title>
-            {css_list:s}<style>{css:s}</style>
-        </head>
+        <meta charset="utf-8" />
+        <title>{title_html:s}</title>
+        {css_list:s}{css:s}</head>
         <body>{pre_errors:s}
         {content_start:s}{content_html:s}{content_end:s}
         {js_list:s}{js:s}</body>
