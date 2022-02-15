@@ -9,7 +9,7 @@ address the same document-preparation use case. To this end, Lamarkdown:
 * Is a locally-run, command-line tool.
 * Builds a complete HTML document, where the author has complete control over the appearance
     (though making it easy to produce something that _looks_ more like a document than a webpage).
-* Build an entirely _self-contained_ HTML document (except where you insert external references
+* Builds an entirely _self-contained_ HTML document (except where you insert external references
     yourself), which can be stored and distributed as a standalone file.
 * Allows embedding of Latex environments (or entire Latex documents), with the resulting output converted
     to SVG format and embedded within the HTML.
@@ -40,8 +40,7 @@ First, download this repository. Then, if you have `pip`, you can use it to inst
 * Run this command:
 
     `$ pip install .`
-
-You should now be able to run `lamd`.
+    (including the ".")
 
 Alternately (on Linux/MacOS), you can place the contents of the repository wherever you like, and set your `PATH` environment variable to point to it, such that you can run `lamd.py`.
 
