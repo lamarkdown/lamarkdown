@@ -11,6 +11,7 @@ address the same document-preparation use case. To this end, Lamarkdown:
     (though making it easy to produce something that _looks_ more like a document than a webpage).
 * Builds an entirely _self-contained_ HTML document (except where you insert external references
     yourself), which can be stored and distributed as a standalone file.
+    * (Also currently with the exception of fonts, which are, for now, declared as links to `fonts.googleapis.com`.)
 * Allows embedding of Latex environments (or entire Latex documents), with the resulting output converted
     to SVG format and embedded within the HTML.
 
