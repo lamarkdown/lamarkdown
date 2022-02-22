@@ -9,7 +9,7 @@ This is where we invoke Python Markdown, but also:
 import lamarkdown
 from lamarkdown.lib.build_params import BuildParams, Resource, Variant
 from lamarkdown.lib.error import Error
-from lamarkdown.ext.pruner import PrunerExtension
+#from lamarkdown.ext.pruner import PrunerExtension
 
 import lxml.html
 import markdown
@@ -346,8 +346,10 @@ def write_html(content_html: str,
     # 'resources' (CSS/JS code) we need to include in the output.
     xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
 
-    # Serialise element tree
-    content_html = lxml.etree.tostring(root_element, encoding = 'unicode', method = 'html')
+    # Serialise document tree. ('root_element' is the <body> element, and we want to exclude
+    # that tag now, so we serialise each child element separately.)
+    content_html = ''.join(lxml.etree.tostring(elem, encoding = 'unicode', method = 'html')
+                           for elem in root_element)
 
     # Strip HTML comments
     #content_html = re.sub('<!--.*?-->', '', content_html, flags = re.DOTALL)
