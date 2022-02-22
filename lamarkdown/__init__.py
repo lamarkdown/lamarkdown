@@ -8,9 +8,10 @@ variants, css styles, etc. Build modules just need to 'import lamarkdown'.
 flexibility.)
 '''
 
-from lamarkdown.lib.build_params import BuildParams, Resource
+from lamarkdown.lib.build_params import BuildParams, Resource, Variant
 import markdown
 from lxml.cssselect import CSSSelector
+#import lxml.etree
 
 import importlib
 from typing import Any, Callable, Dict, List, Optional, Set, Union
@@ -53,23 +54,105 @@ def get_env():
 def get_params():
     return _params()
 
-def variant(name: str, classes: Union[str, List[str], None]):
-    if classes is None:
-        classes = []
-    elif isinstance(classes, str):
-        classes = [classes]
-    else:
-        classes = list(classes)
-    _params().variants[name] = classes
+#def variant(name: str, classes: Union[str, List[str], None]):
+    #if classes is None:
+        #classes = []
+    #elif isinstance(classes, str):
+        #classes = [classes]
+    #else:
+        #classes = list(classes)
+    #_params().variants[name] = classes
 
-def base_variant(classes: Union[str, List[str], None]):
-    variant('', classes)
+#def base_variant(classes: Union[str, List[str], None]):
+    #variant('', classes)
 
-def variants(variant_dict = {}, **variant_kwargs):
-    for name, classes in variant_dict.items():
-        variant(name, classes)
-    for name, classes in variant_kwargs.items():
-        variant(name, classes)
+#def variants(variant_dict = {}, **variant_kwargs):
+    #for name, classes in variant_dict.items():
+        #variant(name, classes)
+    #for name, classes in variant_kwargs.items():
+        #variant(name, classes)
+
+#def variant(name:         str,
+            #selectors:    Union[str,Iterable[str]] = [],
+            #xpaths:       Union[str,Iterable[str]] = [],
+            #target_namer: Callable[[str],str] = lambda t: t + name,
+            #base:         bool = False):
+    #if isinstance(selectors, str):
+        #selectors = [selectors]
+
+    #if isinstance(xpaths, str):
+        #xpaths = [xpaths]
+
+    #retain_xpaths = []
+    #retain_xpaths += selectors
+    #retain_xpaths += xpaths
+
+    #params().variants.append(Variant(
+        #name = name,
+        #target_namer = target_namer,
+        #retain_xpaths = retain_xpaths,
+        #base = False
+    #))
+
+#def base_variant(name: str = 'base',
+                 #selectors: Union[str,Iterable[str]] = [],
+                 #xpaths:    Union[str,Iterable[str]] = [],
+                 #target_namer: Callable[[str],str] = lambda t: t):
+    #variant(selectors = selectors,
+            #xpaths = xpaths,
+            #target_namer = target_namer,
+            #base = True)
+
+def name(n: str):
+    _params().name = n
+
+def _callable(fn):
+    if not callable(fn):
+        raise ValueError(f'Expected a function/callable, but received {type(fn).__name__} (value {fn})')
+
+def target(fn: Callable[[str],str]):
+    _callable(fn)
+    _params().output_namer = fn
+
+def variants(*args, **kwargs):
+    p = _params()
+    for variant_fn in args:
+        _callable(variant_fn)
+        p.variants.append(Variant(name = variant_fn.__name__,
+                                  build_fn = variant_fn))
+
+    for name, variant_fn in kwargs.items():
+        _callable(variant_fn)
+        p.variants.append(Variant(name = name, build_fn = variant_fn))
+
+def prune(selector: Optional[str] = None,
+          xpath: Optional[str] = None):
+
+    if selector is None and xpath is None:
+        raise ValueError('Must specify at least one argument')
+
+    hook = lambda elem: elem.getparent().remove(elem)
+
+    if selector is not None:
+        with_selector(selector, hook)
+
+    if xpath is not None:
+        with_xpath(xpath, hook)
+
+def with_selector(selector: str, fn: Callable):
+    with_xpath(CSSSelector(selector).path, fn)
+
+def with_xpath(xpath: str, fn: Callable):
+    _callable(fn)
+    def hook(root):
+        #for element in lxml.etree.xpath(root):
+        for element in root.xpath(xpath):
+            fn(element)
+    with_tree(hook)
+
+def with_tree(fn: Callable):
+    _callable(fn)
+    _params().tree_hooks.append(fn)
 
 def extensions(*extensions: Union[str,markdown.extensions.Extension]):
     _params().extensions.extend(extensions)

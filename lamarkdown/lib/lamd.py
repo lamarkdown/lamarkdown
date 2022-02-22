@@ -58,11 +58,11 @@ def main():
     )
     os.makedirs(build_params.build_dir, exist_ok = True)
 
-    md_compiler.compile(build_params)
+    all_build_params = md_compiler.compile(build_params)
 
     if args.live:
         from lamarkdown.lib import live
-        live.watch_live(build_params)
+        live.watch_live(build_params, all_build_params)
 
 if __name__ == "__main__":
     main()

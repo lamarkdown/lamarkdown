@@ -9,7 +9,7 @@ improvement for a single local user, and is not designed for security or perform
 '''
 
 from lamarkdown.lib import md_compiler
-from lamarkdown.lib.build_params import BuildParams
+from lamarkdown.lib.build_params import BuildParams, Variant
 
 import watchdog.observers
 import watchdog.events
@@ -22,6 +22,7 @@ import threading
 import time
 import traceback
 import webbrowser
+from typing import List
 
 
 PORT_RANGE = range(8000, 8020)
@@ -33,19 +34,24 @@ class Content:
         self.full_html = {}
         self.update_n = 0
         self.path = {}
+        self.base_variant = None
 
-    def update(self, build_params: BuildParams):
+    def update(self, all_build_params: List[BuildParams]):
         self.title = {}
         self.full_html = {}
-        for variant, target_file in build_params.target_files.items():
-            with open(target_file) as f:
+        self.base_variant = all_build_params[0].name
+        for build_params in all_build_params:
+            name = build_params.name
+            output_file = build_params.output_file
+
+            with open(output_file) as f:
                 full_html = f.read()
 
             match = re.search('<title[^>]*>(.*?)</\s*title\s*>', full_html, flags = re.IGNORECASE | re.DOTALL)
-            self.title[variant] = match[1] if match else '[No Title]'
-            self.full_html[variant] = full_html
-            self.filename[variant] = os.path.basename(target_file)
-            self.path[variant] = os.path.dirname(target_file)
+            self.title[name] = match[1] if match else '[No Title]'
+            self.full_html[name] = full_html
+            self.filename[name] = os.path.basename(output_file)
+            self.path[name] = os.path.dirname(output_file)
 
         self.update_n += 1
 
@@ -55,7 +61,7 @@ def get_handler(content: Content):
 
     class _handler(http.server.BaseHTTPRequestHandler):
 
-        def send_main_content(self, variant: str):
+        def send_main_content(self, variant_name: str):
             self.send_response(200)
             self.send_header('ContentType', 'text/html')
             self.end_headers()
@@ -82,7 +88,7 @@ def get_handler(content: Content):
                     </script>
                     </head>
                 ''',
-                content.full_html[variant]
+                content.full_html[variant_name]
             )
 
             if len(content.title) >= 2:
@@ -127,8 +133,8 @@ def get_handler(content: Content):
                 # Try to show the default variant (named '') if there is one, or else just pick
                 # whichever variant comes out first.
 
-                if '' in content.title:
-                    self.send_main_content('')
+                if content.base_variant:
+                    self.send_main_content(content.base_variant)
                 else:
                     self.send_main_content(next(iter(content.title.keys)))
 
@@ -140,15 +146,16 @@ def get_handler(content: Content):
 
             elif (
                 (match := re.fullmatch(f'/(?P<variant>[^/]*)/?index.html', self.path)) and
-                (variant := match['variant']) in content.title
+                (variant_name := match['variant']) in content.title
             ):
                 # Having verified that the URL contains the name of a variant, send that variant.
-                self.send_main_content(variant)
+                self.send_main_content(variant_name)
 
             elif (
                 (match := re.fullmatch(f'/(?P<variant>[^/]*)/(?P<file>.+)', self.path)) and
-                ((variant := match['variant']) in content.title) and
-                (full_path := os.path.join(content.path[variant], match['file'].replace('/', os.sep))) and
+                ((variant_name := match['variant']) in content.title) and
+                (full_path := os.path.join(content.path[variant_name],
+                                           match['file'].replace('/', os.sep))) and
                 os.path.isfile(full_path)
             ):
                 self.send_file(full_path)
@@ -175,17 +182,18 @@ def get_handler(content: Content):
 
 
 
-def watch_live(build_params: BuildParams):
+def watch_live(build_params: BuildParams,
+               all_build_params: List[BuildParams]):
 
     content = Content()
-    content.update(build_params)
+    content.update(all_build_params)
 
     class SourceFileEventHandler(watchdog.events.FileSystemEventHandler):
         def on_closed(self, event): # When something else finishes writing to a file
             if event.src_path == build_params.src_file or event.src_path in build_params.build_files:
                 try:
-                    md_compiler.compile(build_params)
-                    content.update(build_params)
+                    all_build_params = md_compiler.compile(build_params)
+                    content.update(all_build_params)
                 except Exception as e:
                     print('---')
                     traceback.print_exc()

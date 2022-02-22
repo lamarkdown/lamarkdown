@@ -7,15 +7,17 @@ This is where we invoke Python Markdown, but also:
 '''
 
 import lamarkdown
-from lamarkdown.lib.build_params import BuildParams, Resource
+from lamarkdown.lib.build_params import BuildParams, Resource, Variant
 from lamarkdown.lib.error import Error
 from lamarkdown.ext.pruner import PrunerExtension
 
 import lxml.html
 import markdown
 
+from copy import deepcopy
 import html
 import importlib.util
+import inspect
 from io import StringIO
 import locale
 import os
@@ -32,6 +34,9 @@ def set_default_build_params(build_parms: BuildParams):
 
 
 def compile(build_params: BuildParams):
+
+    # Step 1: configure build params
+    # ------------------------------
 
     build_params.reset()
     build_params.set_current()
@@ -65,56 +70,199 @@ def compile(build_params: BuildParams):
         set_default_build_params(build_params)
 
     if build_params.variants:
-        all_classes = {cls for class_spec in build_params.variants.values()
-                           for cls in class_spec}
-        base_md_extensions = build_params.extensions
-
-        for variant, retained_classes in build_params.variants.items():
-
-            prune_classes = all_classes.difference(retained_classes)
-            if prune_classes:
-                pruner_ext = PrunerExtension(classes = prune_classes)
-                build_params.extensions = base_md_extensions + [pruner_ext]
-            else:
-                build_params.extensions = base_md_extensions
-
-            compile_variant(build_params,
-                            alt_target_file = build_params.alt_target_file(variant),
-                            pre_errors = pre_errors)
+        all_build_params = []
+        for variant in build_params.variants:
+            all_build_params += compile_variant(variant, build_params, pre_errors)
+        return all_build_params
 
     else:
-        compile_variant(build_params,
-                        pre_errors = pre_errors)
+        content_html, meta = invoke_python_markdown(build_params, pre_errors)
+        write_html(content_html, meta, build_params, pre_errors)
+        return [build_params]
 
 
-def _find_xpaths(content_html: str, xpaths: Set[str]) -> Set[str]:
-    '''
-    Re-parses the Python-Markdown-produced HTML using lxml, and attempts to match a set of XPath
-    expressions against it. Returns the expressions that matched.
-    '''
-    root = lxml.html.parse(StringIO(content_html))
-    return {xp for xp in xpaths if root.xpath(xp)}
+    # Step 2: invoke Python-Markdown
+    # ------------------------------
+
+    #content_html = ''
+    #meta: Dict[str,List[str]] = {}
+    #pre_errors: List[Error] = list(pre_errors)
+
+    #try:
+        #with open(build_params.src_file, 'r') as src:
+            #content_markdown = src.read()
+    #except OSError as e:
+        #pre_errors.append(Error.from_exception(build_params.src_file, e))
+
+    #else:
+        #try:
+            #md = markdown.Markdown(extensions = build_params.extensions,
+                                   #extension_configs = build_params.extension_configs)
+            #content_html = md.convert(content_markdown)
+            #meta = md.__dict__.get('Meta', {})
+
+        #except Exception as e:
+            #pre_errors.append(Error.from_exception('Python Markdown', e))
+
+    ## Display pre-errors. (TODO: make this display in-document errors too?)
+    #for error in pre_errors:
+        #error.print()
+        #print()
 
 
-def _resource_values(res_list: List[Resource], xpaths_found: Set[str]):
-    '''
-    Generates a sequence of resource values (which could be CSS/JS code, or CSS/JS URLs),
-    by calling the value factory for each resource.
+    # Step 3: build output document
+    # -----------------------------
 
-    The value factory needs to know the subset of its XPaths that matched. *In most cases*, it will
-    either return a fixed value regardless, OR return a single specific value iff any of the
-    XPaths matched, and None otherwise. (However, it is technically free to use more elaborate
-    decision making.)
-    '''
-    for res in res_list:
-        value = res.value_factory(xpaths_found.intersection(res.xpaths))
-        if value:
-            yield value
+    #parser = lxml.html.HTMLParser(default_doctype = False,
+                                  #remove_blank_text = True,
+                                  #remove_comments = True)
+    #root_element = lxml.html.parse(StringIO(content_html), parser).find('body')
 
 
-def compile_variant(build_params: BuildParams,
-                    alt_target_file: str = None,
+
+    #if build_params.variants:
+        ## 3a. prune parts of the tree to produce different variants
+
+        #xpath_results = {}
+        #attr_keys = {}
+
+        #global_attr_key = f'\x02variant\x03'
+
+        #for variant in build_params.variants:
+            #attr_key = f'\x02variant:{variant.name}\x03'
+            #attr_keys[variant] = attr_key
+            #for xpath in variant.retain_xpaths:
+                #element_list = xpath_results.get(xpath)
+                #if element_list is None:
+                    #element_list = root_element.xpath(xpath)
+                    #xpath_results[xpath] = element_list
+
+                #for element in element_list:
+                    #element.attrib[attr_key] = '1'
+                    #element.attrib[global_attr_key] = '1'
+
+        #for variant in build_params.variants:
+            #attr_key = attr_keys[variant]
+            #variant_root_element = deepcopy(root_element)
+            #prune_elements = []
+            #for element in variant_root_element.iter(tag=lxml.etree.Element):
+                #if global_attr_key in element.attrib and attr_key not in element.attrib:
+                    #prune_elements.append(element)
+            #for element in prune_elements:
+                #parent = element.getparent()
+                #if parent:
+                    #parent.remove(element)
+
+            #write_html(build_params, variant_root_element, meta, variant_target_file, pre_errors)
+
+
+        ##all_xpaths = {sel for variant in build_params.variants
+                          ##for xpath in variant.retain_xpaths}
+        ##for variant in build_params.variants:
+            ##variant_target_file = build_params.alt_target_file(variant)
+
+            ##prune_xpaths = all_xpaths.difference(variant.retain_xpaths)
+            ##if prune_xpaths:
+                ##variant_root_element = deepcopy(root_element)
+                ##for xpath in prune_xpaths:
+                    ##for elem in variant_root_element.xpath(xpath):
+                        ##elem.getparent().remove(elem)
+            ##else:
+                ##variant_root_element = root_element
+
+            ##write_html(build_params, variant_root_element, meta, variant_target_file, pre_errors)
+
+    #else:
+        ## 3b. output a single document
+        #write_html(build_params, root_element, meta, build_params.target_file, pre_errors)
+
+
+
+
+
+    #if build_params.variants:
+        #all_classes = {cls for class_spec in build_params.variants.values()
+                           #for cls in class_spec}
+        #base_md_extensions = build_params.extensions
+
+        #for variant, retained_classes in build_params.variants.items():
+
+            #prune_classes = all_classes.difference(retained_classes)
+            #if prune_classes:
+                #pruner_ext = PrunerExtension(classes = prune_classes)
+                #build_params.extensions = base_md_extensions + [pruner_ext]
+            #else:
+                #build_params.extensions = base_md_extensions
+
+            #compile_variant(build_params,
+                            #alt_target_file = build_params.alt_target_file(variant),
+                            #pre_errors = pre_errors)
+
+    #else:
+        #compile_variant(build_params,
+                        #pre_errors = pre_errors)
+
+
+#def _find_xpaths(content_html: str, xpaths: Set[str]) -> Set[str]:
+    #'''
+    #Re-parses the Python-Markdown-produced HTML using lxml, and attempts to match a set of XPath
+    #expressions against it. Returns the expressions that matched.
+    #'''
+    #root = lxml.html.parse(StringIO(content_html))
+    #return {xp for xp in xpaths if root.xpath(xp)}
+
+
+def compile_variant(variant: Variant,
+                    build_params: BuildParams,
                     pre_errors: List[ElementTree.Element] = []):
+    prev_build_params = BuildParams.current
+    #print(f'build_params == {build_params}')
+    build_params = deepcopy(build_params)
+    build_params.set_current()
+
+    build_params.name = variant.name
+
+    def default_output_namer(t):
+        split = prev_build_params.output_namer(t).rsplit('.', 1)
+        return (
+            split[0]
+            + prev_build_params.variant_name_sep
+            + variant.name
+            + '.'
+            + (split[1] if len(split) == 2 else '')
+        )
+
+    build_params.output_namer = default_output_namer
+
+    # A variant doesn't inherit the set of variants, or we would have infinite recursion.
+    build_params.variants = []
+
+    pre_errors = deepcopy(pre_errors)
+
+    try:
+        variant.build_fn()
+    except Exception as e:
+        try:
+            variant_fn_source = inspect.getsource(variant.build_fn)
+        except OSError:
+            variant_fn_source = '[could not obtain source]'
+        pre_errors.append(Error.from_exception(variant.name, e, variant_fn_source))
+
+    if build_params.variants:
+        all_build_params = []
+        for sub_variant in build_params.variants:
+            all_build_params += compile_variant(sub_variant, build_params, pre_errors)
+    else:
+        content_html, meta = invoke_python_markdown(build_params, pre_errors)
+        write_html(content_html, meta, build_params, pre_errors)
+        all_build_params = [build_params]
+
+    prev_build_params.set_current()
+    return all_build_params
+
+
+def invoke_python_markdown(build_params: BuildParams,
+                           pre_errors: List[ElementTree.Element] = []):
 
     content_html = ''
     meta: Dict[str,List[str]] = {}
@@ -141,12 +289,68 @@ def compile_variant(build_params: BuildParams,
         error.print()
         print()
 
+    return content_html, meta
+
+
+
+def _resource_values(res_list: List[Resource], xpaths_found: Set[str]):
+    '''
+    Generates a sequence of resource values (which could be CSS/JS code, or CSS/JS URLs),
+    by calling the value factory for each resource.
+
+    The value factory needs to know the subset of its XPaths that matched. *In most cases*, it will
+    either return a fixed value regardless, OR return a single specific value iff any of the
+    XPaths matched, and None otherwise. (However, it is technically free to use more elaborate
+    decision making.)
+    '''
+    for res in res_list:
+        value = res.value_factory(xpaths_found.intersection(res.xpaths))
+        if value:
+            yield value
+
+
+#def compile_variant(build_params: BuildParams,
+                    #alt_target_file: str = None,
+                    #prune_xpaths: List[str] = [],
+                    #pre_errors: List[ElementTree.Element] = []):
+
+
+#def write_html(build_params: BuildParams,
+               #root_element,
+               #meta: Dict[str,List[str]],
+               #target_file: str,
+               #pre_errors: List[ElementTree.Element] = []):
+
+#def write_html(build_params: BuildParams,
+               #root_element,
+               #meta: Dict[str,List[str]],
+               #pre_errors: List[ElementTree.Element] = []):
+
+
+_parser = lxml.html.HTMLParser(default_doctype = False,
+                               remove_blank_text = True,
+                               remove_comments = True)
+
+def write_html(content_html: str,
+               meta: Dict[str,List[str]],
+               build_params: BuildParams,
+               pre_errors: List[ElementTree.Element] = []):
+
+    root_element = lxml.html.parse(StringIO(content_html), _parser).find('body')
+
+    # Run hook functions
+    for fn in build_params.tree_hooks:
+        fn(root_element)
+
     # Determine which XPath expressions match the document. This helps us understand which
     # 'resources' (CSS/JS code) we need to include in the output.
-    xpaths_found = _find_xpaths(content_html, build_params.xpaths)
+    xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
+
+    # Serialise element tree
+    content_html = lxml.etree.tostring(root_element, encoding = 'unicode', method = 'html')
 
     # Strip HTML comments
-    content_html = re.sub('<!--.*?-->', '', content_html, flags = re.DOTALL)
+    #content_html = re.sub('<!--.*?-->', '', content_html, flags = re.DOTALL)
 
     # Default title, if we can't a better one
     title_html = os.path.basename(build_params.target_base)
@@ -154,19 +358,21 @@ def compile_variant(build_params: BuildParams,
     # Find a better title, first by checking the embedded metadata (if any)
     if 'title' in meta:
         title_html = html.escape(meta['title'][0])
-        content_html = f'<h1>{title_html}</h1>\n{content_html}'
+        #content_html = f'<h1>{title_html}</h1>\n{content_html}'
 
     else:
         # Then check the HTML heading tags
         for n in range(1, 7):
-            matches = re.findall(f'<h{n}[^>]*>(.*?)</\s*h{n}\s*>', content_html, flags = re.IGNORECASE | re.DOTALL)
-            if matches:
-                if len(matches) == 1:
+            #matches = re.findall(f'<h{n}[^>]*>(.*?)</\s*h{n}\s*>', content_html, flags = re.IGNORECASE | re.DOTALL)
+            heading_elements = root_element.findall(f'.//h{n}')
+            count = len(heading_elements)
+            if count > 0:
+                if count == 1:
                     # Only use the <hN> element as a title if there's exactly one it, for
                     # whichever N is the lowest. e.g., if there's no <H1> elements but one
                     # <H2>, use the <H2>. But if there's two <H1> elements, we consider that
                     # to be ambiguous.
-                    title_html = html.escape(matches[0])
+                    title_html = html.escape(heading_elements[0].text)
                 break
 
     # Detect the language
@@ -235,5 +441,5 @@ def compile_variant(build_params: BuildParams,
         js = js
     )
 
-    with open(alt_target_file or build_params.target_file, 'w') as target:
+    with open(build_params.output_file, 'w') as target:
         target.write(full_html)
