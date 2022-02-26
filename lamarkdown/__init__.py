@@ -11,7 +11,6 @@ flexibility.)
 from lamarkdown.lib.build_params import BuildParams, Resource, Variant
 import markdown
 from lxml.cssselect import CSSSelector
-#import lxml.etree
 
 import importlib
 from typing import Any, Callable, Dict, List, Optional, Set, Union
@@ -54,54 +53,6 @@ def get_env():
 def get_params():
     return _params()
 
-#def variant(name: str, classes: Union[str, List[str], None]):
-    #if classes is None:
-        #classes = []
-    #elif isinstance(classes, str):
-        #classes = [classes]
-    #else:
-        #classes = list(classes)
-    #_params().variants[name] = classes
-
-#def base_variant(classes: Union[str, List[str], None]):
-    #variant('', classes)
-
-#def variants(variant_dict = {}, **variant_kwargs):
-    #for name, classes in variant_dict.items():
-        #variant(name, classes)
-    #for name, classes in variant_kwargs.items():
-        #variant(name, classes)
-
-#def variant(name:         str,
-            #selectors:    Union[str,Iterable[str]] = [],
-            #xpaths:       Union[str,Iterable[str]] = [],
-            #target_namer: Callable[[str],str] = lambda t: t + name,
-            #base:         bool = False):
-    #if isinstance(selectors, str):
-        #selectors = [selectors]
-
-    #if isinstance(xpaths, str):
-        #xpaths = [xpaths]
-
-    #retain_xpaths = []
-    #retain_xpaths += selectors
-    #retain_xpaths += xpaths
-
-    #params().variants.append(Variant(
-        #name = name,
-        #target_namer = target_namer,
-        #retain_xpaths = retain_xpaths,
-        #base = False
-    #))
-
-#def base_variant(name: str = 'base',
-                 #selectors: Union[str,Iterable[str]] = [],
-                 #xpaths:    Union[str,Iterable[str]] = [],
-                 #target_namer: Callable[[str],str] = lambda t: t):
-    #variant(selectors = selectors,
-            #xpaths = xpaths,
-            #target_namer = target_namer,
-            #base = True)
 
 def name(n: str):
     _params().name = n
@@ -145,7 +96,6 @@ def with_selector(selector: str, fn: Callable):
 def with_xpath(xpath: str, fn: Callable):
     _callable(fn)
     def hook(root):
-        #for element in lxml.etree.xpath(root):
         for element in root.xpath(xpath):
             fn(element)
     with_tree(hook)

@@ -24,31 +24,6 @@ class Resource:
     xpaths: List[str] = field(default_factory=list)
 
 
-#@dataclass
-#class Variant:
-    #name: str
-    #base: bool
-    #target_namer: Callable[[str],str]
-    #retain_xpaths: List[str] = field(default_factory=list)
-
-    #def __eq__(self, other):
-        #return self.name == other.name
-
-    #def __hash__(self):
-        #return hash(self.name)
-
-
-#DEFAULT_VARIANT = Variant('default', True, lambda t: t, [])
-
-#class Variant:
-    #def __init__(self, name: str,
-                       #target_namer: Callable[[str],str],
-                       #retain_xpaths: List[str]):
-        #self._name = name
-        #self._target_namer = target_namer
-        #self._retain_xpaths = retain_xpaths
-
-
 @dataclass
 class Variant:
     name: str
@@ -85,13 +60,11 @@ class BuildParams:
     build_defaults: bool
 
     # These fields *are* modifiable by build modules:
-    #variants:          Dict[str,List[str]]        = field(default_factory=dict)
     name:              str                        = ''
     variant_name_sep:  str                        = '_'
     variants:          List[Variant]              = field(default_factory=list)
     extensions:        List[Union[str,Extension]] = field(default_factory=list)
     extension_configs: Dict[str,Dict[str,Any]]    = field(default_factory=dict)
-    #prune_xpaths:      List[lxml.etree.XPath]     = field(default_factory=list)
     tree_hooks:        List[Callable]             = field(default_factory=list)
     css:               List[Resource]             = field(default_factory=list)
     css_files:         List[Resource]             = field(default_factory=list)
@@ -105,18 +78,6 @@ class BuildParams:
     def set_current(self):
         BuildParams.current = self
 
-    #def alt_target_file(self, variant):
-        #base, ext = self.target_file.rsplit('.', 1)
-        #return base + variant + '.' + ext
-
-    #def alt_target_file(self, variant):
-        #split = self.target_file.rsplit('.', 1)
-        #base_name = split[0]
-        #ext = ('.' + split[1]) if len(split) == 2 else ''
-        #return variant.target_namer(base) + '.' + ext
-
-
-
     @property
     def src_base(self):
         return self.src_file.rsplit('.', 1)[0]
@@ -129,13 +90,6 @@ class BuildParams:
     def output_file(self):
         return self.output_namer(self.target_file)
 
-    #@property
-    #def target_files(self) -> Dict[str,str]:
-        #if self.variants:
-            #return {variant: self.alt_target_file(variant) for variant in self.variants}
-        #else:
-            #return {DEFAULT_VARIANT: self.target_file}
-
     @property
     def resource_xpaths(self) -> Set[str]:
         '''
@@ -144,14 +98,6 @@ class BuildParams:
         return {xpath for res_list in (self.css, self.css_files, self.js, self.js_files)
                       for res in res_list
                       for xpath in res.xpaths}
-
-    #def copy(self):
-        #return copy.deepcopy(self)
-
-    #def __deepcopy__(self):
-        #return BuildParams(
-            #name = self.name,
-            #variants = self.variants,
 
     def reset(self):
         self.name = ''
