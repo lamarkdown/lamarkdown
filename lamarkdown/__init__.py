@@ -216,9 +216,10 @@ def wrap_content_inner(start: str, end: str):
     p.content_start += start
     p.content_end = end + p.content_end
 
+
 def __getattr__(name):
     try:
-        mod = importlib.import_module(f'lamarkdown.{name}')
+        mod = importlib.import_module(f'lamarkdown.mods.{name}')
     except ModuleNotFoundError as e:
         raise AttributeError(f'No such attribute {name} (no such module)') from e
 
