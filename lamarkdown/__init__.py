@@ -25,23 +25,23 @@ def _params():
     return BuildParams.current
 
 
-def include(*module_names: str, pkg = 'lamarkdown'):
-    """
-    Applies a build module, or modules, by name. You can also use the standard 'import' statement,
-    but that breaks on live updating, because we need build modules to reload in that case.
-    """
+#def include(*module_names: str, pkg = 'lamarkdown'):
+    #"""
+    #Applies a build module, or modules, by name. You can also use the standard 'import' statement,
+    #but that breaks on live updating, because we need build modules to reload in that case.
+    #"""
 
-    for name in module_names:
-        if pkg is None or pkg == '':
-            module_spec = importlib.util.find_spec(name)
-        else:
-            module_spec = importlib.util.find_spec('.' + name, package = pkg)
+    #for name in module_names:
+        #if pkg is None or pkg == '':
+            #module_spec = importlib.util.find_spec(name)
+        #else:
+            #module_spec = importlib.util.find_spec('.' + name, package = pkg)
 
-        if module_spec is None:
-            raise BuildParamsException(f'Cannot find module "{name}"')
+        #if module_spec is None:
+            #raise BuildParamsException(f'Cannot find module "{name}"')
 
-        module = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(module)
+        #module = importlib.util.module_from_spec(module_spec)
+        #module_spec.loader.exec_module(module)
 
 
 def get_build_dir():
@@ -192,3 +192,16 @@ def wrap_content_inner(start: str, end: str):
     p = _params()
     p.content_start += start
     p.content_end = end + p.content_end
+
+def __getattr__(name):
+    try:
+        mod = importlib.import_module(f'lamarkdown.{name}')
+    except ModuleNotFoundError as e:
+        raise AttributeError(f'No such attribute {name} (no such module)') from e
+
+    try:
+        apply_fn = getattr(mod, 'apply')
+    except AttributeError as e:
+        raise AttributeError(f'No such attribute {name} (missing "apply" function)') from e
+
+    return apply_fn
