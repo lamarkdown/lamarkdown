@@ -29,7 +29,7 @@ class CompileException(Exception): pass
 
 
 def set_default_build_params(build_parms: BuildParams):
-    lamarkdown.include('doc')
+    lamarkdown.doc()
 
 
 def compile(build_params: BuildParams):
