@@ -1,14 +1,15 @@
 from lamarkdown import *
 
 def apply(from_level: int = 2, to_level: int = 6, title = 'Contents'):
-    extensions('toc')
+    extension('toc', title = title,
+                     toc_depth = f'{from_level}-{to_level}')
 
-    config({
-        'toc': {
-            'title': title,
-            'toc_depth': f'{from_level}-{to_level}',
-        }
-    })
+    #config({
+        #'toc': {
+            #'title': title,
+            #'toc_depth': f'{from_level}-{to_level}',
+        #}
+    #})
 
     css(
         r'''

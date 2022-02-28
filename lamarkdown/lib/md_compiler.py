@@ -142,8 +142,13 @@ def invoke_python_markdown(build_params: BuildParams,
 
     else:
         try:
-            md = markdown.Markdown(extensions = build_params.extensions,
-                                   extension_configs = build_params.extension_configs)
+            md = markdown.Markdown(
+                extensions = build_params.obj_extensions + list(build_params.named_extensions.keys()),
+                extension_configs = build_params.named_extensions
+            )
+
+            #md = markdown.Markdown(extensions = build_params.extensions,
+                                   #extension_configs = build_params.extension_configs)
             content_html = md.convert(content_markdown)
             meta = md.__dict__.get('Meta', {})
 

@@ -9,7 +9,7 @@ flexibility.)
 '''
 
 from lamarkdown.lib.build_params import BuildParams, Resource, Variant
-import markdown
+from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 
 import importlib
@@ -104,17 +104,40 @@ def with_tree(fn: Callable):
     _callable(fn)
     _params().tree_hooks.append(fn)
 
-def extensions(*extensions: Union[str,markdown.extensions.Extension]):
-    _params().extensions.extend(extensions)
+def extensions(*extensions: Union[str,Extension]):
+    #_params().extensions.extend(extensions)
+    #_params().extensions.update(extensions)
+    for e in extensions:
+        extension(e)
 
-def config(configs: Dict[str,Dict[str,Any]]):
+#def config(configs: Dict[str,Dict[str,Any]]):
+    #p = _params()
+    #exts = set(p.extensions)
+    #for key in configs.keys():
+        #if key not in exts:
+            #raise BuildParamsException(f'config(): "{key}" is not an applied markdown extension.')
+
+    #p.extension_configs.update(configs)
+
+def extension(extension: Union[str,Extension], cfg_dict = {}, **cfg_kwargs):
     p = _params()
-    exts = set(p.extensions)
-    for key in configs.keys():
-        if key not in exts:
-            raise BuildParamsException(f'config(): "{key}" is not an applied markdown extension.')
+    new_config = {**cfg_dict, **cfg_kwargs}
 
-    p.extension_configs.update(configs)
+    if isinstance(extension, Extension):
+        if new_config:
+            raise ValueError('Cannot supply configuration values to an already-instantiated Extension')
+        else:
+            p.obj_extensions.append(extension)
+        return None
+
+    else:
+        config = p.named_extensions.get(extension)
+        if config:
+            config.update(new_config)
+            return config
+        else:
+            p.named_extensions[extension] = new_config
+            return new_config
 
 
 def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],

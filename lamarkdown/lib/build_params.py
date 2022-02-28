@@ -11,7 +11,7 @@ import lxml.etree
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set
 
 @dataclass
 class Resource:
@@ -63,8 +63,10 @@ class BuildParams:
     name:              str                        = ''
     variant_name_sep:  str                        = '_'
     variants:          List[Variant]              = field(default_factory=list)
-    extensions:        List[Union[str,Extension]] = field(default_factory=list)
-    extension_configs: Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    #extensions:        Set[Union[str,Extension]] = field(default_factory=set)
+    #extension_configs: Dict[str,Dict[str,Any]]   = field(default_factory=dict)
+    named_extensions:  Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    obj_extensions:    List[Extension]            = field(default_factory=list)
     tree_hooks:        List[Callable]             = field(default_factory=list)
     css:               List[Resource]             = field(default_factory=list)
     css_files:         List[Resource]             = field(default_factory=list)
@@ -103,8 +105,10 @@ class BuildParams:
         self.name = ''
         self.variant_name_sep = '_'
         self.variants = []
-        self.extensions = []
-        self.extension_configs = {}
+        #self.extensions = set()
+        #self.extension_configs = {}
+        self.named_extensions = {}
+        self.obj_extensions = []
         self.tree_hooks = []
         self.css = []
         self.css_files = []

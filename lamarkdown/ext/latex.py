@@ -482,6 +482,10 @@ class LatexExtension(Extension, BlockProcessor):
         }
         super().__init__(**kwargs)
 
+        embedding = self.getConfig('embedding')
+        if embedding not in LatexBlockProcessor.EMBEDDERS:
+            raise ValueError(f'Invalid value "{embedding}" for config option "embedding"')
+
     def reset(self):
         self.processor.reset()
 
