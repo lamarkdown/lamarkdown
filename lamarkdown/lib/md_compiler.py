@@ -7,8 +7,9 @@ This is where we invoke Python Markdown, but also:
 '''
 
 import lamarkdown
-from lamarkdown.lib.build_params import BuildParams, Resource, Variant
-from lamarkdown.lib.error import Error
+from .build_params import BuildParams, Resource, Variant
+from .error import Error
+from . import resources
 
 import lxml.html
 import markdown
@@ -147,8 +148,6 @@ def invoke_python_markdown(build_params: BuildParams,
                 extension_configs = build_params.named_extensions
             )
 
-            #md = markdown.Markdown(extensions = build_params.extensions,
-                                   #extension_configs = build_params.extension_configs)
             content_html = md.convert(content_markdown)
             meta = md.__dict__.get('Meta', {})
 
@@ -164,20 +163,8 @@ def invoke_python_markdown(build_params: BuildParams,
 
 
 
-def _resource_values(res_list: List[Resource], xpaths_found: Set[str]):
-    '''
-    Generates a sequence of resource values (which could be CSS/JS code, or CSS/JS URLs),
-    by calling the value factory for each resource.
-
-    The value factory needs to know the subset of its XPaths that matched. *In most cases*, it will
-    either return a fixed value regardless, OR return a single specific value iff any of the
-    XPaths matched, and None otherwise. (However, it is technically free to use more elaborate
-    decision making.)
-    '''
-    for res in res_list:
-        value = res.value_factory(xpaths_found.intersection(res.xpaths))
-        if value:
-            yield value
+def resource_values(res_list: List[Resource]):
+    return (res.value for res in res_list if res.value is not None)
 
 
 
@@ -196,9 +183,14 @@ def write_html(content_html: str,
     for fn in build_params.tree_hooks:
         fn(root_element)
 
-    # Determine which XPath expressions match the document. This helps us understand which
-    # 'resources' (CSS/JS code) we need to include in the output.
+    # Determine which XPath expressions match the document.
     xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
+
+    # From that, figure out what/which 'resources' (CSS/JS code) we need to include in the output.
+    build_params.reify_resources(xpaths_found)
+
+    # Potentially embed some of the resource links, as specified.
+    resources.embed(build_params)
 
     # Serialise document tree. ('root_element' is the <body> element, and we want to exclude
     # that tag for now, so we serialise each child element separately.)
@@ -243,7 +235,7 @@ def write_html(content_html: str,
 
 
     # Stylesheets
-    css = '\n'.join(_resource_values(build_params.css, xpaths_found))
+    css = '\n'.join(resource_values(build_params.css))
 
     # Strip CSS comments at the beginning of lines
     css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
@@ -259,7 +251,7 @@ def write_html(content_html: str,
 
 
     # Scripts
-    js = '\n'.join(_resource_values(build_params.js, xpaths_found))
+    js = '\n'.join(resource_values(build_params.js))
     if js:
         # TODO: run the 'slimit' Javascript minifier here?
         js = f'<script>{js}\n</script>\n'
@@ -281,14 +273,14 @@ def write_html(content_html: str,
         lang_html = lang_html,
         title_html = title_html,
         css_list = ''.join(f'<link rel="stylesheet" href="{value}" />\n'
-                           for value in _resource_values(build_params.css_files, xpaths_found)),
+                           for value in resource_values(build_params.css_files)),
         css = css,
         pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
         content_start = build_params.content_start,
         content_html = content_html,
         content_end = build_params.content_end,
         js_list = ''.join(f'<script src="{value}"></script>\n'
-                          for value in _resource_values(build_params.js_files, xpaths_found)),
+                          for value in resource_values(build_params.js_files)),
         js = js
     )
 

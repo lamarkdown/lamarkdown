@@ -12,6 +12,9 @@ import lxml.etree
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Set
+from collections.abc import Iterable
+
+class ResourceError(Exception): pass
 
 @dataclass
 class Resource:
@@ -21,7 +24,17 @@ class Resource:
     resource "knows when it's needed".
     '''
     value_factory: Callable[[Set[str]],Optional[str]]
-    xpaths: List[str] = field(default_factory=list)
+    xpaths:        List[str] = field(default_factory=list)
+    reified:       bool = False
+    value:         Optional[str] = None
+    embed:         Optional[bool] = None
+
+    def reify(self, xpaths_found: Iterable[str]):
+        if self.reified:
+            raise ResourceError('Already reified')
+        self.value = self.value_factory(xpaths_found.intersection(self.xpaths))
+        self.reified = True
+
 
 
 @dataclass
@@ -63,8 +76,6 @@ class BuildParams:
     name:              str                        = ''
     variant_name_sep:  str                        = '_'
     variants:          List[Variant]              = field(default_factory=list)
-    #extensions:        Set[Union[str,Extension]] = field(default_factory=set)
-    #extension_configs: Dict[str,Dict[str,Any]]   = field(default_factory=dict)
     named_extensions:  Dict[str,Dict[str,Any]]    = field(default_factory=dict)
     obj_extensions:    List[Extension]            = field(default_factory=list)
     tree_hooks:        List[Callable]             = field(default_factory=list)
@@ -72,6 +83,8 @@ class BuildParams:
     css_files:         List[Resource]             = field(default_factory=list)
     js:                List[Resource]             = field(default_factory=list)
     js_files:          List[Resource]             = field(default_factory=list)
+    resource_path:     str                        = None
+    embed_resources:   Optional[bool]             = None
     content_start:     str                        = ''
     content_end:       str                        = ''
     env:               Dict[str,Any]              = field(default_factory=Environment)
@@ -101,12 +114,16 @@ class BuildParams:
                       for res in res_list
                       for xpath in res.xpaths}
 
+    def reify_resources(self, xpaths_found: Iterable[str]):
+        for res_list in (self.css, self.css_files, self.js, self.js_files):
+            for res in res_list:
+                res.reify(xpaths_found)
+
+
     def reset(self):
         self.name = ''
         self.variant_name_sep = '_'
         self.variants = []
-        #self.extensions = set()
-        #self.extension_configs = {}
         self.named_extensions = {}
         self.obj_extensions = []
         self.tree_hooks = []
@@ -114,6 +131,7 @@ class BuildParams:
         self.css_files = []
         self.js = []
         self.js_files = []
+        self.embed_resources = None
         self.content_start = ''
         self.content_end = ''
         self.env = Environment()

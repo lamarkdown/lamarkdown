@@ -8,7 +8,7 @@ variants, css styles, etc. Build modules just need to 'import lamarkdown'.
 flexibility.)
 '''
 
-from lamarkdown.lib.build_params import BuildParams, Resource, Variant
+from .lib.build_params import BuildParams, Resource, Variant
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 
@@ -23,25 +23,6 @@ def _params():
     if BuildParams.current is None:
         raise BuildParamsException(f'Build params not yet initialised')
     return BuildParams.current
-
-
-#def include(*module_names: str, pkg = 'lamarkdown'):
-    #"""
-    #Applies a build module, or modules, by name. You can also use the standard 'import' statement,
-    #but that breaks on live updating, because we need build modules to reload in that case.
-    #"""
-
-    #for name in module_names:
-        #if pkg is None or pkg == '':
-            #module_spec = importlib.util.find_spec(name)
-        #else:
-            #module_spec = importlib.util.find_spec('.' + name, package = pkg)
-
-        #if module_spec is None:
-            #raise BuildParamsException(f'Cannot find module "{name}"')
-
-        #module = importlib.util.module_from_spec(module_spec)
-        #module_spec.loader.exec_module(module)
 
 
 def get_build_dir():
@@ -105,19 +86,8 @@ def with_tree(fn: Callable):
     _params().tree_hooks.append(fn)
 
 def extensions(*extensions: Union[str,Extension]):
-    #_params().extensions.extend(extensions)
-    #_params().extensions.update(extensions)
     for e in extensions:
         extension(e)
-
-#def config(configs: Dict[str,Dict[str,Any]]):
-    #p = _params()
-    #exts = set(p.extensions)
-    #for key in configs.keys():
-        #if key not in exts:
-            #raise BuildParamsException(f'config(): "{key}" is not an applied markdown extension.')
-
-    #p.extension_configs.update(configs)
 
 def extension(extension: Union[str,Extension], cfg_dict = {}, **cfg_kwargs):
     p = _params()
@@ -142,7 +112,8 @@ def extension(extension: Union[str,Extension], cfg_dict = {}, **cfg_kwargs):
 
 def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
          if_xpaths:    Union[str,Iterable[str]] = [],
-         if_selectors: Union[str,Iterable[str]] = []):
+         if_selectors: Union[str,Iterable[str]] = [],
+         embed:        Optional[bool] = None):
     '''
     Creates a Resource object, based on either a value or a value factory, and a set of
     zero-or-more XPath expressions and/or CSS selectors (which are compiled to XPaths).
@@ -170,7 +141,7 @@ def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
     xpaths = []
     xpaths.extend(if_xpaths)
     xpaths.extend(CSSSelector(sel).path for sel in if_selectors)
-    return Resource(value_factory, xpaths)
+    return Resource(value_factory, xpaths, embed = embed)
 
 
 def css_rule(selectors: Union[str,Iterable[str]], properties: str):
@@ -200,11 +171,17 @@ def css(value: str, **kwargs):
 def js(value: str, **kwargs):
     _params().js.append(_res(value, **kwargs))
 
-def css_files(*values: List[str], **kwargs):
-    _params().css_files.extend(_res(value, **kwargs) for value in values)
+def css_files(*values: List[str], embed: Optional[bool] = None, **kwargs):
+    _params().css_files.extend(
+        _res(value, embed = embed, **kwargs)
+        for value in values
+    )
 
-def js_files(*values: List[str], **kwargs):
-    _params().js_files.extend(_res(value, **kwargs) for value in values)
+def js_files(*values: List[str], embed: Optional[bool] = None, **kwargs):
+    _params().js_files.extend(
+        _res(value, embed = embed, **kwargs)
+        for value in values
+    )
 
 def wrap_content(start: str, end: str):
     p = _params()
@@ -215,6 +192,9 @@ def wrap_content_inner(start: str, end: str):
     p = _params()
     p.content_start += start
     p.content_end = end + p.content_end
+
+def embed_resources(embed: Optional[bool] = True):
+    _params().embed_resources = embed
 
 
 def __getattr__(name):
