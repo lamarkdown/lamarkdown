@@ -27,12 +27,13 @@ def embed_res_list(embedded_resources: List[Resource],
     while i < len(linked_resources):
         res = linked_resources[i]
 
-        # Note: 'policy' and 'res.embed' can each be True, False or None. Hence the more explicit 
+        # Note: 'policy' and 'res.embed' can each be True, False or None. Hence the more explicit
         # checking below.
-        
+
         link = res.value
-        if (link is not None and 
-            (policy is True or (policy is not False and res.embed is True)) and
+        if (link is not None and
+            ((policy is True and res.embed is not False) or
+             (policy is not False and res.embed is True)) and
             not _URL_SCHEME_REGEX.match(link)):
 
             #if _URL_SCHEME_REGEX.match(link):
@@ -45,7 +46,7 @@ def embed_res_list(embedded_resources: List[Resource],
 
             with open(os.path.join(base_path, link)) as reader:
                 text = reader.read()
-                    
+
             # Insert rather than append, to try to maintain the ordering, which may be important.
             # That is, linked resources would occur before inline resources, and so newly-embedded
             # resources should also occur before existing inline resources.
@@ -64,7 +65,7 @@ def embed_res_list(embedded_resources: List[Resource],
         else:
             # Either:
             # (a) the resource has been filtered out, or
-            # (b) the build file says not to embed, or 
+            # (b) the build file says not to embed, or
             # (c) the resource is remote.
             i += 1
 
