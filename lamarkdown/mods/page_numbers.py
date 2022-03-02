@@ -1,6 +1,6 @@
 from lamarkdown import *
 
-def apply():
+def apply(pageHeight = 1200):
     css(r'''
         @media screen {
             body {
@@ -13,25 +13,49 @@ def apply():
                 top: 0%;
                 background: white;
                 color: black;
-                #box-shadow: 8px 5px 7px black;
-                border-top: 1px solid black;
                 padding: 0 1em;
                 margin-top: -1px;
+            }
+            
+            .pageN:not(:last-child) {
+                border-bottom: 1px solid black;
+            }
+        }
+            
+        @media print {
+            .pageN {
+                display: none;
             }
         }
     ''')
 
-    js(r'''
-        const totalHeight = document.body.offsetHeight;
-        let n = 1;
-        for(let t = 0; t < totalHeight; t += 1200)
+    js(f'const pageHeight = {pageHeight};' +
+        r'''       
+        function pageN(t, n)
         {
-            let pageN = document.createElement('div');
-            pageN.className = 'pageN';
-            pageN.style.top = t + 'px';
-            pageN.textContent = n;
-            pageN.title = 'Pseudo page number';
-            document.body.append(pageN);
-            n += 1;
+            let elem = document.createElement('div');
+            elem.className = 'pageN';
+            elem.style.top = `calc(${t}px - 1em)`;
+            elem.textContent = n;
+            elem.title = 'Pseudo page number';
+            document.body.append(elem);
         }
+       
+        const totalHeight = document.body.clientHeight;
+        let n = 1;
+        let t = pageHeight;
+        while(t < totalHeight)
+        {
+            pageN(t, n);
+            n += 1;
+            t += pageHeight;
+        }
+        
+        let elem = document.createElement('div');
+        elem.className = 'pageN';
+        elem.style.top = 'auto';
+        elem.style.bottom = '0';
+        elem.textContent = n;
+        elem.title = 'Pseudo page number';
+        document.body.append(elem);
     ''')
