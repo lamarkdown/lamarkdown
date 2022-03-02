@@ -1,15 +1,9 @@
 from lamarkdown import *
 
 def apply(from_level: int = 2, to_level: int = 6, title = 'Contents'):
-    extension('toc', title = title,
-                     toc_depth = f'{from_level}-{to_level}')
-
-    #config({
-        #'toc': {
-            #'title': title,
-            #'toc_depth': f'{from_level}-{to_level}',
-        #}
-    #})
+    extension('toc', 
+              title = title,
+              toc_depth = f'{from_level}-{to_level}')
 
     css(
         r'''
@@ -19,7 +13,9 @@ def apply(from_level: int = 2, to_level: int = 6, title = 'Contents'):
                 z-index: -1;
                 left: 1ex;
                 top: 1ex;
+                overflow-y: scroll;
                 width: 20em;
+                max-height: 90%;
                 border-radius: 0.5ex;
                 background: white;
                 box-shadow: 5px 5px 10px black;
