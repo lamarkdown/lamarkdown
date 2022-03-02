@@ -45,6 +45,9 @@ def _callable(fn):
 def target(fn: Callable[[str],str]):
     _callable(fn)
     _params().output_namer = fn
+    
+def base_name():
+    _params().output_namer = lambda t: t
 
 def variants(*args, **kwargs):
     p = _params()
