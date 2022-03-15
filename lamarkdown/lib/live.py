@@ -136,7 +136,7 @@ def get_handler(content: Content):
                 if content.base_variant:
                     self.send_main_content(content.base_variant)
                 else:
-                    self.send_main_content(next(iter(content.title.keys)))
+                    self.send_main_content(next(iter(content.title.keys())))
 
             elif self.path == '/query':
                 self.send_response(200)
