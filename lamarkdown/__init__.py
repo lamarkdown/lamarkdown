@@ -13,8 +13,7 @@ from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 
 import importlib
-from typing import Any, Callable, Dict, List, Optional, Set, Union
-from collections.abc import Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
 
 
 class BuildParamsException(Exception): pass
@@ -45,7 +44,7 @@ def _callable(fn):
 def target(fn: Callable[[str],str]):
     _callable(fn)
     _params().output_namer = fn
-    
+
 def base_name():
     _params().output_namer = lambda t: t
 
@@ -125,6 +124,8 @@ def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
     # FIXME: this arrangement doesn't allow value factories to query selectors properly, because
     # it's expected to supply the xpath equivalent, which it never sees.
 
+    value_factory: Callable[[Set[str]],Optional[str]]
+
     if callable(value):
         value_factory = value
     elif if_xpaths or if_selectors:
@@ -135,15 +136,18 @@ def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
         # If a literal value is given with no XPaths, then we'll produce that value unconditionally.
         value_factory = lambda _: value
 
-    if isinstance(if_xpaths, str):
-        if_xpaths = [if_xpaths]
+    xpath_iterable    = [if_xpaths]    if isinstance(if_xpaths,    str) else if_xpaths
+    selector_iterable = [if_selectors] if isinstance(if_selectors, str) else if_selectors
 
-    if isinstance(if_selectors, str):
-        if_selectors = [if_selectors]
+    #if isinstance(if_xpaths, str):
+        #if_xpaths = [if_xpaths]
+
+    #if isinstance(if_selectors, str):
+        #if_selectors = [if_selectors]
 
     xpaths = []
-    xpaths.extend(if_xpaths)
-    xpaths.extend(CSSSelector(sel).path for sel in if_selectors)
+    xpaths.extend(xpath_iterable)
+    xpaths.extend(CSSSelector(sel).path for sel in selector_iterable)
     return Resource(value_factory, xpaths, embed = embed)
 
 

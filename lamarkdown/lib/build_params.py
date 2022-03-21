@@ -11,8 +11,7 @@ import lxml.etree
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set
-from collections.abc import Iterable
+from typing import Any, Callable, ClassVar, Dict, Iterable, List, Optional, Set
 
 class ResourceError(Exception): pass
 
