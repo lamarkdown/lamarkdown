@@ -259,7 +259,8 @@ class SvgElementEmbedder(Embedder):
 
 
 class LatexBlockProcessor(BlockProcessor):
-    cache: Dict[str,ElementTree.Element] = {}
+    #cache: Dict[str,ElementTree.Element] = {}
+    CACHE_PREFIX = 'lamarkdown.latex'
 
     # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
     ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
@@ -280,10 +281,11 @@ class LatexBlockProcessor(BlockProcessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str,
+    def __init__(self, parser, cache, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str,
                  prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
         super().__init__(parser)
         self.build_dir = build_dir
+        self.cache = cache
 
         self.tex_cmdline: Union[List[str],str] = (
             self.TEX_CMDLINES.get(tex) or
@@ -368,12 +370,12 @@ class LatexBlockProcessor(BlockProcessor):
         latex = latex[:latex_end]
 
         # Build a representation of all the input information sources.
-        input_repr = repr((latex,
-                           self.tex_cmdline, self.converter_cmdline, self.embedding,
-                           self.prepend, self.doc_class, self.doc_class_options, self.strip_html_comments))
-
+        cache_key = (self.CACHE_PREFIX, 
+                     latex, self.tex_cmdline, self.converter_cmdline, self.embedding, self.prepend, 
+                     self.doc_class, self.doc_class_options, self.strip_html_comments)
+        
         # If not in cache, compile it.
-        if input_repr not in self.cache:
+        if cache_key not in self.cache:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
             file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
@@ -405,17 +407,16 @@ class LatexBlockProcessor(BlockProcessor):
                     cwd = file_build_dir
                 )
                 
-                self.cache[input_repr] = self.embedder.generate_html(svg_file)
+                # If compilation was successful, cache the result.
+                self.cache[cache_key] = self.embedder.generate_html(svg_file)
                 
             except CommandException as e:
                 parent.append(Error('latex', str(e), e.output, full_doc).to_element())
                 return
 
-
-
         # We make a copy of the cached element, because different instances of it could
         # conceivably be assigned different attributes below.
-        element = copy.copy(self.cache.get(input_repr))
+        element = copy.copy(self.cache.get(cache_key))
 
         if post_text:
             match = self.ATTR_REGEX.match(post_text)
@@ -439,20 +440,26 @@ class LatexBlockProcessor(BlockProcessor):
 class LatexExtension(Extension, BlockProcessor):
     def __init__(self, **kwargs):
         try:
-            # Try to get the build dir (the location where we'll execute latex, and where all its
-            # temporary files will accumulate) from the actual current build parameters. This will
-            # only work if this extension is being used within the context of lamarkdown.
+            # Try to get some objects from the current build parameters:
+            # (1) the build dir -- the location where we'll execute latex, and where all its 
+            #     temporary files will accumulate;
+            # (2) the global cache -- allowing us to avoid re-compiling when the Latex code hasn't
+            #     changed.
             #
+            # This will only work if this extension is being used within the context of lamarkdown. 
             # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
 
             from lamarkdown.lib.build_params import BuildParams
             default_build_dir = BuildParams.current.build_dir if BuildParams.current else 'build'
+            default_cache     = BuildParams.current.cache     if BuildParams.current else {}
 
         except ModuleNotFoundError:
             default_build_dir = 'build'
+            default_cache = {}
 
         self.config = {
             'build_dir': [default_build_dir, 'Location to write temporary files'],
+            'cache': [default_cache, 'A dictionary-like cache object to help avoid unnecessary rebuilds.'],
             'tex': [
                 'xelatex',
                 'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'
@@ -497,6 +504,7 @@ class LatexExtension(Extension, BlockProcessor):
         self.processor = LatexBlockProcessor(
             md.parser,
             build_dir           = self.getConfig('build_dir'),
+            cache               = self.getConfig('cache'),
             tex                 = self.getConfig('tex'),
             pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
             embedding           = self.getConfig('embedding'),
