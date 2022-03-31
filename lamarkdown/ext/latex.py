@@ -404,11 +404,13 @@ class LatexBlockProcessor(BlockProcessor):
                     svg_file,
                     cwd = file_build_dir
                 )
+                
+                self.cache[input_repr] = self.embedder.generate_html(svg_file)
+                
             except CommandException as e:
                 parent.append(Error('latex', str(e), e.output, full_doc).to_element())
                 return
 
-            self.cache[input_repr] = self.embedder.generate_html(svg_file)
 
 
         # We make a copy of the cached element, because different instances of it could

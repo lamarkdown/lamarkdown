@@ -3,6 +3,8 @@
 from lamarkdown.lib import md_compiler
 from lamarkdown.lib.build_params import BuildParams
 
+import diskcache
+
 import argparse
 import os.path
 import time
@@ -42,6 +44,7 @@ def main():
 
     src_file = os.path.abspath(args.input)
     base_name = src_file.rsplit('.', 1)[0]
+    build_dir = os.path.join('build', os.path.basename(src_file) + '.tmp')
 
     build_params = BuildParams(
         src_file = src_file,
@@ -53,10 +56,11 @@ def main():
                 os.path.abspath(base_name + '.py'),
                 *(args.build or [])
             ],
-        build_dir = os.path.join('build', os.path.basename(src_file) + '.tmp'),
-        build_defaults = not args.no_build_defaults
+        build_dir = build_dir,
+        build_defaults = not args.no_build_defaults,
+        cache = diskcache.Cache(os.path.join(build_dir, 'cache'))
     )
-    os.makedirs(build_params.build_dir, exist_ok = True)
+    os.makedirs(build_dir, exist_ok = True)
 
     all_build_params = md_compiler.compile(build_params)
 

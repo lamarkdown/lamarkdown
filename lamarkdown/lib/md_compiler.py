@@ -7,7 +7,8 @@ This is where we invoke Python Markdown, but also:
 '''
 
 import lamarkdown
-from .build_params import BuildParams, Resource, Variant
+from .build_params import BuildParams, Variant
+from .resources import ResourceSpec, Resource
 from .error import Error
 from . import resources
 
@@ -161,11 +162,14 @@ def invoke_python_markdown(build_params: BuildParams,
 
     return content_html, meta
 
-
-
-def resource_values(res_list: List[Resource]):
-    return (res.value for res in res_list if res.value is not None)
-
+            
+def resources(spec_list: List[ResourceSpec], xpaths_found: Set[str]) -> List[Resource]:
+    res_list = []
+    for spec in spec_list:
+        res = spec.make_resource(xpaths_found)
+        if res:
+            res.add_or_coalesce(res_list)
+    return res_list
 
 
 _parser = lxml.html.HTMLParser(default_doctype = False,
@@ -183,14 +187,9 @@ def write_html(content_html: str,
     for fn in build_params.tree_hooks:
         fn(root_element)
 
-    # Determine which XPath expressions match the document.
+    # Determine which XPath expressions match the document (so we know later which css/js 
+    # resources to include).
     xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
-
-    # From that, figure out what/which 'resources' (CSS/JS code) we need to include in the output.
-    build_params.reify_resources(xpaths_found)
-
-    # Potentially embed some of the resource links, as specified.
-    resources.embed(build_params)
 
     # Serialise document tree. ('root_element' is the <body> element, and we want to exclude
     # that tag for now, so we serialise each child element separately.)
@@ -234,54 +233,27 @@ def write_html(content_html: str,
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 
-    # Stylesheets
-    css = '\n'.join(resource_values(build_params.css))
-
-    # Strip CSS comments at the beginning of lines
-    css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', css, flags = re.DOTALL)
-
-    # Strip CSS comments at the end of lines
-    css = re.sub('/\*.*?\*/\s*($|\n)', '\n', css, flags = re.DOTALL)
-
-    # Normalise line breaks
-    css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
-
-    if css:
-        css = f'<style>{css}</style>'
-
-
-    # Scripts
-    js = '\n'.join(resource_values(build_params.js))
-    if js:
-        # TODO: run the 'slimit' Javascript minifier here?
-        js = f'<script>{js}\n</script>\n'
-
-
     full_html_template = '''
         <!DOCTYPE html>
         <html lang="{lang_html:s}">
         <head>
         <meta charset="utf-8" />
         <title>{title_html:s}</title>
-        {css_list:s}{css:s}</head>
+        {css:s}</head>
         <body>{pre_errors:s}
         {content_start:s}{content_html:s}{content_end:s}
-        {js_list:s}{js:s}</body>
+        {js:s}</body>
         </html>
     '''
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css_list = ''.join(f'<link rel="stylesheet" href="{value}" />\n'
-                           for value in resource_values(build_params.css_files)),
-        css = css,
+        css = ''.join(res.as_style() + '\n' for res in resources(build_params.css, xpaths_found)),
         pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
         content_start = build_params.content_start,
         content_html = content_html,
         content_end = build_params.content_end,
-        js_list = ''.join(f'<script src="{value}"></script>\n'
-                          for value in resource_values(build_params.js_files)),
-        js = js
+        js = ''.join(res.as_script() + '\n' for res in resources(build_params.js, xpaths_found)),
     )
 
     with open(build_params.output_file, 'w') as target:
