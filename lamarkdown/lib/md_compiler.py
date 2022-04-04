@@ -9,7 +9,8 @@ This is where we invoke Python Markdown, but also:
 import lamarkdown
 from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, Resource
-from .error import Error
+#from .error import Error
+from .progress import Progress
 from . import resources
 
 import lxml.html
@@ -38,8 +39,9 @@ def compile(build_params: BuildParams):
 
     build_params.reset()
     build_params.set_current()
+    progress = build_params.progress
 
-    pre_errors: List[Error] = []
+    build_params.progress.progress(os.path.basename(build_params.src_file), 'Configuring')
 
     any_build_modules = False
 
@@ -48,8 +50,7 @@ def compile(build_params: BuildParams):
             any_build_modules = True
             module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
             if module_spec is None:
-                pre_errors.append(Error(
-                    build_file, f'Could not load build module "{build_file}"'))
+                progress.error(build_file, f'Could not load build module "{build_file}"')
 
             build_module = importlib.util.module_from_spec(module_spec)
             try:
@@ -60,7 +61,7 @@ def compile(build_params: BuildParams):
                         build_file_contents = reader.read()
                 except OSError:
                     build_file_contents = '[could not read file]'
-                pre_errors.append(Error.from_exception(build_file, e, build_file_contents))
+                progress.error_from_exception(build_file, e, build_file_contents)
 
             build_params.env.update(build_module.__dict__)
 
@@ -70,19 +71,18 @@ def compile(build_params: BuildParams):
     if build_params.variants:
         all_build_params = []
         for variant in build_params.variants:
-            all_build_params += compile_variant(variant, build_params, pre_errors)
+            all_build_params += compile_variant(variant, build_params)
         return all_build_params
 
     else:
-        content_html, meta = invoke_python_markdown(build_params, pre_errors)
-        write_html(content_html, meta, build_params, pre_errors)
+        content_html, meta = invoke_python_markdown(build_params)
+        write_html(content_html, meta, build_params)
         return [build_params]
 
 
 
 def compile_variant(variant: Variant,
-                    build_params: BuildParams,
-                    pre_errors: List[ElementTree.Element] = []):
+                    build_params: BuildParams):
     prev_build_params = BuildParams.current
     build_params = deepcopy(build_params)
     build_params.set_current()
@@ -104,7 +104,7 @@ def compile_variant(variant: Variant,
     # A variant doesn't inherit the set of variants, or we would have infinite recursion.
     build_params.variants = []
 
-    pre_errors = deepcopy(pre_errors)
+    #pre_errors = deepcopy(pre_errors)
 
     try:
         variant.build_fn()
@@ -113,15 +113,15 @@ def compile_variant(variant: Variant,
             variant_fn_source = inspect.getsource(variant.build_fn)
         except OSError:
             variant_fn_source = '[could not obtain source]'
-        pre_errors.append(Error.from_exception(variant.name, e, variant_fn_source))
+        build_params.progress.error_from_exception(variant.name, e, variant_fn_source)
 
     if build_params.variants:
         all_build_params = []
         for sub_variant in build_params.variants:
-            all_build_params += compile_variant(sub_variant, build_params, pre_errors)
+            all_build_params += compile_variant(sub_variant, build_params)
     else:
-        content_html, meta = invoke_python_markdown(build_params, pre_errors)
-        write_html(content_html, meta, build_params, pre_errors)
+        content_html, meta = invoke_python_markdown(build_params)
+        write_html(content_html, meta, build_params)
         all_build_params = [build_params]
 
     prev_build_params.set_current()
@@ -129,18 +129,18 @@ def compile_variant(variant: Variant,
 
 
 
-def invoke_python_markdown(build_params: BuildParams,
-                           pre_errors: List[ElementTree.Element] = []):
+def invoke_python_markdown(build_params: BuildParams):
 
+    build_params.progress.progress(os.path.basename(build_params.output_file), 'Invoking Python Markdown')
     content_html = ''
     meta: Dict[str,List[str]] = {}
-    pre_errors: List[Error] = list(pre_errors)
+    #pre_errors: List[Error] = list(pre_errors)
 
     try:
         with open(build_params.src_file, 'r') as src:
             content_markdown = src.read()
     except OSError as e:
-        pre_errors.append(Error.from_exception(build_params.src_file, e))
+        build_params.progress.error_from_exception(build_params.src_file, e)
 
     else:
         try:
@@ -153,20 +153,22 @@ def invoke_python_markdown(build_params: BuildParams,
             meta = md.__dict__.get('Meta', {})
 
         except Exception as e:
-            pre_errors.append(Error.from_exception('Python Markdown', e))
+            build_params.progress.error_from_exception('Python Markdown', e)
 
     # Display pre-errors. (TODO: make this display in-document errors too?)
-    for error in pre_errors:
-        error.print()
-        print()
+    #for error in pre_errors:
+        #error.print()
+        #print()
 
     return content_html, meta
 
             
-def resources(spec_list: List[ResourceSpec], xpaths_found: Set[str]) -> List[Resource]:
+def resources(spec_list: List[ResourceSpec], 
+              xpaths_found: Set[str],
+              build_params: Progress) -> List[Resource]:
     res_list = []
     for spec in spec_list:
-        res = spec.make_resource(xpaths_found)
+        res = spec.make_resource(xpaths_found, build_params)
         if res:
             res.add_or_coalesce(res_list)
     return res_list
@@ -178,10 +180,16 @@ _parser = lxml.html.HTMLParser(default_doctype = False,
 
 def write_html(content_html: str,
                meta: Dict[str,List[str]],
-               build_params: BuildParams,
-               pre_errors: List[ElementTree.Element] = []):
-
-    root_element = lxml.html.parse(StringIO(content_html), _parser).find('body')
+               build_params: BuildParams):
+    
+    build_params.progress.progress(os.path.basename(build_params.output_file), 'Creating output document')
+    
+    buf = StringIO(content_html)
+    try:
+        root_element = lxml.html.parse(buf, _parser).find('body')
+    except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
+        build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
+        return
 
     # Run hook functions
     for fn in build_params.tree_hooks:
@@ -240,7 +248,7 @@ def write_html(content_html: str,
         <meta charset="utf-8" />
         <title>{title_html:s}</title>
         {css:s}</head>
-        <body>{pre_errors:s}
+        <body>{errors:s}
         {content_start:s}{content_html:s}{content_end:s}
         {js:s}</body>
         </html>
@@ -248,12 +256,17 @@ def write_html(content_html: str,
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css = ''.join(res.as_style() + '\n' for res in resources(build_params.css, xpaths_found)),
-        pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
+        css = ''.join(res.as_style() + '\n' 
+                      for res in resources(build_params.css, xpaths_found, build_params.progress)),
+        #pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
+        errors = ''.join('\n' + error.as_html_str() 
+                         for error in build_params.progress.get_errors()
+                         if not error.consumed),
         content_start = build_params.content_start,
         content_html = content_html,
         content_end = build_params.content_end,
-        js = ''.join(res.as_script() + '\n' for res in resources(build_params.js, xpaths_found)),
+        js = ''.join(res.as_script() + '\n' 
+                     for res in resources(build_params.js, xpaths_found, build_params.progress)),
     )
 
     with open(build_params.output_file, 'w') as target:

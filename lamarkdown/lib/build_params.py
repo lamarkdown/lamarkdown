@@ -7,6 +7,7 @@ build modules.
 '''
 
 from .resources import ResourceSpec
+from .progress import Progress
 from markdown.extensions import Extension
 import diskcache
 import lxml.etree
@@ -53,6 +54,8 @@ class BuildParams:
     build_dir: str
     build_defaults: bool
     cache: diskcache.Cache
+    progress: Progress
+    is_live: bool
 
     # These fields *are* modifiable by build modules:
     name:               str                        = ''

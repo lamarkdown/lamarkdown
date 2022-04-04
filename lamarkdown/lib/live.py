@@ -195,9 +195,10 @@ def watch_live(build_params: BuildParams,
                     all_build_params = md_compiler.compile(build_params)
                     content.update(all_build_params)
                 except Exception as e:
-                    print('---')
-                    traceback.print_exc()
-                    print('---')
+                    build_params.progress.error_from_exception('Live', e)
+                    #print('---')
+                    #traceback.print_exc()
+                    #print('---')
 
     paths = {os.path.dirname(p) for p in [build_params.src_file] + build_params.build_files if p}
 
@@ -220,7 +221,9 @@ def watch_live(build_params: BuildParams,
                 continue # Port in use; try next one.
 
             else:
-                print(f'Monitoring changes to source and build files.\nBrowse to http://localhost:{port}\nPress Ctrl-C to quit.')
+                #print(f'Monitoring changes to source and build files.\nBrowse to http://localhost:{port}\nPress Ctrl-C to quit.')
+                build_params.progress.progress('Live updating', 'Launching server and browser, and monitoring changes to source/build files.',
+                    f'Browse to http://localhost:{port}\nPress Ctrl-C to quit.')
 
                 # We want to open a web browser at the address we're serving, but not before the
                 # server is running. Hence, we start a new thread, which waits 0.5 secs while the

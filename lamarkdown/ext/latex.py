@@ -24,7 +24,8 @@ method of embedding SVG, optional common Latex code to be inserted after '\\docu
 
 # Originally adapted from https://github.com/neapel/tikz-markdown, but since modified extensively
 
-from lamarkdown.lib.error import Error
+#from lamarkdown.lib.error import Error
+from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
 
 from markdown import *
 from markdown.extensions import *
@@ -281,11 +282,13 @@ class LatexBlockProcessor(BlockProcessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, parser, cache, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str,
-                 prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
+    def __init__(self, parser, build_dir: str, cache, progress: Progress,
+                 tex: str, pdf_svg_converter: str, embedding: str, prepend: str, 
+                 doc_class: str, doc_class_options: str, strip_html_comments: bool):
         super().__init__(parser)
         self.build_dir = build_dir
         self.cache = cache
+        self.progress = progress
 
         self.tex_cmdline: Union[List[str],str] = (
             self.TEX_CMDLINES.get(tex) or
@@ -356,11 +359,8 @@ class LatexBlockProcessor(BlockProcessor):
         latex_end = latex.rfind(end)
         if latex_end < 0:
             begin = latex.lstrip().split('\n', 1)[0]
-            parent.append(
-                Error('latex',
-                      f'Couldn\'t find closing "{end}" after "{begin}"',
-                      latex).to_element()
-            )
+            parent.append(self.progress.error(
+                'latex', f'Couldn\'t find closing "{end}" after "{begin}"', latex).as_dom_element())
             return
 
         # There could be some extra 'post_text' after the last \end{...}, which might contain (for
@@ -375,7 +375,10 @@ class LatexBlockProcessor(BlockProcessor):
                      self.doc_class, self.doc_class_options, self.strip_html_comments)
         
         # If not in cache, compile it.
-        if cache_key not in self.cache:
+        if cache_key in self.cache:
+            self.progress.progress('Latex', 'Cache hit -- skipping compilation')
+            
+        else:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
             file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
@@ -390,17 +393,20 @@ class LatexBlockProcessor(BlockProcessor):
                     full_doc = formatter.format(self.prepend, latex)
                     f.write(full_doc)
             except OSError as e:
-                parent.append(Error.from_exception('latex', e).to_element())
+                parent.append(self.progress.error_from_exception('latex', e).as_dom_element())
                 return
 
             try:
+                self.progress.progress(self.tex_cmdline[0], 'Compiling .tex to .pdf...')
                 check_run(
                     self.tex_cmdline,
                     pdf_file,
                     cwd = file_build_dir,
+                    #env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                     env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                 )
 
+                self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
                 check_run(
                     self.converter_cmdline,
                     svg_file,
@@ -411,7 +417,7 @@ class LatexBlockProcessor(BlockProcessor):
                 self.cache[cache_key] = self.embedder.generate_html(svg_file)
                 
             except CommandException as e:
-                parent.append(Error('latex', str(e), e.output, full_doc).to_element())
+                parent.append(self.progress.error('latex', str(e), e.output, full_doc).as_dom_element())
                 return
 
         # We make a copy of the cached element, because different instances of it could
@@ -439,27 +445,27 @@ class LatexBlockProcessor(BlockProcessor):
 
 class LatexExtension(Extension, BlockProcessor):
     def __init__(self, **kwargs):
+        # Try to get some objects from the current build parameters:
+        # (1) the build dir -- the location where we'll execute latex, and where all its 
+        #     temporary files will accumulate;
+        # (2) the global cache -- allowing us to avoid re-compiling when the Latex code hasn't
+        #     changed.
+        #
+        # This will only work if this extension is being used within the context of lamarkdown. 
+        # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
+        p = None
         try:
-            # Try to get some objects from the current build parameters:
-            # (1) the build dir -- the location where we'll execute latex, and where all its 
-            #     temporary files will accumulate;
-            # (2) the global cache -- allowing us to avoid re-compiling when the Latex code hasn't
-            #     changed.
-            #
-            # This will only work if this extension is being used within the context of lamarkdown. 
-            # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
-
             from lamarkdown.lib.build_params import BuildParams
-            default_build_dir = BuildParams.current.build_dir if BuildParams.current else 'build'
-            default_cache     = BuildParams.current.cache     if BuildParams.current else {}
-
+            p = BuildParams.current
         except ModuleNotFoundError:
-            default_build_dir = 'build'
-            default_cache = {}
-
+            pass # Use default defaults
+        
+        progress = p.progress if p else Progress()
+        
         self.config = {
-            'build_dir': [default_build_dir, 'Location to write temporary files'],
-            'cache': [default_cache, 'A dictionary-like cache object to help avoid unnecessary rebuilds.'],
+            'build_dir': [p.build_dir if p else 'build',    'Location to write temporary files'],
+            'cache':     [p.cache     if p else {},         'A dictionary-like cache object to help avoid unnecessary rebuilds.'],
+            'progress':  [p.progress  if p else Progress(), 'An object accepting progress messages.'],
             'tex': [
                 'xelatex',
                 'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'
@@ -493,7 +499,9 @@ class LatexExtension(Extension, BlockProcessor):
 
         embedding = self.getConfig('embedding')
         if embedding not in LatexBlockProcessor.EMBEDDERS:
-            raise ValueError(f'Invalid value "{embedding}" for config option "embedding"')
+            progress.error('latex', f'Invalid value "{embedding}" for config option "embedding"')
+            self.setConfig('embedding', 'data_uri')
+            #raise ValueError(f'Invalid value "{embedding}" for config option "embedding"')
 
     def reset(self):
         self.processor.reset()
@@ -505,6 +513,7 @@ class LatexExtension(Extension, BlockProcessor):
             md.parser,
             build_dir           = self.getConfig('build_dir'),
             cache               = self.getConfig('cache'),
+            progress            = self.getConfig('progress'),
             tex                 = self.getConfig('tex'),
             pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
             embedding           = self.getConfig('embedding'),

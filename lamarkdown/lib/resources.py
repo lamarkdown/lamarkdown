@@ -1,4 +1,4 @@
-from .error import Error
+from .progress import Progress
 
 import diskcache
 
@@ -58,7 +58,8 @@ class UrlResource:
         self.hash_type = hash_type
         
     def _integrity(self):
-        return f' integrity="{self.hash_type}-{self.hash}"' if self.hash else ''
+        return f' integrity="{self.hash_type}-{self.hash}" crossorigin="anonymous"' if self.hash else ''
+        #return f' integrity="{self.hash_type}-{self.hash}"' if self.hash else ''
         
     def as_style(self)   -> str: 
         return f'<link rel="stylesheet" href="{html.escape(self.url)}"{self._integrity()} />'
@@ -79,7 +80,7 @@ class ResourceSpec:
     def xpaths_required(self):
         return self._xpaths
     
-    def make_resource(self, xpaths_found: Set[str]) -> Optional[Resource]:
+    def make_resource(self, xpaths_found: Set[str], progress: Progress) -> Optional[Resource]:
         raise NotImplementedError
 
 
@@ -89,7 +90,7 @@ class ContentResourceSpec(ResourceSpec):
         super().__init__(xpaths_required)
         self.content_factory = content_factory
         
-    def make_resource(self, xpaths_found: Set[str]) -> Optional[Resource]:
+    def make_resource(self, xpaths_found: Set[str], progress: Progress) -> Optional[Resource]:
         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
         return ContentResource(content) if content else None
         
@@ -116,11 +117,11 @@ class UrlResourceSpec(ResourceSpec):
         self.embed_policy = embed_policy
         self.hash_type_policy = hash_type_policy
         
-        if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
-            raise ValueError(f'Unsupported hash type: {hash_type}')
+        #if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
+            #raise ValueError(f'Unsupported hash type: {hash_type}')
         
         
-    def _read_url(self, url) -> bytes:
+    def _read_url(self, url, progress: Progress) -> bytes:
         if self.URL_SCHEME_REGEX.match(url):
             content_bytes = self.cache.get(url)
             
@@ -133,16 +134,17 @@ class UrlResourceSpec(ResourceSpec):
                         #expires = conn.headers.get('Expires')
                         self.cache[url] = content_bytes
                     except OSError as e:
-                        Error.from_exception(url, e)
+                        progress.error_from_exception(url, e)
                         content_bytes = b'' # FIXME: can we pick a value that will be "visible" within the document?
+                        
+            return (True, content_bytes)
                 
         else:
             with open(os.path.join(self.base_path, url), 'rb') as reader:
-                content_bytes = reader.read()
-        return content_bytes
+                return (False, reader.read())
         
         
-    def make_resource(self, xpaths_found: Set[str]) -> Optional[Resource]:
+    def make_resource(self, xpaths_found: Set[str], progress) -> Optional[Resource]:
         url = self.url_factory(xpaths_found.intersection(self.xpaths_required))
         if url is None:
             return None
@@ -152,17 +154,29 @@ class UrlResourceSpec(ResourceSpec):
             (embed_policy is True      and self.embed is not False) or
             (embed_policy is not False and self.embed is True)
         )
+        
         hash_type = self.hash_type or self.hash_type_policy()
+        if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
+            progress.error(f'"{url}"', f'Unsupported hash type: {hash_type}')
+            hash_type = 'sha256'
         
         if embed:
-            url = f'data:{self.mime_type or ""};base64,{b64encode(self._read_url(url)).decode()}'
+            _, content_bytes = self._read_url(url, progress)
+            url = f'data:{self.mime_type or ""};base64,{b64encode(content_bytes).decode()}'
             return UrlResource(url)
         
         elif hash_type:
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both 
             # use the same strings 'sha256', 'sha384' and 'sha512'.
-            hash = b64encode(hashlib.new(hash_type, self._read_url(url)).digest())
-            return UrlResource(url = url, integrity = f'{hash_type}-{hash}')
+            remote, content_bytes = self._read_url(url, progress)
+            hash = b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
+            
+            if not remote:
+                progress.warning(
+                    f'"{url}"',
+                    f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage.')
+            
+            return UrlResource(url = url, hash = hash, hash_type = hash_type)
             
         else:
             return UrlResource(url = url)

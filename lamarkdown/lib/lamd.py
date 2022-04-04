@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-from lamarkdown.lib import md_compiler
-from lamarkdown.lib.build_params import BuildParams
+from . import md_compiler
+from .build_params import BuildParams
+from .progress import Progress
 
 import diskcache
 
@@ -43,8 +44,14 @@ def main():
     args = parser.parse_args()
 
     src_file = os.path.abspath(args.input)
+    src_dir = os.path.dirname(src_file)
     base_name = src_file.rsplit('.', 1)[0]
-    build_dir = os.path.join('build', os.path.basename(src_file) + '.tmp')
+    build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
+    
+    # Changing into the source directory (in case we're not in it) means that further file paths
+    # referenced during the build process will be relative to the source file, and not 
+    # (necessarily) whatever arbitrary directory we started in.
+    os.chdir(src_dir)
 
     build_params = BuildParams(
         src_file = src_file,
@@ -52,13 +59,17 @@ def main():
         build_files =
             (args.build or []) if args.no_auto_build_files
             else [
-                os.path.abspath(DIRECTORY_BUILD_FILE),
-                os.path.abspath(base_name + '.py'),
+                #os.path.abspath(DIRECTORY_BUILD_FILE),
+                #os.path.abspath(base_name + '.py'),
+                os.path.join(src_dir, DIRECTORY_BUILD_FILE),
+                os.path.join(src_dir, base_name + '.py'),
                 *(args.build or [])
             ],
         build_dir = build_dir,
         build_defaults = not args.no_build_defaults,
-        cache = diskcache.Cache(os.path.join(build_dir, 'cache'))
+        cache = diskcache.Cache(os.path.join(build_dir, 'cache')),
+        progress = Progress(),
+        is_live = args.live is True
     )
     os.makedirs(build_dir, exist_ok = True)
 
