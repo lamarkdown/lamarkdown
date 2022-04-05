@@ -58,6 +58,73 @@ class Content:
 
 
 def get_handler(content: Content):
+    
+    control_panel_style = re.sub('(\n\s+)+', ' ', '''
+        <style>
+            @media print {
+                #lamarkdown_controlpanel { display: none; }
+            }
+            @media screen {
+                #lamarkdown_controlpanel {
+                    position: fixed;
+                    background: white;
+                    color: black;
+                    font-family: sans-serif;
+                    font-size: small;
+                    line-height: 1.5;
+                    border-radius: 0.5ex;
+                    padding: 1em;
+                    right: 1ex;
+                    top: 1ex;
+                    overflow-wrap: anywhere;
+                    overflow-y: auto;
+                    max-width: 20%;
+                    max-height: 90%;
+                    z-index: 1000;
+                }
+            }
+            #lamarkdown_msg[data-msg]::before {
+                content: attr(data-msg);
+                display: block;
+                margin-bottom: 1em;
+                color: red;
+                font-weight: bold;
+            }
+        </style>
+        '''
+    ).strip()
+        
+    favicon_data = re.sub('\s+', '', '''
+        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''')
+    
+    favicon_link = f'<link rel="icon" type="image/png" href="data:;base64,{favicon_data}" />'
 
     class _handler(http.server.BaseHTTPRequestHandler):
 
@@ -65,58 +132,52 @@ def get_handler(content: Content):
             self.send_response(200)
             self.send_header('ContentType', 'text/html')
             self.end_headers()
-
-            # Insert JS code to poll this server for updates, and reload if an update is detected.
-            message = re.sub(
-                '</\s*head\s*>',
-                f'''
-                    <script>
-                        setInterval(
-                            () => {{
-                                fetch('/query')
-                                    .then(response => response.text())
-                                    .then(text =>
+            
+            # JS code to poll this server for updates, and reload if an update is detected.
+            update_script = re.sub('(\n\s+)+', ' ', f'''
+                <script>
+                    {{
+                        let update = () => {{
+                            fetch('/query')
+                                .then(response => response.text())
+                                .then(text =>
+                                {{
+                                    if(text != '{content.update_n}')
                                     {{
-                                        if(text != '{content.update_n}')
-                                        {{
-                                            document.location.reload();
-                                        }}
-                                    }})
-                            }},
-                            500
-                        );
-                    </script>
-                    </head>
-                ''',
-                content.full_html[variant_name]
-            )
+                                        console.log(content.update_n);
+                                        document.location.reload();
+                                    }}
+                                    setTimeout(update, 500);
+                                }})
+                                .catch(error =>
+                                {{
+                                    const msg = `Unable to contact server. Reload the page to resume, once the server is running again.`;
+                                    console.log(msg);
+                                    console.log(error.message);
+                                    document.getElementById('lamarkdown_msg').dataset.msg = msg;
+                                }});
+                        }};
+                        setTimeout(update, 500);
+                    }}
+                </script>
+            ''').strip()
+            
+
+            extra_headers = [favicon_link, update_script, control_panel_style]
+            control_panel = ''
 
             if len(content.title) >= 2:
-
-                # If we have at least two variants, insert a special panel showing a link to each separate variant.
-                message = message.replace(
-                    '</head>',
-                    '''
-                    <style>
-                        @media print {
-                            #variantspanel { display: none; }
-                        }
-
-                        @media screen {
-                            #variantspanel { position: fixed; background: white; border-radius: 0.5ex; color: black; padding: 1em; right: 1ex; top: 1ex; }
-                        }
-                    </style>
-                    </head>
-                    '''
+                                
+                ## If we have at least two variants, insert a special panel showing a link to each separate variant.
+                control_panel += (
+                    '<strong>Variants</strong><br>' +
+                    '<br>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' 
+                                for v, f in content.filename.items())
                 )
-
-                message = message.replace(
-                    '<body>',
-                    '<body><div id="variantspanel">' +
-                        '<strong>Variants</strong><br>' +
-                        '<br>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' for v, f in content.filename.items()) +
-                        '</div>',
-                )
+                    
+            message = content.full_html[variant_name] \
+                .replace('</head>', '\n'.join(extra_headers) + '</head>') \
+                .replace('<body>', f'<body>\n<div id="lamarkdown_controlpanel"><div id="lamarkdown_msg"></div>\n{control_panel}\n</div>')
 
             self.wfile.write(message.encode('utf-8'))
 
@@ -196,9 +257,6 @@ def watch_live(build_params: BuildParams,
                     content.update(all_build_params)
                 except Exception as e:
                     build_params.progress.error_from_exception('Live', e)
-                    #print('---')
-                    #traceback.print_exc()
-                    #print('---')
 
     paths = {os.path.dirname(p) for p in [build_params.src_file] + build_params.build_files if p}
 
@@ -212,32 +270,34 @@ def watch_live(build_params: BuildParams,
         main_thread = threading.current_thread()
 
         # Iterate over a port range, and pick the first free port.
-        for port in PORT_RANGE:
+        port = None
+        for try_port in PORT_RANGE:
             try:
                 # Create the server. This attempts to bind to the given port.
-                server = http.server.HTTPServer(('', port), get_handler(content))
-
-            except OSError:
-                continue # Port in use; try next one.
-
-            else:
-                #print(f'Monitoring changes to source and build files.\nBrowse to http://localhost:{port}\nPress Ctrl-C to quit.')
-                build_params.progress.progress('Live updating', 'Launching server and browser, and monitoring changes to source/build files.',
-                    f'Browse to http://localhost:{port}\nPress Ctrl-C to quit.')
-
-                # We want to open a web browser at the address we're serving, but not before the
-                # server is running. Hence, we start a new thread, which waits 0.5 secs while the
-                # main thread calls serve_forever(), then runs the browser.
-                def open_browser():
-                    time.sleep(0.5)
-                    webbrowser.open(f'http://localhost:{port}')
-                    main_thread.join()
-
-                threading.Thread(target = open_browser).start()
+                server = http.server.HTTPServer(('', try_port), get_handler(content))
+                port = try_port
                 break
+            except OSError: # Port in use; try next one.
+                build_params.progress.warning('Live updating', f'Port {try_port} appears to be in use.')
+                
+        if port:
+            build_params.progress.progress('Live updating', 'Launching server and browser, and monitoring changes to source/build files.',
+                f'Browse to http://localhost:{port}\nPress Ctrl-C to quit.')
 
-        server.serve_forever()
+            # We want to open a web browser at the address we're serving, but not before the
+            # server is running. Hence, we start a new thread, which waits 0.5 secs while the
+            # main thread calls serve_forever(), then runs the browser.
+            def open_browser():
+                time.sleep(0.5)
+                webbrowser.open(f'http://localhost:{port}')
+                main_thread.join()
 
+            threading.Thread(target = open_browser).start()
+            server.serve_forever()
+        else:
+            build_params.progress.error(
+                'Live updating', 
+                f'Cannot launch server: all ports in range {PORT_RANGE.start}-{PORT_RANGE.stop - 1} are in use.')
 
     except KeyboardInterrupt: # Ctrl-C
         pass
