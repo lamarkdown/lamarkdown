@@ -78,7 +78,7 @@ def check_run(command: Union[str,List[str]],
         raise CommandException(
             f'"{command_str}" did not create expected file "{expected_output_file}"',
             proc.stdout)
-
+    
 
 def get_blocks(blocks):
     while blocks:
@@ -202,14 +202,13 @@ class SingleEnvironment(LatexFormatter):
 
 
 class Embedder:
-    def generate_html(self, svg_file: str) -> ElementTree.Element: raise NotImplementedError
+    def generate_html(self, svg_content: str) -> ElementTree.Element: raise NotImplementedError
 
 
 class DataUriEmbedder(Embedder):
-    def generate_html(self, svg_file: str) -> ElementTree.Element:
-        with open(svg_file) as reader:
-            # Encode SVG data as a data URI in an <img> element.
-            data_uri = f'data:image/svg+xml;base64,{base64.b64encode(reader.read().strip().encode()).decode()}'
+    def generate_html(self, svg_content: str) -> ElementTree.Element:
+        # Encode SVG data as a data URI in an <img> element.
+        data_uri = f'data:image/svg+xml;base64,{base64.b64encode(svg_content.strip().encode()).decode()}'
         return ElementTree.fromstring(f'<img src="{data_uri}" />')
 
 
@@ -217,13 +216,10 @@ class SvgElementEmbedder(Embedder):
     def __init__(self):
         self.svg_index = 0
 
-    def generate_html(self, svg_file: str) -> ElementTree.Element:
-        with open(svg_file) as reader:
-            svg_element = ElementTree.fromstring(reader.read())
-
+    def generate_html(self, svg_content: str) -> ElementTree.Element:
+        svg_element = ElementTree.fromstring(svg_content)
         self._mangle(svg_element)
         self.svg_index += 1
-
         return svg_element
 
     def _mangle(self, elem: ElementTree.Element):
@@ -393,7 +389,7 @@ class LatexBlockProcessor(BlockProcessor):
                     full_doc = formatter.format(self.prepend, latex)
                     f.write(full_doc)
             except OSError as e:
-                parent.append(self.progress.error_from_exception('latex', e).as_dom_element())
+                parent.append(self.progress.error_from_exception('Latex', e).as_dom_element())
                 return
 
             try:
@@ -402,7 +398,6 @@ class LatexBlockProcessor(BlockProcessor):
                     self.tex_cmdline,
                     pdf_file,
                     cwd = file_build_dir,
-                    #env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                     env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                 )
 
@@ -413,11 +408,21 @@ class LatexBlockProcessor(BlockProcessor):
                     cwd = file_build_dir
                 )
                 
+                with open(svg_file) as reader:
+                    svg_content = reader.read()
+                    if "viewBox='0 0 0 0'" in svg_content:
+                        parent.append(self.progress.error(
+                            'Latex', 
+                            f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
+                            svg_content
+                        ).as_dom_element())
+                
                 # If compilation was successful, cache the result.
-                self.cache[cache_key] = self.embedder.generate_html(svg_file)
+                #self.cache[cache_key] = self.embedder.generate_html(svg_file)
+                self.cache[cache_key] = self.embedder.generate_html(svg_content)
                 
             except CommandException as e:
-                parent.append(self.progress.error('latex', str(e), e.output, full_doc).as_dom_element())
+                parent.append(self.progress.error('Latex', str(e), e.output, full_doc).as_dom_element())
                 return
 
         # We make a copy of the cached element, because different instances of it could

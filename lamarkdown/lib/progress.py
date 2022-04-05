@@ -41,7 +41,7 @@ class ErrorMsg(Message):
     PANEL_STYLE = 'border: 2px dashed yellow; background: #800000; padding: 1ex;'
     MSG_STYLE = 'font-weight: bold; color: white;'
     LOCATION_STYLE = 'color: yellow;'
-    DETAILS_STYLE = ''
+    DETAILS_STYLE = 'max-width: calc(100% - 1ex);'
     
     MAX_ROWS = 30
     MAX_COLS = 110
