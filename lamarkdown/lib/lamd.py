@@ -40,6 +40,9 @@ def main():
 
     parser.add_argument('-l', '--live', action='store_true',
                         help='Keep running, recompile automatically when source changes are detected, and serve the resulting file from localhost.')
+    
+    parser.add_argument('--clean', action='store_true',
+                        help='Clear the cache before compiling the document.')
 
     args = parser.parse_args()
 
@@ -59,8 +62,6 @@ def main():
         build_files =
             (args.build or []) if args.no_auto_build_files
             else [
-                #os.path.abspath(DIRECTORY_BUILD_FILE),
-                #os.path.abspath(base_name + '.py'),
                 os.path.join(src_dir, DIRECTORY_BUILD_FILE),
                 os.path.join(src_dir, base_name + '.py'),
                 *(args.build or [])
@@ -72,6 +73,9 @@ def main():
         is_live = args.live is True
     )
     os.makedirs(build_dir, exist_ok = True)
+    
+    if args.clean:
+        build_params.cache.clear()
 
     all_build_params = md_compiler.compile(build_params)
 

@@ -28,13 +28,15 @@ from typing import List
 PORT_RANGE = range(8000, 8020)
 
 class Content:
-    def __init__(self):
+    def __init__(self, build_params):
         self.filename = {}
         self.title = {}
         self.full_html = {}
         self.update_n = 0
         self.path = {}
         self.base_variant = None
+        self.build_params = build_params
+        self.compile_lock = threading.Lock()
 
     def update(self, all_build_params: List[BuildParams]):
         self.title = {}
@@ -54,6 +56,19 @@ class Content:
             self.path[name] = os.path.dirname(output_file)
 
         self.update_n += 1
+        
+    def clear_cache(self):
+        self.build_params.progress.warning('Live updating', 'Clearing cache')
+        self.build_params.cache.clear()
+        
+    def recompile(self):
+        self.compile_lock.acquire()
+        try:
+            self.update(md_compiler.compile(self.build_params))
+        except Exception as e:
+            self.build_params.progress.error_from_exception('Live updating', e)
+        finally:
+            self.compile_lock.release()
 
 
 
@@ -62,10 +77,10 @@ def get_handler(content: Content):
     control_panel_style = re.sub('(\n\s+)+', ' ', '''
         <style>
             @media print {
-                #lamarkdown_controlpanel { display: none; }
+                #_lamd_control_panel { display: none; }
             }
             @media screen {
-                #lamarkdown_controlpanel {
+                #_lamd_control_panel {
                     position: fixed;
                     background: white;
                     color: black;
@@ -83,7 +98,7 @@ def get_handler(content: Content):
                     z-index: 1000;
                 }
             }
-            #lamarkdown_msg[data-msg]::before {
+            #_lamd_msg[data-msg]::before {
                 content: attr(data-msg);
                 display: block;
                 margin-bottom: 1em;
@@ -136,48 +151,56 @@ def get_handler(content: Content):
             # JS code to poll this server for updates, and reload if an update is detected.
             update_script = re.sub('(\n\s+)+', ' ', f'''
                 <script>
+                    function _lamd_error(error, advice)
                     {{
-                        let update = () => {{
-                            fetch('/query')
-                                .then(response => response.text())
-                                .then(text =>
-                                {{
-                                    if(text != '{content.update_n}')
-                                    {{
-                                        console.log(content.update_n);
-                                        document.location.reload();
-                                    }}
-                                    setTimeout(update, 500);
-                                }})
-                                .catch(error =>
-                                {{
-                                    const msg = `Unable to contact server. Reload the page to resume, once the server is running again.`;
-                                    console.log(msg);
-                                    console.log(error.message);
-                                    document.getElementById('lamarkdown_msg').dataset.msg = msg;
-                                }});
-                        }};
-                        setTimeout(update, 500);
+                        const msg = 'Unable to contact server. ' + advice;
+                        console.log(`${{msg}}\n(${{error.message}})`);
+                        document.getElementById('_lamd_msg').dataset.msg = msg;
                     }}
+                    
+                    function _lamd_update()
+                    {{
+                        fetch('/query')
+                            .then(response => response.text())
+                            .then(text =>
+                            {{
+                                if(text != '{content.update_n}')
+                                {{
+                                    console.log(content.update_n);
+                                    document.location.reload();
+                                }}
+                                setTimeout(_lamd_update, 500);
+                            }})
+                            .catch(error => _lamd_error(error, 'Reload the page to resume, once the server is running again.'));
+                    }};
+                    setTimeout(_lamd_update, 500);
+                    
+                    document.getElementById('_lamd_cleanbuild_btn').onclick = (event) => 
+                    {{
+                        fetch('/cleanbuild', {{method: 'POST'}})
+                            .catch(error => _lamd_error(error, ''));
+                        event.preventDefault();
+                    }};
                 </script>
             ''').strip()
             
-
-            extra_headers = [favicon_link, update_script, control_panel_style]
-            control_panel = ''
-
+            control_panel = re.sub('(\n\s+)+', ' ', '''
+                <div id="_lamd_control_panel">
+                    <div id="_lamd_msg"></div>
+                    <form><button id="_lamd_cleanbuild_btn">Clean Build</button></form>
+                ''')
             if len(content.title) >= 2:
-                                
-                ## If we have at least two variants, insert a special panel showing a link to each separate variant.
                 control_panel += (
-                    '<strong>Variants</strong><br>' +
-                    '<br>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' 
+                    '<hr/><strong>Variants</strong><br/>' +
+                    '<br/>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' 
                                 for v, f in content.filename.items())
-                )
+                )                    
+            control_panel += '</div>'
                     
             message = content.full_html[variant_name] \
-                .replace('</head>', '\n'.join(extra_headers) + '</head>') \
-                .replace('<body>', f'<body>\n<div id="lamarkdown_controlpanel"><div id="lamarkdown_msg"></div>\n{control_panel}\n</div>')
+                .replace('</head>', f'{favicon_link}\n{control_panel_style}\n</head>') \
+                .replace('<body>', f'<body>\n{control_panel}') \
+                .replace('</body>', f'{update_script}\n</body>')
 
             self.wfile.write(message.encode('utf-8'))
 
@@ -187,7 +210,18 @@ def get_handler(content: Content):
             #self.send_header('ContentType', 'text/plain')
             self.end_headers()
             self.wfile.write(open(path, 'rb').read())
-
+            
+            
+        def do_POST(self):
+            if self.path == '/cleanbuild':
+                self.send_response(200)
+                def clean_build():
+                    content.clear_cache()
+                    content.recompile()
+                threading.Thread(target = clean_build).start()
+            else:
+                self._no()
+                
 
         def do_GET(self):
             if self.path == '/':
@@ -204,7 +238,7 @@ def get_handler(content: Content):
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
                 self.wfile.write(str(content.update_n).encode('utf-8'))
-
+                
             elif (
                 (match := re.fullmatch(f'/(?P<variant>[^/]*)/?index.html', self.path)) and
                 (variant_name := match['variant']) in content.title
@@ -230,11 +264,13 @@ def get_handler(content: Content):
                 self.send_file(full_path)
 
             else:
-                self.send_response(404)
-                self.send_header('ContentType', 'text/plain')
-                self.end_headers()
-                self.wfile.write('404 - Yeah nah mate.'.encode('utf-8'))
-
+                self._no()
+                
+        def _no(self):
+            self.send_response(404)
+            self.send_header('ContentType', 'text/plain')
+            self.end_headers()
+            self.wfile.write('404 - Yeah nah mate.'.encode('utf-8'))
 
         def log_message(self, format, *args):
             pass
@@ -246,17 +282,13 @@ def get_handler(content: Content):
 def watch_live(build_params: BuildParams,
                all_build_params: List[BuildParams]):
 
-    content = Content()
+    content = Content(build_params)
     content.update(all_build_params)
-
+    
     class SourceFileEventHandler(watchdog.events.FileSystemEventHandler):
         def on_closed(self, event): # When something else finishes writing to a file
             if event.src_path == build_params.src_file or event.src_path in build_params.build_files:
-                try:
-                    all_build_params = md_compiler.compile(build_params)
-                    content.update(all_build_params)
-                except Exception as e:
-                    build_params.progress.error_from_exception('Live', e)
+                content.recompile()
 
     paths = {os.path.dirname(p) for p in [build_params.src_file] + build_params.build_files if p}
 
