@@ -4,7 +4,7 @@
 The 'latex' extension lets uses write Latex code inside a .md file, which will be compiled,
 converted to SVG, and embedded in the output HTML.
 
-The user must write the Latex code as a block (or blocks), and can either:
+The user must write the Latex code starting on a new line, and can either:
 
 (a) Write a complete Latex document, which must begin with '\\documentclass' and end with
     '\\end{document}';
@@ -22,14 +22,13 @@ There are various configuration options, allowing a choice of Latex compiler, PD
 method of embedding SVG, optional common Latex code to be inserted after '\\documentclass', etc.
 '''
 
-# Originally adapted from https://github.com/neapel/tikz-markdown, but since modified extensively
-
 from lamarkdown.lib.error import Error
 
 from markdown import *
 from markdown.extensions import *
 from markdown.extensions.attr_list import AttrListTreeprocessor
-from markdown.blockprocessors import BlockProcessor
+from markdown.preprocessors import Preprocessor
+from markdown.postprocessors import Postprocessor
 from markdown.util import AtomicString
 
 import base64
@@ -110,96 +109,6 @@ def get_blocks_strip_html_comments(blocks):
             yield b
 
 
-class LatexFormatter:
-    def extract_blocks(self, block_generator) -> str:  raise NotImplementedError
-    def end(self) -> str:                              raise NotImplementedError
-    def format(self, prepend: str, latex: str) -> str: raise NotImplementedError
-
-
-class FullLatex(LatexFormatter):
-    DOCUMENTCLASS_REGEX = re.compile(r'^[^%]*\documentclass\s*\[[^]*\]\s*\{[^}]*\}', re.MULTILINE)
-
-    def extract_blocks(self, blocks) -> str:
-        end = self.end()
-        latex = ''
-        for block in blocks:
-            latex += '\n' + block
-            if end in block:
-                break
-
-        return latex
-
-    def end(self) -> str:
-        return r'\end{document}'
-
-    def format(self, prepend: str, latex: str) -> str:
-        if prepend:
-            match = self.DOCUMENTCLASS_REGEX.search(latex)
-            split = match.end() if match else 0
-            latex = f'{latex[:split]}\n{prepend}{latex[split:]}'
-
-        return latex
-
-
-
-class SingleEnvironment(LatexFormatter):
-    START_REGEX = re.compile(r'\\begin\{([^}]+)\}')
-
-    def __init__(self, doc_class: str, doc_class_options: str):
-        self.doc_class = doc_class
-        self.doc_class_options = doc_class_options
-
-    def extract_blocks(self, blocks) -> str:
-        block_iter = iter(blocks)
-        match = None
-        latex = ''
-        for block in block_iter:
-            latex += '\n' + block
-            match = self.START_REGEX.search(block)
-            if match:
-                first_block = block
-                break
-
-        if match:
-            self._start = match.group(0)
-            self._envName = match.group(1)
-            self._end = f'\\end{{{self._envName}}}'
-
-            if not self._end in first_block:
-                for block in block_iter:
-                    latex += '\n' + block
-                    if self._end in block:
-                        break
-
-        else:
-            # This is an error. The following values are just to ensure the message is sensible.
-            self._start = r'\begin{...}'
-            self._envName = '...'
-            self._end = r'\end{...}'
-
-        return latex
-
-    def end(self) -> str:
-        return self._end
-
-    def format(self, prepend: str, latex: str) -> str:
-        startIndex = latex.find(self._start)
-        preamble = latex[:startIndex]
-        main = latex[startIndex:]
-
-        if self._envName != 'document':
-            main = r'\begin{document}' + main + r'\end{document}'
-
-        return (
-            f'\\documentclass[{self.doc_class_options}]{{{self.doc_class}}}\n' +
-            prepend +
-            f'\\usepackage{{tikz}}' +
-            preamble +
-            main
-        )
-
-
-
 class Embedder:
     def generate_html(self, svg_file: str) -> ElementTree.Element: raise NotImplementedError
 
@@ -257,12 +166,142 @@ class SvgElementEmbedder(Embedder):
             self._mangle(child)
 
 
+STX = '\u0002'
+ETX = '\u0003'
+LATEX_PLACEHOLDER_PREFIX = f'{STX}lamdlatex-uoqwpkayei:'
+LATEX_PLACEHOLDER_RE     = re.compile(f'{LATEX_PLACEHOLDER_PREFIX}(?P<id>[0-9]+){ETX}')
 
-class LatexBlockProcessor(BlockProcessor):
+
+class LatexPreprocessor(Preprocessor):
+    """
+    The preprocessor is responsible for identifying and parsing Latex snippets found in the
+    document. Each one, is temporarily replaced by a placeholder, with the actual Latex code held
+    separately in 'latex_docs', awaiting the postprocessor.
+
+    (Previously, in commit 18fc579db4b4793a50ed077e369aa14e276ee189 and earlier, lamarkdown used a
+    one-stage process, where a BlockProcessor would identify, parse, compile and embed each Latex
+    snippet. This approach encountered some minor but unfortunate limitations; e.g., when placed
+    inside a markdown list, the Latex code was prohibited from containing blank lines, because the
+    block processor only saw one block at a time.)
+    """
+
+    TEX_END_UNCOMMENTED = r'''
+        (                       # Our snippet of tex code must be:
+            [^%\n]*?            # (a) a single line with no comments, OR
+            | .*? \n [^%\n]*?   # (b) anything, but ending with a non-commented newline.
+        )                       # (Match non-greedily, or else we won't know where to end.)
+    '''
+
+    ATTR = r'''
+        (
+            \n[ \t]*                # Start on a new line
+            \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
+            (?P<attr>
+                [^\}\n ][^\}\n]*    # No '}' or newlines, and at least one non-space char.
+            )?
+            [ ]*\}                  # Ends with '}' (with optional spaces)
+        )?
+    '''
+
+    TEX_RE = re.compile(
+        fr'''
+        ^[ \t]*                         # Start on a new line
+        (
+            (?P<doc>                    # Full document syntax
+                (?P<docclass>
+                    \\documentclass
+                    \{{ [^}}]+ \}}
+                )
+                {TEX_END_UNCOMMENTED}
+                \\end\{{document}}
+            )
+            |
+            (?P<preamble>               # OR, short-cut syntax, starting with optional preamble...
+                \\
+                (
+                    usepackage          # Preamble begins with one of these
+                    | usetikzlibrary
+                )
+                {TEX_END_UNCOMMENTED}
+            )?
+            (?P<main>
+                \\begin\{{              # Start of the main environment
+                    (?P<env>[^}}]+)      # Capture the environment name
+                \}}
+                {TEX_END_UNCOMMENTED}
+                \\end\{{                # End of main environment
+                    (?P=env)            # Match previous name
+                \}}
+            )
+        )
+        [ \t]* (%[^\n]*)?   # Ends with whitespace, then an optional comment
+        {ATTR}
+        ''',
+        re.VERBOSE | re.DOTALL | re.MULTILINE)
+
+
+    def __init__(self, prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
+        self.prepend = prepend
+        self.doc_class = doc_class
+        self.doc_class_options = doc_class_options
+        self.strip_html_comments = strip_html_comments
+
+
+    def _format_latex(self, match_obj):
+        self.match_instance += 1
+
+        full_doc = match_obj.group('doc')
+        if full_doc:
+            if self.prepend:
+                split = match_obj.end('docclass') - match.start()
+                full_doc = f'{full_doc[:split]}\n{self.prepend}{full_doc[split:]}'
+            else:
+                pass
+
+        else:
+            main_part = match_obj.group('main')
+            if match_obj.group('env') != 'document':
+                main_part = fr'\begin{{document}}{main_part}\end{{document}}'
+
+            full_doc = fr'''
+                \documentclass[{self.doc_class_options}]{{{self.doc_class}}}
+                {self.prepend or ""}
+                \usepackage{{tikz}}
+                {match_obj.group('preamble') or ""}
+                {main_part}
+            '''
+
+        self._latex_docs[self.match_instance] = full_doc
+        self._latex_attrs[self.match_instance] = match_obj.group('attr')
+
+        return f'{LATEX_PLACEHOLDER_PREFIX}{self.match_instance}{ETX}'
+
+
+    def run(self, lines):
+        self.match_instance = 0
+        self._latex_docs = {}
+        self._latex_attrs = {}
+        return self.TEX_RE.sub(self._format_latex, '\n'.join(lines)).split('\n')
+
+    @property
+    def latex_docs(self): return self._latex_docs
+
+    @property
+    def latex_attrs(self): return self._latex_attrs
+
+    @property
+    def input_repr(self): return (self.prepend, self.doc_class, self.doc_class_options, self.strip_html_comments)
+
+
+class LatexPostprocessor(Postprocessor):
+    """
+    The post-processor is responsible for compiling the Latex code identified by the preprocessor,
+    converting it to SVG, caching the result, and embedding it the final HTML. It searches for the
+    placeholder strings inserted by the preprocessor to determine where to substitute the proper
+    HTML.
+    """
+
     cache: Dict[str,ElementTree.Element] = {}
-
-    # Taken from markdown.extensions.attr_list.AttrListTreeprocessor:
-    ATTR_REGEX = re.compile(r'\{\:?[ ]*([^\}\n ][^\}\n]*)[ ]*\}')
 
     TEX_CMDLINES = {
         'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
@@ -280,9 +319,9 @@ class LatexBlockProcessor(BlockProcessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, parser, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str,
-                 prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
-        super().__init__(parser)
+    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str):
+        self.md = md
+        self.preproc = preproc
         self.build_dir = build_dir
 
         self.tex_cmdline: Union[List[str],str] = (
@@ -298,79 +337,23 @@ class LatexBlockProcessor(BlockProcessor):
         self.embedding = embedding
         self.embedder = self.EMBEDDERS[self.embedding]()
 
-        self.prepend = prepend
-        self.doc_class = doc_class
-        self.doc_class_options = doc_class_options
-        self.strip_html_comments = strip_html_comments
 
+    def _build(self, latex, attrs):
+        # Run Python Markdown's postprocessors.
 
-    def reset(self):
-        self.embedder = self.EMBEDDERS[self.embedding]()
-
-
-    def test(self, parent, block):
-        b = block.lstrip()
-        return (
-            b.startswith(r'\documentclass') or
-            b.startswith(r'\usepackage') or
-            b.startswith(r'\usetikzlibrary') or
-            b.startswith(r'\begin')
-        )
-
-
-    def run(self, parent, blocks):
-        # Which of the two forms of Latex code determines how we discover the end of the snippet,
-        # and of course how we build the complete .tex file.
-        if blocks[0].lstrip().startswith(r'\documentclass'):
-            formatter = FullLatex()
-        else:
-            formatter = SingleEnvironment(self.doc_class, self.doc_class_options)
-
-        # The process of extracting blocks must be HTML-comment-aware (if we're intending to
-        # strip such comments), because one of the sentinel strings we're looking for may first be
-        # within a comment.
-        if self.strip_html_comments:
-            block_iter = get_blocks_strip_html_comments(blocks)
-        else:
-            block_iter = get_blocks(blocks)
-
-        latex = formatter.extract_blocks(block_iter)
-        end = formatter.end()
-
-        # Run postprocessors. Python markdown's _pre_processors replace certain constructs
-        # (particularly HTML snippets) with special "placeholders" (containing invalid characters).
-        # These are again replaced by postprocessors once all the block processing and tree
-        # manipulation is done.
+        # This is important, because Markdown's _pre_processors replace certain constructs,
+        # particularly HTML snippets, with special placeholders, which are again replaced by
+        # postprocessors once all the block processing and tree manipulation is done.
         #
-        # Except the 'latex' code we have is not subject to that process. We have to explicitly
-        # run the postprocessors here so that Latex doesn't encounter the raw placeholder text.
-        for post_proc in self.parser.md.postprocessors:
-            latex = post_proc.run(latex)
+        # This is exactly what LatexPreprocessor and LatexPostprocessor do themselves, but now
+        # we must invoke the _other_ postprocessors too.
 
-        # But now that we've done that, we may have additional HTML comments to strip out:
-        if self.strip_html_comments:
-            latex = HTML_COMMENT_REGEX.sub('', latex)
+        for post_proc in self.md.postprocessors:
+            if post_proc != self:
+                latex = post_proc.run(latex)
 
-        latex_end = latex.rfind(end)
-        if latex_end < 0:
-            begin = latex.lstrip().split('\n', 1)[0]
-            parent.append(
-                Error('latex',
-                      f'Couldn\'t find closing "{end}" after "{begin}"',
-                      latex).to_element()
-            )
-            return
-
-        # There could be some extra 'post_text' after the last \end{...}, which might contain (for
-        # instance) an attribute list.
-        latex_end += len(end)
-        post_text = latex[latex_end:].strip()
-        latex = latex[:latex_end]
-
-        # Build a representation of all the input information sources.
-        input_repr = repr((latex,
-                           self.tex_cmdline, self.converter_cmdline, self.embedding,
-                           self.prepend, self.doc_class, self.doc_class_options, self.strip_html_comments))
+        input_repr = repr((latex, self.preproc.input_repr,
+                           self.tex_cmdline, self.converter_cmdline, self.embedding))
 
         # If not in cache, compile it.
         if input_repr not in self.cache:
@@ -385,11 +368,10 @@ class LatexBlockProcessor(BlockProcessor):
 
             try:
                 with open(tex_file, 'w') as f:
-                    full_doc = formatter.format(self.prepend, latex)
-                    f.write(full_doc)
+                    f.write(latex)
+
             except OSError as e:
-                parent.append(Error.from_exception('latex', e).to_element())
-                return
+                return Error.from_exception('latex', e).to_html()
 
             try:
                 check_run(
@@ -404,37 +386,46 @@ class LatexBlockProcessor(BlockProcessor):
                     svg_file,
                     cwd = file_build_dir
                 )
+
+                self.cache[input_repr] = self.embedder.generate_html(svg_file)
+
             except CommandException as e:
-                parent.append(Error('latex', str(e), e.output, full_doc).to_element())
-                return
+                return Error('latex', str(e), e.output, latex).to_html()
 
-            self.cache[input_repr] = self.embedder.generate_html(svg_file)
-
+        #endif
 
         # We make a copy of the cached element, because different instances of it could
         # conceivably be assigned different attributes below.
         element = copy.copy(self.cache.get(input_repr))
 
-        if post_text:
-            match = self.ATTR_REGEX.match(post_text)
-            if match:
-                # Hijack parts of the attr_list extension to handle the attribute list we've just
-                # found here.
-                #
-                # (Warning: there is a risk here that a future version of Markdown will change
-                # the design of attr_list, such that this call doesn't work anymore. For now, it
-                # seems the easiest and most consistent way to go.)
-                AttrListTreeprocessor().assign_attrs(element, match[1])
+        if attrs:
+            # Hijack parts of the attr_list extension to handle the attribute list.
+            #
+            # (Warning: there is a risk here that a future version of Markdown will change
+            # the design of attr_list, such that this call doesn't work anymore. For now, it
+            # seems the easiest and most consistent way to go.)
+            AttrListTreeprocessor().assign_attrs(element, attrs)
 
-            else:
-                # Miscellaneous trailing text -- put it back on the queue
-                blocks.insert(0, post_text)
-
-        parent.append(element)
+        return ElementTree.tostring(element, encoding = 'unicode')
 
 
 
-class LatexExtension(Extension, BlockProcessor):
+    def run(self, text):
+        html = {}
+        # Build all the Latex!
+        for i, latex in self.preproc.latex_docs.items():
+            html[i] = self._build(latex, self.preproc.latex_attrs[i])
+
+        # Substitute the HTML back into the document
+        return LATEX_PLACEHOLDER_RE.sub(
+            lambda match: html[int(match.group('id'))],
+            text)
+
+    def reset(self):
+        self.embedder = self.EMBEDDERS[self.embedding]()
+
+
+class LatexExtension(Extension):
     def __init__(self, **kwargs):
         try:
             # Try to get the build dir (the location where we'll execute latex, and where all its
@@ -483,32 +474,33 @@ class LatexExtension(Extension, BlockProcessor):
         super().__init__(**kwargs)
 
         embedding = self.getConfig('embedding')
-        if embedding not in LatexBlockProcessor.EMBEDDERS:
+        if embedding not in LatexPostprocessor.EMBEDDERS:
             raise ValueError(f'Invalid value "{embedding}" for config option "embedding"')
 
     def reset(self):
-        self.processor.reset()
+        self.postprocessor.reset()
 
     def extendMarkdown(self, md, md_globals):
         md.registerExtension(self)
 
-        self.processor = LatexBlockProcessor(
-            md.parser,
-            build_dir           = self.getConfig('build_dir'),
-            tex                 = self.getConfig('tex'),
-            pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
-            embedding           = self.getConfig('embedding'),
+        self.preprocessor = LatexPreprocessor(
             prepend             = self.getConfig('prepend'),
             doc_class           = self.getConfig('doc_class'),
             doc_class_options   = self.getConfig('doc_class_options'),
             strip_html_comments = self.getConfig('strip_html_comments'),
         )
 
-        # Priority must be:
-        # >10 -- higher/earlier than Python Markdown's ParagraphProcessor (or else the latex code will be formatted as text);
-        # <90 -- lower/later than Python Markdown's ListIndentProcessor (or else Latex code nested in lists will screw up list formatting).
+        self.postprocessor = LatexPostprocessor(
+            md,
+            self.preprocessor,
+            build_dir           = self.getConfig('build_dir'),
+            tex                 = self.getConfig('tex'),
+            pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
+            embedding           = self.getConfig('embedding')
+        )
 
-        md.parser.blockprocessors.register(self.processor, 'lamarkdown.latex', 50)
+        md.preprocessors.register(self.preprocessor, 'latex-pre', 15)
+        md.postprocessors.register(self.postprocessor, 'latex-post', 25)
 
 
 
