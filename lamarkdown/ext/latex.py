@@ -83,32 +83,6 @@ def get_blocks(blocks):
         yield blocks.pop(0)
 
 
-HTML_COMMENT_REGEX = re.compile(f'<!--.*?-->', re.DOTALL)
-
-
-def get_blocks_strip_html_comments(blocks):
-    in_comment = False
-    while blocks:
-        b = blocks.pop(0)
-        if in_comment:
-            if (i := b.find('-->')) != -1:
-                # Strip out comment started in a previous block
-                b = b[i + 3:]
-                in_comment = False
-
-        if not in_comment:
-            # Strip out within-block any comments
-            b = HTML_COMMENT_REGEX.sub('', b)
-
-            if (i := b.find('<!--')) != -1:
-                # Strip out start of multi-block comment
-                b = b[:i]
-                in_comment = True
-
-            # Send on what's left of the block
-            yield b
-
-
 class Embedder:
     def generate_html(self, svg_file: str) -> ElementTree.Element: raise NotImplementedError
 
@@ -171,11 +145,13 @@ ETX = '\u0003'
 LATEX_PLACEHOLDER_PREFIX = f'{STX}lamdlatex-uoqwpkayei:'
 LATEX_PLACEHOLDER_RE     = re.compile(f'{LATEX_PLACEHOLDER_PREFIX}(?P<id>[0-9]+){ETX}')
 
+HTML_COMMENT_RE = re.compile(r'<!--.*?(-->|$)', flags = re.DOTALL)
+
 
 class LatexPreprocessor(Preprocessor):
     """
     The preprocessor is responsible for identifying and parsing Latex snippets found in the
-    document. Each one, is temporarily replaced by a placeholder, with the actual Latex code held
+    document. Each one is temporarily replaced by a placeholder, with the actual Latex code held
     separately in 'latex_docs', awaiting the postprocessor.
 
     (Previously, in commit 18fc579db4b4793a50ed077e369aa14e276ee189 and earlier, lamarkdown used a
@@ -184,6 +160,7 @@ class LatexPreprocessor(Preprocessor):
     inside a markdown list, the Latex code was prohibited from containing blank lines, because the
     block processor only saw one block at a time.)
     """
+
 
     TEX_END_UNCOMMENTED = r'''
         (                       # Our snippet of tex code must be:
@@ -263,13 +240,13 @@ class LatexPreprocessor(Preprocessor):
             if match_obj.group('env') != 'document':
                 main_part = fr'\begin{{document}}{main_part}\end{{document}}'
 
-            full_doc = fr'''
-                \documentclass[{self.doc_class_options}]{{{self.doc_class}}}
-                {self.prepend or ""}
-                \usepackage{{tikz}}
-                {match_obj.group('preamble') or ""}
-                {main_part}
-            '''
+            full_doc = (
+                f'\\documentclass[{self.doc_class_options}]{{{self.doc_class}}}\n'
+                + (self.prepend or "")
+                + '\\usepackage{tikz}\n'
+                + (match_obj.group('preamble') or "")
+                + (main_part)
+            )
 
         self._latex_docs[self.match_instance] = full_doc
         self._latex_attrs[self.match_instance] = match_obj.group('attr')
@@ -281,7 +258,46 @@ class LatexPreprocessor(Preprocessor):
         self.match_instance = 0
         self._latex_docs = {}
         self._latex_attrs = {}
-        return self.TEX_RE.sub(self._format_latex, '\n'.join(lines)).split('\n')
+
+        raw_text = '\n'.join(lines)
+        search_text = raw_text
+        if self.strip_html_comments:
+            # Blank-out HTML comments.
+            search_text = HTML_COMMENT_RE.sub(
+                lambda match: ' ' * len(match.group(0)),
+                search_text)
+            assert len(raw_text) == len(search_text)
+
+        # Here we do a bit of a dance, where we're *searching* one set of text, normally with HTML
+        # comments stripped, but we're making string substitutions (replacing the Latex code with
+        # placeholders) on the *original* text.
+        #
+        # The Latex code itself is now stripped of HTML comments (if that option is set), but the
+        # rest of the original text will retain them, and any commented-out Latex code will also be
+        # retained verbatim.
+        #
+        # (If the user wants to strip HTML comments *in general* from the document, this is left as
+        # an exercise for another component.)
+        return_text = []
+        last_match_end = 0
+        for match in self.TEX_RE.finditer(search_text):
+            match_start = match.start()
+
+            if last_match_end < match_start:
+                # Some intervening, non-Latex text. Accumulate it in return_text.
+                return_text.append(raw_text[last_match_end:match_start])
+
+            # Accumulate the placeholder text in return_text.
+            return_text.append(self._format_latex(match))
+            last_match_end = match.end()
+
+        # Add any trailing non-Latex text.
+        if last_match_end < len(raw_text):
+            return_text.append(raw_text[last_match_end:])
+
+        # Join all the fragments together, and then split them back into lines, as required by
+        # contract.
+        return ''.join(return_text).split('\n')
 
     @property
     def latex_docs(self): return self._latex_docs
@@ -319,7 +335,8 @@ class LatexPostprocessor(Postprocessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, tex: str, pdf_svg_converter: str, embedding: str):
+    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, tex: str,
+                 pdf_svg_converter: str, embedding: str, strip_html_comments: bool):
         self.md = md
         self.preproc = preproc
         self.build_dir = build_dir
@@ -337,6 +354,8 @@ class LatexPostprocessor(Postprocessor):
         self.embedding = embedding
         self.embedder = self.EMBEDDERS[self.embedding]()
 
+        self.strip_html_comments = strip_html_comments
+
 
     def _build(self, latex, attrs):
         # Run Python Markdown's postprocessors.
@@ -347,10 +366,15 @@ class LatexPostprocessor(Postprocessor):
         #
         # This is exactly what LatexPreprocessor and LatexPostprocessor do themselves, but now
         # we must invoke the _other_ postprocessors too.
-
         for post_proc in self.md.postprocessors:
             if post_proc != self:
                 latex = post_proc.run(latex)
+
+        # Having done this, we now (again) need to strip out HTML comments, because these (in
+        # certain circumstances) are given the preprocessor-postprocessor treatment by Python
+        # Markdown, and so might not have been removed by _our_ preprocessor.
+        if self.strip_html_comments:
+            latex = HTML_COMMENT_RE.sub('', latex)
 
         input_repr = repr((latex, self.preproc.input_repr,
                            self.tex_cmdline, self.converter_cmdline, self.embedding))
@@ -480,7 +504,7 @@ class LatexExtension(Extension):
     def reset(self):
         self.postprocessor.reset()
 
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         md.registerExtension(self)
 
         self.preprocessor = LatexPreprocessor(
@@ -496,7 +520,8 @@ class LatexExtension(Extension):
             build_dir           = self.getConfig('build_dir'),
             tex                 = self.getConfig('tex'),
             pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
-            embedding           = self.getConfig('embedding')
+            embedding           = self.getConfig('embedding'),
+            strip_html_comments = self.getConfig('strip_html_comments'),
         )
 
         md.preprocessors.register(self.preprocessor, 'latex-pre', 15)
