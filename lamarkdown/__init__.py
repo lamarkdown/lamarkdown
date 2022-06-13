@@ -8,12 +8,14 @@ variants, css styles, etc. Build modules just need to 'import lamarkdown'.
 flexibility.)
 '''
 
-from .lib.build_params import BuildParams, Resource, Variant
+from .lib.build_params import BuildParams, Variant
+from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 
 import importlib
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
+import os.path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 
 class BuildParamsException(Exception): pass
@@ -112,18 +114,11 @@ def extension(extension: Union[str,Extension], cfg_dict = {}, **cfg_kwargs):
             return new_config
 
 
-def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
-         if_xpaths:    Union[str,Iterable[str]] = [],
-         if_selectors: Union[str,Iterable[str]] = [],
-         embed:        Optional[bool] = None):
-    '''
-    Creates a Resource object, based on either a value or a value factory, and a set of
-    zero-or-more XPath expressions and/or CSS selectors (which are compiled to XPaths).
-    '''
-
-    # FIXME: this arrangement doesn't allow value factories to query selectors properly, because
-    # it's expected to supply the xpath equivalent, which it never sees.
-
+def _res_values(value: Union[str,Callable[[Set[str]],Optional[str]]],
+                if_xpaths:    Union[str,Iterable[str]] = [],
+                if_selectors: Union[str,Iterable[str]] = []
+               ) -> Tuple[List[str],Callable[[Set[str]],Optional[str]]]:
+    
     value_factory: Callable[[Set[str]],Optional[str]]
 
     if callable(value):
@@ -139,16 +134,11 @@ def _res(value: Union[str,Callable[[Set[str]],Optional[str]]],
     xpath_iterable    = [if_xpaths]    if isinstance(if_xpaths,    str) else if_xpaths
     selector_iterable = [if_selectors] if isinstance(if_selectors, str) else if_selectors
 
-    #if isinstance(if_xpaths, str):
-        #if_xpaths = [if_xpaths]
-
-    #if isinstance(if_selectors, str):
-        #if_selectors = [if_selectors]
-
     xpaths = []
     xpaths.extend(xpath_iterable)
     xpaths.extend(CSSSelector(sel).path for sel in selector_iterable)
-    return Resource(value_factory, xpaths, embed = embed)
+    
+    return (xpaths, value_factory)
 
 
 def css_rule(selectors: Union[str,Iterable[str]], properties: str):
@@ -165,30 +155,50 @@ def css_rule(selectors: Union[str,Iterable[str]], properties: str):
 
     xpath_to_sel = {CSSSelector(sel).path: sel for sel in selectors}
 
-    def value_factory(found: Set[str]) -> Optional[str]:
+    def content_factory(found: Set[str]) -> Optional[str]:
         if not found: return None
         return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
+    
+    _params().css.append(ContentResourceSpec(xpaths_required = list(xpath_to_sel.keys()),
+                                             content_factory = content_factory))
 
-    _params().css.append(_res(value_factory, if_xpaths = xpath_to_sel.keys()))
 
+def css(content, **kwargs):
+    (xpaths_required, content_factory) = _res_values(content, **kwargs)
+    _params().css.append(ContentResourceSpec(xpaths_required = xpaths_required,
+                                             content_factory = content_factory))
 
-def css(value: str, **kwargs):
-    _params().css.append(_res(value, **kwargs))
+def js(content: str, **kwargs):
+    (xpaths_required, content_factory) = _res_values(content, **kwargs)
+    _params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
+                                            content_factory = content_factory))
+    
+def _url_resources(url_list: List[str], 
+                   embed: Optional[bool] = None,
+                   hash_type: Optional[str] = None,
+                   mime_type: Optional[str] = None,
+                   **kwargs):
+    p = _params()
+    for url in url_list:
+        (xpaths_required, url_factory) = _res_values(url, **kwargs)
+        yield UrlResourceSpec(xpaths_required = xpaths_required,
+                              url_factory = url_factory,
+                              cache = p.cache,
+                              embed = embed,
+                              hash_type = hash_type,
+                              base_path = p.resource_path or os.path.dirname(os.path.abspath(p.src_file)),
+                              mime_type = mime_type,
+                              embed_policy = lambda: p.embed_resources,
+                              hash_type_policy = lambda: p.resource_hash_type)
+      
 
-def js(value: str, **kwargs):
-    _params().js.append(_res(value, **kwargs))
+def css_files(*url_list: List[str], **kwargs):
+    _params().css.extend(_url_resources(url_list, mime_type = 'text/css', **kwargs))
+                        
 
-def css_files(*values: List[str], embed: Optional[bool] = None, **kwargs):
-    _params().css_files.extend(
-        _res(value, embed = embed, **kwargs)
-        for value in values
-    )
+def js_files(*url_list: List[str], **kwargs):
+    _params().js.extend(_url_resources(url_list, mime_type = 'text/javascript', **kwargs))
 
-def js_files(*values: List[str], embed: Optional[bool] = None, **kwargs):
-    _params().js_files.extend(
-        _res(value, embed = embed, **kwargs)
-        for value in values
-    )
 
 def wrap_content(start: str, end: str):
     p = _params()

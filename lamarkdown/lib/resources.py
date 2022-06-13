@@ -1,73 +1,183 @@
-from .build_params import BuildParams, Resource
+from .progress import Progress
 
+import diskcache
+
+from base64 import b64encode
+from dataclasses import dataclass
+import hashlib
+import html
 import os.path
 import re
-import urllib.request
-from typing import List
-
-_URL_SCHEME_REGEX = re.compile('[a-z]+:')
+from typing import Callable, List, Optional, Set
 
 
-def embed(build_params: BuildParams):
-    policy = build_params.embed_resources
-    base_path = (build_params.resource_path or
-                 os.path.dirname(os.path.abspath(build_params.src_file)))
-
-    embed_res_list(build_params.css, build_params.css_files, policy, base_path)
-    embed_res_list(build_params.js,  build_params.js_files,  policy, base_path)
+class Resource:
+    def as_style(self)  -> str: raise NotImplementedError
+    def as_script(self) -> str: raise NotImplementedError
+    def add_or_coalesce(self, res_list) -> str: raise NotImplementedError
 
 
-def embed_res_list(embedded_resources: List[Resource],
-                   linked_resources: List[Resource],
-                   policy: bool,
-                   base_path: str):
+def _check(val, label):
+    if not isinstance(val, str):
+        raise ValueError(f'{label} should be a string; was {type(val)}')
+    return val
 
-    i = 0
-    j = 0
-    while i < len(linked_resources):
-        res = linked_resources[i]
 
-        # Note: 'policy' and 'res.embed' can each be True, False or None. Hence the more explicit
-        # checking below.
+class ContentResource:
+    def __init__(self, content: str):
+        self.content = _check(content, 'content')
+        
+    def as_style(self) -> str: 
+        # Strip CSS comments at the beginning of lines
+        css = re.sub('(^|\n)\s*/\*.*?\*/', '\n', self.content, flags = re.DOTALL)
 
-        link = res.value
-        if (link is not None and
-            ((policy is True and res.embed is not False) or
-             (policy is not False and res.embed is True)) and
-            not _URL_SCHEME_REGEX.match(link)):
+        # Strip CSS comments at the end of lines
+        css = re.sub('/\*.*?\*/\s*($|\n)', '\n', css, flags = re.DOTALL)
 
-            #if _URL_SCHEME_REGEX.match(link):
-                #with urllib.request.urlopen(link) as conn:
-                    ## TODO: handle exceptions, timeouts, caching, progress reporting, encoding
-                    #text = conn.read().decode()
-            #else:
-                #with open(os.path.join(base_path, link)) as reader:
-                    #text = reader.read()
-
-            with open(os.path.join(base_path, link)) as reader:
-                text = reader.read()
-
-            # Insert rather than append, to try to maintain the ordering, which may be important.
-            # That is, linked resources would occur before inline resources, and so newly-embedded
-            # resources should also occur before existing inline resources.
-            embedded_resources.insert(
-                j,
-                Resource(
-                    value_factory = lambda _: text,
-                    xpaths        = res.xpaths,
-                    reified       = True,
-                    value         = text
-                )
-            )
-            j += 1
-            linked_resources.pop(i)
-
+        # Normalise line breaks
+        css = re.sub('(\s*\n)+\s*', '\n', css, flags = re.DOTALL)
+        
+        return f'<style>\n{css}\n</style>'
+        
+        
+    def as_script(self) -> str:
+        return f'<script>\n{self.content}\n</script>'
+    
+    
+    def add_or_coalesce(self, res_list):
+        if len(res_list) > 0 and isinstance(res_list[-1], ContentResource):
+            res_list[-1] = ContentResource(f'{res_list[-1].content}\n{self.content}')
         else:
-            # Either:
-            # (a) the resource has been filtered out, or
-            # (b) the build file says not to embed, or
-            # (c) the resource is remote.
-            i += 1
+            res_list.append(self)
+
+    
+class UrlResource:
+    def __init__(self, url: str, hash: str = None, hash_type: str = None):
+        self.url = _check(url, 'url')
+        self.hash = hash
+        self.hash_type = hash_type
+        
+    def _integrity(self):
+        return f' integrity="{self.hash_type}-{self.hash}" crossorigin="anonymous"' if self.hash else ''
+        #return f' integrity="{self.hash_type}-{self.hash}"' if self.hash else ''
+        
+    def as_style(self)   -> str: 
+        return f'<link rel="stylesheet" href="{html.escape(self.url)}"{self._integrity()} />'
+        
+    def as_script(self) -> str:
+        return f'<script src="{html.escape(self.url)}"{self._integrity()}></script>'
+    
+    def add_or_coalesce(self, res_list):
+        res_list.append(self)
 
 
 
+class ResourceSpec:
+    def __init__(self, xpaths: List[str]):
+        self._xpaths = xpaths
+        
+    @property
+    def xpaths_required(self):
+        return self._xpaths
+    
+    def make_resource(self, xpaths_found: Set[str], progress: Progress) -> Optional[Resource]:
+        raise NotImplementedError
+
+
+class ContentResourceSpec(ResourceSpec):
+    def __init__(self, xpaths_required: List[str],
+                       content_factory: Callable[[Set[str]],Optional[str]]):
+        super().__init__(xpaths_required)
+        self.content_factory = content_factory
+        
+    def make_resource(self, xpaths_found: Set[str], progress: Progress) -> Optional[Resource]:
+        content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
+        return ContentResource(content) if content else None
+        
+    
+class UrlResourceSpec(ResourceSpec):
+    URL_SCHEME_REGEX = re.compile('[a-z]+:')
+    
+    def __init__(self, xpaths_required: List[str],
+                       url_factory: Callable[[Set[str]],Optional[str]],
+                       cache: diskcache.Cache,
+                       embed: Optional[bool] = None,
+                       hash_type: Optional[str] = None,
+                       base_path: str = None,
+                       mime_type: str = None,
+                       embed_policy: Callable[[],Optional[bool]] = lambda _: None,
+                       hash_type_policy: Callable[[],Optional[str]] = lambda _: None):
+                           
+        super().__init__(xpaths_required)                           
+        self.url_factory = url_factory
+        self.embed = embed
+        self.hash_type = hash_type
+        self.base_path = base_path
+        self.mime_type = mime_type
+        self.embed_policy = embed_policy
+        self.hash_type_policy = hash_type_policy
+        
+        #if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
+            #raise ValueError(f'Unsupported hash type: {hash_type}')
+        
+        
+    def _read_url(self, url, progress: Progress) -> bytes:
+        if self.URL_SCHEME_REGEX.match(url):
+            content_bytes = self.cache.get(url)
+            
+            if content_bytes is None:
+                with urllib.request.urlopen(url) as conn:
+                    try:
+                        content_bytes = conn.read()                        
+                        
+                        # TODO: observe and respect the HTTP headers 'Expires' and 'Cache-Control'.
+                        #expires = conn.headers.get('Expires')
+                        self.cache[url] = content_bytes
+                    except OSError as e:
+                        progress.error_from_exception(url, e)
+                        content_bytes = b'' # FIXME: can we pick a value that will be "visible" within the document?
+                        
+            return (True, content_bytes)
+                
+        else:
+            with open(os.path.join(self.base_path, url), 'rb') as reader:
+                return (False, reader.read())
+        
+        
+    def make_resource(self, xpaths_found: Set[str], progress) -> Optional[Resource]:
+        url = self.url_factory(xpaths_found.intersection(self.xpaths_required))
+        if url is None:
+            return None
+        
+        embed_policy = self.embed_policy()
+        embed = (
+            (embed_policy is True      and self.embed is not False) or
+            (embed_policy is not False and self.embed is True)
+        )
+        
+        hash_type = self.hash_type or self.hash_type_policy()
+        if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
+            progress.error(f'"{url}"', f'Unsupported hash type: {hash_type}')
+            hash_type = 'sha256'
+        
+        if embed:
+            _, content_bytes = self._read_url(url, progress)
+            url = f'data:{self.mime_type or ""};base64,{b64encode(content_bytes).decode()}'
+            return UrlResource(url)
+        
+        elif hash_type:
+            # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both 
+            # use the same strings 'sha256', 'sha384' and 'sha512'.
+            remote, content_bytes = self._read_url(url, progress)
+            hash = b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
+            
+            if not remote:
+                progress.warning(
+                    f'"{url}"',
+                    f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage.')
+            
+            return UrlResource(url = url, hash = hash, hash_type = hash_type)
+            
+        else:
+            return UrlResource(url = url)
+        

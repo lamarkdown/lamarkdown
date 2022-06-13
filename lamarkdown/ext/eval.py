@@ -20,7 +20,8 @@ WARNING: **this has security implications!** This extension should not be enable
 question about whether to trust the author of the markdown.
 '''
 
-from lamarkdown.lib.error import Error
+#from lamarkdown.lib.error import Error
+from lamarkdown.lib.progress import Progress, ErrorMsg
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 import re
@@ -28,36 +29,40 @@ from xml.etree import ElementTree
 
 
 class EvalInlineProcessor(InlineProcessor):
-    def __init__(self, regex, md, env):
+    def __init__(self, regex, md, env, progress):
         super().__init__(regex, md)
         self.env = env
+        self.progress = progress
 
     def handleMatch(self, match, data):
         try:
             element = ElementTree.Element('span')
             element.text = str(eval(match.group('code'), self.env))
         except Exception as e:
-            element = Error.from_exception('eval', e, match.group('code')).to_element()
+            #element = Error.from_exception('eval', e, match.group('code')).to_element()
+            #element = self.progress.error_from_exception('Eval', e, match.group('code')).as_dom_element()
+            element = self.progress.error('Eval', str(e), match.group('code')).as_dom_element()
 
         return element, match.start(0), match.end(0)
 
 
 class EvalExtension(Extension):
     def __init__(self, **kwargs):
+        # Try to get the default environment (the set of names that the embedded snippet will
+        # be able to reference) from the actual current build parameters. This will only work
+        # if this extension is being used within the context of lamarkdown.
+        #
+        # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
+        p = None
         try:
-            # Try to get the default environment (the set of names that the embedded snippet will
-            # be able to reference) from the actual current build parameters. This will only work
-            # if this extension is being used within the context of lamarkdown.
-            #
-            # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
-
             from lamarkdown.lib.build_params import BuildParams
-            default_env = dict(BuildParams.current.env) if BuildParams.current else {}
+            p = BuildParams.current
         except ModuleNotFoundError:
-            default_env = {}
-
+            pass
+            
         self.config = {
-            'env':       [default_env, 'Environment in which to evaluate expressions'],
+            'env':       [dict(p.env) if p else {}, 'Environment in which to evaluate expressions'],
+            'progress':  [p.progress  if p else Progress(), 'An object accepting progress messages.'],
             'start':     ['$', 'Character (or string) marking the start of an eval expression'],
             'end':       ['',  'Character (or string) marking the end of an eval expression'],
             'delimiter': ['`', 'Character (or string) enclosing an eval expression (after the start and before the end strings)'],
@@ -69,7 +74,8 @@ class EvalExtension(Extension):
         end   = re.escape(self.getConfig('end'))
         delim = re.escape(self.getConfig('delimiter'))
 
-        proc = EvalInlineProcessor(f'{start}(?P<bt>{delim}+)(?P<code>.*?)(?P=bt){end}', md, self.getConfig('env'))
+        proc = EvalInlineProcessor(f'{start}(?P<bt>{delim}+)(?P<code>.*?)(?P=bt){end}', md, 
+                                   self.getConfig('env'), self.getConfig('progress'))
 
         # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have
         # a higher priority than that (or not use backticks).

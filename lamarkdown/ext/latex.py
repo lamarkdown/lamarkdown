@@ -22,7 +22,7 @@ There are various configuration options, allowing a choice of Latex compiler, PD
 method of embedding SVG, optional common Latex code to be inserted after '\\documentclass', etc.
 '''
 
-from lamarkdown.lib.error import Error
+from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
 
 from markdown import *
 from markdown.extensions import *
@@ -58,6 +58,7 @@ def check_run(command: Union[str,List[str]],
 
     proc = subprocess.run(command,
                           shell = isinstance(command, str),
+                          stdin = subprocess.DEVNULL, # Supposed to be non-interactive!
                           stdout = subprocess.PIPE,
                           stderr = subprocess.STDOUT,
                           encoding = 'utf-8',
@@ -84,14 +85,13 @@ def get_blocks(blocks):
 
 
 class Embedder:
-    def generate_html(self, svg_file: str) -> ElementTree.Element: raise NotImplementedError
+    def generate_html(self, svg_content: str) -> ElementTree.Element: raise NotImplementedError
 
 
 class DataUriEmbedder(Embedder):
-    def generate_html(self, svg_file: str) -> ElementTree.Element:
-        with open(svg_file) as reader:
-            # Encode SVG data as a data URI in an <img> element.
-            data_uri = f'data:image/svg+xml;base64,{base64.b64encode(reader.read().strip().encode()).decode()}'
+    def generate_html(self, svg_content: str) -> ElementTree.Element:
+        # Encode SVG data as a data URI in an <img> element.
+        data_uri = f'data:image/svg+xml;base64,{base64.b64encode(svg_content.strip().encode()).decode()}'
         return ElementTree.fromstring(f'<img src="{data_uri}" />')
 
 
@@ -99,13 +99,10 @@ class SvgElementEmbedder(Embedder):
     def __init__(self):
         self.svg_index = 0
 
-    def generate_html(self, svg_file: str) -> ElementTree.Element:
-        with open(svg_file) as reader:
-            svg_element = ElementTree.fromstring(reader.read())
-
+    def generate_html(self, svg_content: str) -> ElementTree.Element:
+        svg_element = ElementTree.fromstring(svg_content)
         self._mangle(svg_element)
         self.svg_index += 1
-
         return svg_element
 
     def _mangle(self, elem: ElementTree.Element):
@@ -317,7 +314,8 @@ class LatexPostprocessor(Postprocessor):
     HTML.
     """
 
-    cache: Dict[str,ElementTree.Element] = {}
+    #cache: Dict[str,ElementTree.Element] = {}
+    CACHE_PREFIX = 'lamarkdown.latex'
 
     TEX_CMDLINES = {
         'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
@@ -335,11 +333,13 @@ class LatexPostprocessor(Postprocessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, tex: str,
-                 pdf_svg_converter: str, embedding: str, strip_html_comments: bool):
+    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, cache, progress: Progress,
+                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool):
         self.md = md
         self.preproc = preproc
         self.build_dir = build_dir
+        self.cache = cache
+        self.progress = progress
 
         self.tex_cmdline: Union[List[str],str] = (
             self.TEX_CMDLINES.get(tex) or
@@ -376,11 +376,15 @@ class LatexPostprocessor(Postprocessor):
         if self.strip_html_comments:
             latex = HTML_COMMENT_RE.sub('', latex)
 
-        input_repr = repr((latex, self.preproc.input_repr,
-                           self.tex_cmdline, self.converter_cmdline, self.embedding))
+        # Build a representation of all the input information sources.
+        cache_key = (self.CACHE_PREFIX, latex, self.preproc.input_repr,
+                      self.tex_cmdline, self.converter_cmdline, self.embedding)
 
         # If not in cache, compile it.
-        if input_repr not in self.cache:
+        if cache_key in self.cache:
+            self.progress.progress('Latex', 'Cache hit -- skipping compilation')
+
+        else:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
             file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
@@ -395,9 +399,10 @@ class LatexPostprocessor(Postprocessor):
                     f.write(latex)
 
             except OSError as e:
-                return Error.from_exception('latex', e).to_html()
+                return self.progress.error_from_exception('Latex', e).as_html_str()
 
             try:
+                self.progress.progress(self.tex_cmdline[0], 'Compiling .tex to .pdf...')
                 check_run(
                     self.tex_cmdline,
                     pdf_file,
@@ -405,22 +410,31 @@ class LatexPostprocessor(Postprocessor):
                     env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
                 )
 
+                self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
                 check_run(
                     self.converter_cmdline,
                     svg_file,
                     cwd = file_build_dir
                 )
 
-                self.cache[input_repr] = self.embedder.generate_html(svg_file)
+                with open(svg_file) as reader:
+                    svg_content = reader.read()
+                    if "viewBox='0 0 0 0'" in svg_content:
+                        return self.progress.error(
+                            'Latex',
+                            f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
+                            svg_content
+                        ).as_html_str()
+
+                # If compilation was successful, cache the result.
+                self.cache[cache_key] = self.embedder.generate_html(svg_content)
 
             except CommandException as e:
-                return Error('latex', str(e), e.output, latex).to_html()
-
-        #endif
+                return self.progress.error('Latex', str(e), e.output, full_doc).as_html_str()
 
         # We make a copy of the cached element, because different instances of it could
         # conceivably be assigned different attributes below.
-        element = copy.copy(self.cache.get(input_repr))
+        element = copy.copy(self.cache.get(cache_key))
 
         if attrs:
             # Hijack parts of the attr_list extension to handle the attribute list.
@@ -451,21 +465,27 @@ class LatexPostprocessor(Postprocessor):
 
 class LatexExtension(Extension):
     def __init__(self, **kwargs):
+        # Try to get some objects from the current build parameters:
+        # (1) the build dir -- the location where we'll execute latex, and where all its
+        #     temporary files will accumulate;
+        # (2) the global cache -- allowing us to avoid re-compiling when the Latex code hasn't
+        #     changed.
+        #
+        # This will only work if this extension is being used within the context of lamarkdown.
+        # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
+        p = None
         try:
-            # Try to get the build dir (the location where we'll execute latex, and where all its
-            # temporary files will accumulate) from the actual current build parameters. This will
-            # only work if this extension is being used within the context of lamarkdown.
-            #
-            # But we do have a fallback on the off-chance that someone wants to use it elsewhere.
-
             from lamarkdown.lib.build_params import BuildParams
-            default_build_dir = BuildParams.current.build_dir if BuildParams.current else 'build'
-
+            p = BuildParams.current
         except ModuleNotFoundError:
-            default_build_dir = 'build'
+            pass # Use default defaults
+
+        progress = p.progress if p else Progress()
 
         self.config = {
-            'build_dir': [default_build_dir, 'Location to write temporary files'],
+            'build_dir': [p.build_dir if p else 'build',    'Location to write temporary files'],
+            'cache':     [p.cache     if p else {},         'A dictionary-like cache object to help avoid unnecessary rebuilds.'],
+            'progress':  [p.progress  if p else Progress(), 'An object accepting progress messages.'],
             'tex': [
                 'xelatex',
                 'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'
@@ -499,7 +519,8 @@ class LatexExtension(Extension):
 
         embedding = self.getConfig('embedding')
         if embedding not in LatexPostprocessor.EMBEDDERS:
-            raise ValueError(f'Invalid value "{embedding}" for config option "embedding"')
+            progress.error('latex', f'Invalid value "{embedding}" for config option "embedding"')
+            self.setConfig('embedding', 'data_uri')
 
     def reset(self):
         self.postprocessor.reset()
@@ -518,6 +539,8 @@ class LatexExtension(Extension):
             md,
             self.preprocessor,
             build_dir           = self.getConfig('build_dir'),
+            cache               = self.getConfig('cache'),
+            progress            = self.getConfig('progress'),
             tex                 = self.getConfig('tex'),
             pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
             embedding           = self.getConfig('embedding'),
