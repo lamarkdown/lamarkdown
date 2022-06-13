@@ -60,6 +60,7 @@ def check_run(command: Union[str,List[str]],
 
     proc = subprocess.run(command,
                           shell = isinstance(command, str),
+                          stdin = subprocess.DEVNULL, # Supposed to be non-interactive!
                           stdout = subprocess.PIPE,
                           stderr = subprocess.STDOUT,
                           encoding = 'utf-8',
