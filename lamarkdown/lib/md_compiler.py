@@ -8,8 +8,7 @@ This is where we invoke Python Markdown, but also:
 
 import lamarkdown
 from .build_params import BuildParams, Variant
-from .resources import ResourceSpec, Resource
-#from .error import Error
+from .resources import ResourceSpec, Resource, ContentResource
 from .progress import Progress
 from . import resources
 
@@ -104,8 +103,6 @@ def compile_variant(variant: Variant,
     # A variant doesn't inherit the set of variants, or we would have infinite recursion.
     build_params.variants = []
 
-    #pre_errors = deepcopy(pre_errors)
-
     try:
         variant.build_fn()
     except Exception as e:
@@ -134,7 +131,6 @@ def invoke_python_markdown(build_params: BuildParams):
     build_params.progress.progress(os.path.basename(build_params.output_file), 'Invoking Python Markdown')
     content_html = ''
     meta: Dict[str,List[str]] = {}
-    #pre_errors: List[Error] = list(pre_errors)
 
     try:
         with open(build_params.src_file, 'r') as src:
@@ -155,15 +151,10 @@ def invoke_python_markdown(build_params: BuildParams):
         except Exception as e:
             build_params.progress.error_from_exception('Python Markdown', e)
 
-    # Display pre-errors. (TODO: make this display in-document errors too?)
-    #for error in pre_errors:
-        #error.print()
-        #print()
-
     return content_html, meta
 
-            
-def resources(spec_list: List[ResourceSpec], 
+
+def resources(spec_list: List[ResourceSpec],
               xpaths_found: Set[str],
               build_params: Progress) -> List[Resource]:
     res_list = []
@@ -181,9 +172,9 @@ _parser = lxml.html.HTMLParser(default_doctype = False,
 def write_html(content_html: str,
                meta: Dict[str,List[str]],
                build_params: BuildParams):
-    
+
     build_params.progress.progress(os.path.basename(build_params.output_file), 'Creating output document')
-    
+
     buf = StringIO(content_html)
     try:
         root_element = lxml.html.parse(buf, _parser).find('body')
@@ -195,7 +186,7 @@ def write_html(content_html: str,
     for fn in build_params.tree_hooks:
         fn(root_element)
 
-    # Determine which XPath expressions match the document (so we know later which css/js 
+    # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
     xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
 
@@ -241,6 +232,24 @@ def write_html(content_html: str,
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 
+    css_res_list = resources(build_params.css, xpaths_found, build_params.progress)
+
+    #css_vars = {}
+    #for name, value in build_params.css_vars.items():
+        #regex = re.compile(f'(?<=[^a-zA-Z0-9_-])--{re.escape(name)}(?=[^a-zA-Z0-9_-])')
+
+        #if any(regex.search(res.content)
+               #for res in css_res_list
+               #if isinstance(res, ContentResource)):
+            #css_vars[name] = value
+
+    #if css_vars:
+    if build_params.css_vars:
+        ContentResource(
+            ':root {\n' + '\n'.join(f'--{name}: {value};'
+                                    for name, value in build_params.css_vars.items()) + '\n}'
+        ).prepend_or_coalesce(css_res_list)
+
     full_html_template = '''
         <!DOCTYPE html>
         <html lang="{lang_html:s}">
@@ -256,16 +265,14 @@ def write_html(content_html: str,
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css = ''.join(res.as_style() + '\n' 
-                      for res in resources(build_params.css, xpaths_found, build_params.progress)),
-        #pre_errors = ''.join('\n' + error.to_html() for error in pre_errors),
-        errors = ''.join('\n' + error.as_html_str() 
+        css = ''.join(res.as_style() + '\n' for res in css_res_list),
+        errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()
                          if not error.consumed),
         content_start = build_params.content_start,
         content_html = content_html,
         content_end = build_params.content_end,
-        js = ''.join(res.as_script() + '\n' 
+        js = ''.join(res.as_script() + '\n'
                      for res in resources(build_params.js, xpaths_found, build_params.progress)),
     )
 

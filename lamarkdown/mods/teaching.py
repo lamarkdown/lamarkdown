@@ -1,9 +1,9 @@
-import lamarkdown as md
+import lamarkdown as la
 
 def apply():
-    md.extensions('admonition')
+    la.extensions('admonition')
 
-    md.css(
+    la.css(
         r'''
         [nmarks]:not([nmarks="1"])::after {
             content: "[" attr(nmarks) " marks]";
@@ -12,7 +12,7 @@ def apply():
         if_selectors = '[nmarks]:not([nmarks="1"])'
     )
 
-    md.css(
+    la.css(
         r'''
         [nmarks="1"]::after {
             content: "[1 mark]";
@@ -21,7 +21,7 @@ def apply():
         if_selectors = '[nmarks="1"]'
     )
 
-    md.css(
+    la.css(
         r'''
         [nmarks]::after {
             display: block;
@@ -33,7 +33,7 @@ def apply():
         if_selectors = '[nmarks]'
     )
 
-    md.css(
+    la.css(
         r'''
         .inline {
             position: relative;
@@ -48,10 +48,12 @@ def apply():
         if_selectors = '.inline[nmarks]'
     )
 
-    md.css_rule(
+    la.css_vars['la-answer-border-color'] = '#c000c0';
+    la.css_vars['la-answer-background'] = '#ffe0ff';
+    la.css_rule(
         '.admonition.answer',
         '''
-        border: 1px solid #c000c0;
-        background: #ffe0ff;
+        border: 1px solid var(--la-answer-border-color);
+        background: var(--la-answer-background);
         '''
     )

@@ -118,7 +118,7 @@ def _res_values(value: Union[str,Callable[[Set[str]],Optional[str]]],
                 if_xpaths:    Union[str,Iterable[str]] = [],
                 if_selectors: Union[str,Iterable[str]] = []
                ) -> Tuple[List[str],Callable[[Set[str]],Optional[str]]]:
-    
+
     value_factory: Callable[[Set[str]],Optional[str]]
 
     if callable(value):
@@ -137,7 +137,7 @@ def _res_values(value: Union[str,Callable[[Set[str]],Optional[str]]],
     xpaths = []
     xpaths.extend(xpath_iterable)
     xpaths.extend(CSSSelector(sel).path for sel in selector_iterable)
-    
+
     return (xpaths, value_factory)
 
 
@@ -158,7 +158,7 @@ def css_rule(selectors: Union[str,Iterable[str]], properties: str):
     def content_factory(found: Set[str]) -> Optional[str]:
         if not found: return None
         return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
-    
+
     _params().css.append(ContentResourceSpec(xpaths_required = list(xpath_to_sel.keys()),
                                              content_factory = content_factory))
 
@@ -172,8 +172,8 @@ def js(content: str, **kwargs):
     (xpaths_required, content_factory) = _res_values(content, **kwargs)
     _params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                             content_factory = content_factory))
-    
-def _url_resources(url_list: List[str], 
+
+def _url_resources(url_list: List[str],
                    embed: Optional[bool] = None,
                    hash_type: Optional[str] = None,
                    mime_type: Optional[str] = None,
@@ -190,11 +190,11 @@ def _url_resources(url_list: List[str],
                               mime_type = mime_type,
                               embed_policy = lambda: p.embed_resources,
                               hash_type_policy = lambda: p.resource_hash_type)
-      
+
 
 def css_files(*url_list: List[str], **kwargs):
     _params().css.extend(_url_resources(url_list, mime_type = 'text/css', **kwargs))
-                        
+
 
 def js_files(*url_list: List[str], **kwargs):
     _params().js.extend(_url_resources(url_list, mime_type = 'text/javascript', **kwargs))
@@ -215,6 +215,9 @@ def embed_resources(embed: Optional[bool] = True):
 
 
 def __getattr__(name):
+    if name == 'css_vars':
+        return _params().css_vars
+
     try:
         mod = importlib.import_module(f'lamarkdown.mods.{name}')
     except ModuleNotFoundError as e:

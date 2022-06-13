@@ -56,11 +56,11 @@ class Content:
             self.path[name] = os.path.dirname(output_file)
 
         self.update_n += 1
-        
+
     def clear_cache(self):
         self.build_params.progress.warning('Live updating', 'Clearing cache')
         self.build_params.cache.clear()
-        
+
     def recompile(self):
         self.compile_lock.acquire()
         try:
@@ -73,7 +73,7 @@ class Content:
 
 
 def get_handler(content: Content):
-    
+
     control_panel_style = re.sub('(\n\s+)+', ' ', '''
         <style>
             @media print {
@@ -97,18 +97,21 @@ def get_handler(content: Content):
                     max-height: 90%;
                     z-index: 1000;
                 }
-            }
-            #_lamd_msg[data-msg]::before {
-                content: attr(data-msg);
-                display: block;
-                margin-bottom: 1em;
-                color: red;
-                font-weight: bold;
+                #_lamd_control_panel button {
+                    margin-top: 1ex;
+                }
+                #_lamd_msg[data-msg]::before {
+                    content: attr(data-msg);
+                    display: block;
+                    margin-bottom: 1em;
+                    color: red;
+                    font-weight: bold;
+                }
             }
         </style>
         '''
     ).strip()
-        
+
     favicon_data = re.sub('\s+', '', '''
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABKrAAASqwE7rmhSAAAAGXRFWHRTb2Z0d2F
         yZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAABt9JREFUeJzlm2tsVNUWx3/rTFtACtKKRUAJiQYjjeVVqNRnFUPiEzU+cq
@@ -138,8 +141,19 @@ def get_handler(content: Content):
         xRL8HPmHwf4wKROkQ8BtrSf4xy4RyCEyy/Af3DcURsFZcHJaC9Q7P3MnLra7UgFIiAOAZiSNcSnYSEsByo7TKfo9gTc
         DAeb87/Ym5sdSb2JcuU9H9AGWJMvVr63hO5h3Cs/IuynSUdfi/5S6UK4CHSR6WMvQinGXdL9uKkWCZHofLmXgch9CP8
         iWVrOdxCeUgBPAXQsgRouDv/0AAAAAASUVORK5CYII=''')
-    
+
     favicon_link = f'<link rel="icon" type="image/png" href="data:;base64,{favicon_data}" />'
+
+    CHECK_INTERVAL       = 500 # milliseconds
+    ERROR_COUNTDOWN      = 5   # times the check interval
+    DISCONNECT_COUNTDOWN = 30  # times the check interval
+
+    POST_RESPONSE = 'ok'
+
+    VARIANT_QUERY_REGEX = re.compile('/(?P<variant>[^/]*)/?index.html')
+    VARIANT_FILE_QUERY_REGEX = re.compile('/(?P<variant>[^/]*)/(?P<file>.+)')
+    BASE_FILE_QUERY_REGEX = re.compile('/(?P<file>.+)')
+
 
     class _handler(http.server.BaseHTTPRequestHandler):
 
@@ -147,56 +161,95 @@ def get_handler(content: Content):
             self.send_response(200)
             self.send_header('ContentType', 'text/html')
             self.end_headers()
-            
+
             # JS code to poll this server for updates, and reload if an update is detected.
             update_script = re.sub('(\n\s+)+', ' ', f'''
                 <script>
-                    function _lamd_error(error, advice)
-                    {{
-                        const msg = 'Unable to contact server. ' + advice;
-                        console.log(`${{msg}}\n(${{error.message}})`);
-                        document.getElementById('_lamd_msg').dataset.msg = msg;
-                    }}
-                    
-                    function _lamd_update()
-                    {{
-                        fetch('/query')
-                            .then(response => response.text())
-                            .then(text =>
+                    (() => {{
+                        let errorCountdown = {ERROR_COUNTDOWN};
+                        let disconnectCountdown = {DISCONNECT_COUNTDOWN};
+
+                        function showError(user_msg, internal_detail)
+                        {{
+                            console.log(user_msg);
+                            console.log(internal_detail);
+                            document.getElementById('_lamd_msg').dataset.msg = user_msg;
+                        }}
+
+                        function update()
+                        {{
+                            if(disconnectCountdown > 0)
                             {{
-                                if(text != '{content.update_n}')
+                                fetch('/query')
+                                    .then(response => response.text())
+                                    .then(text =>
+                                    {{
+                                        if(text != '{content.update_n}')
+                                        {{
+                                            document.location.reload();
+                                        }}
+                                        setTimeout(update, {CHECK_INTERVAL});
+                                        errorCountdown = {ERROR_COUNTDOWN};
+                                        disconnectCountdown = {DISCONNECT_COUNTDOWN};
+                                    }})
+                                    .catch(error =>
+                                    {{
+                                        if(errorCountdown > 0)
+                                        {{
+                                            errorCountdown--;
+                                            if(errorCountdown == 0)
+                                            {{
+                                                showError('Unable to contact server.', error.message);
+                                            }}
+                                        }}
+                                        else
+                                        {{
+                                            disconnectCountdown--;
+                                            if(disconnectCountdown == 0)
+                                            {{
+                                                showError('Disconnected from server. Reload the page to resume, once the server is running again.',
+                                                          error.message);
+                                            }}
+                                        }}
+                                    }});
+                            }}
+                        }};
+                        setTimeout(update, {CHECK_INTERVAL});
+
+                        document.getElementById('_lamd_cleanbuild_btn').onclick = (event) =>
+                        {{
+                            fetch('/cleanbuild', {{method: 'POST'}})
+                                .then(response => response.text())
+                                .then(text =>
                                 {{
-                                    console.log(content.update_n);
-                                    document.location.reload();
-                                }}
-                                setTimeout(_lamd_update, 500);
-                            }})
-                            .catch(error => _lamd_error(error, 'Reload the page to resume, once the server is running again.'));
-                    }};
-                    setTimeout(_lamd_update, 500);
-                    
-                    document.getElementById('_lamd_cleanbuild_btn').onclick = (event) => 
-                    {{
-                        fetch('/cleanbuild', {{method: 'POST'}})
-                            .catch(error => _lamd_error(error, ''));
-                        event.preventDefault();
-                    }};
+                                    if(text != '{POST_RESPONSE}')
+                                    {{
+                                        showError('Server returned unexpected response', `"${{text}}"`);
+                                    }}
+                                }})
+                                .catch(error => showError('Unable to contact server.', error.message));
+                            event.preventDefault();
+                        }};
+
+                        document.getElementById('_lamd_timestamp').innerHTML = 'Last updated:<br/>' + new Date().toLocaleString();
+                    }})();
                 </script>
             ''').strip()
-            
+
             control_panel = re.sub('(\n\s+)+', ' ', '''
                 <div id="_lamd_control_panel">
+                    <div id="_lamd_timestamp"></div>
                     <div id="_lamd_msg"></div>
                     <form><button id="_lamd_cleanbuild_btn">Clean Build</button></form>
                 ''')
             if len(content.title) >= 2:
                 control_panel += (
                     '<hr/><strong>Variants</strong><br/>' +
-                    '<br/>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>' 
+                    '<br/>'.join(f'<a href="/{v}{"/" if v else ""}index.html">{f}</a>'
                                 for v, f in content.filename.items())
-                )                    
+                )
             control_panel += '</div>'
-                    
+
             message = content.full_html[variant_name] \
                 .replace('</head>', f'{favicon_link}\n{control_panel_style}\n</head>') \
                 .replace('<body>', f'<body>\n{control_panel}') \
@@ -207,21 +260,23 @@ def get_handler(content: Content):
 
         def send_file(self, path: str):
             self.send_response(200)
-            #self.send_header('ContentType', 'text/plain')
             self.end_headers()
             self.wfile.write(open(path, 'rb').read())
-            
-            
+
+
         def do_POST(self):
             if self.path == '/cleanbuild':
                 self.send_response(200)
+                self.send_header('ContentType', 'text/plain')
+                self.end_headers()
+                self.wfile.write(POST_RESPONSE.encode('utf-8'))
                 def clean_build():
                     content.clear_cache()
                     content.recompile()
                 threading.Thread(target = clean_build).start()
             else:
                 self._no()
-                
+
 
         def do_GET(self):
             if self.path == '/':
@@ -232,40 +287,40 @@ def get_handler(content: Content):
                     self.send_main_content(content.base_variant)
                 else:
                     self.send_main_content(next(iter(content.title.keys())))
+                return
 
-            elif self.path == '/query':
+            if self.path == '/query':
                 self.send_response(200)
                 self.send_header('ContentType', 'text/plain')
                 self.end_headers()
                 self.wfile.write(str(content.update_n).encode('utf-8'))
-                
-            elif (
-                (match := re.fullmatch(f'/(?P<variant>[^/]*)/?index.html', self.path)) and
-                (variant_name := match['variant']) in content.title
-            ):
-                # Having verified that the URL contains the name of a variant, send that variant.
-                self.send_main_content(variant_name)
+                return
 
-            elif (
-                (match := re.fullmatch(f'/(?P<variant>[^/]*)/(?P<file>.+)', self.path)) and
-                ((variant_name := match['variant']) in content.title) and
-                (full_path := os.path.join(content.path[variant_name],
-                                           match['file'].replace('/', os.sep))) and
-                os.path.isfile(full_path)
-            ):
-                self.send_file(full_path)
+            re_match = VARIANT_QUERY_REGEX.fullmatch(self.path)
+            if re_match:
+                variant_name = re_match['variant']
+                if variant_name in content.title:
+                    self.send_main_content(variant_name)
+                    return
 
-            elif (
-                (match := re.fullmatch(f'/(?P<file>.+)', self.path)) and
-                ('' in content.title) and
-                (full_path := os.path.join(content.path[''], match['file'].replace('/', os.sep))) and
-                os.path.isfile(full_path)
-            ):
-                self.send_file(full_path)
+            re_match = VARIANT_FILE_QUERY_REGEX.fullmatch(self.path)
+            if re_match:
+                variant_name = re_match['variant']
+                full_path = os.path.join(content.path[variant_name],
+                                         re_match['file'].replace('/', os.sep))
+                if variant_name in content.title and os.path.isfile(full_path):
+                    self.send_file(full_path)
+                    return
 
-            else:
-                self._no()
-                
+            re_match = BASE_FILE_QUERY_REGEX.fullmatch(self.path)
+            if re_match:
+                full_path = os.path.join(content.path[''], re_match['file'].replace('/', os.sep))
+                if '' in content.title and os.path.isfile(full_path):
+                    self.send_file(full_path)
+                    return
+
+            self._no()
+
         def _no(self):
             self.send_response(404)
             self.send_header('ContentType', 'text/plain')
@@ -284,7 +339,7 @@ def watch_live(build_params: BuildParams,
 
     content = Content(build_params)
     content.update(all_build_params)
-    
+
     class SourceFileEventHandler(watchdog.events.FileSystemEventHandler):
         def on_closed(self, event): # When something else finishes writing to a file
             if event.src_path == build_params.src_file or event.src_path in build_params.build_files:
@@ -311,7 +366,7 @@ def watch_live(build_params: BuildParams,
                 break
             except OSError: # Port in use; try next one.
                 build_params.progress.warning('Live updating', f'Port {try_port} appears to be in use.')
-                
+
         if port:
             build_params.progress.progress('Live updating', 'Launching server and browser, and monitoring changes to source/build files.',
                 f'Browse to http://localhost:{port}\nPress Ctrl-C to quit.')
@@ -328,7 +383,7 @@ def watch_live(build_params: BuildParams,
             server.serve_forever()
         else:
             build_params.progress.error(
-                'Live updating', 
+                'Live updating',
                 f'Cannot launch server: all ports in range {PORT_RANGE.start}-{PORT_RANGE.stop - 1} are in use.')
 
     except KeyboardInterrupt: # Ctrl-C

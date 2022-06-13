@@ -25,7 +25,8 @@ class MarkersProcessor(markdown.treeprocessors.Treeprocessor):
     def run(self, root):
         for element in root:
             if isinstance(element.text, str):
-                if match := self.REGEX.fullmatch(element.text):
+                match = self.REGEX.fullmatch(element.text)
+                if match:
                     element.text = '\n' + match.group(1)
                     element.set('style', 'display: none;')
 

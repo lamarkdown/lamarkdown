@@ -1,8 +1,8 @@
-import lamarkdown as md
+import lamarkdown as la
 import pymdownx
 
 def apply():
-    md.extensions(
+    la.extensions(
         'admonition', # 'Notes', 'warnings', etc.
         'meta',       # Allows for defining metadata in the markdown.
         'smarty',     # Auto-replacement of quotes, ellipses and dashes.
@@ -18,15 +18,47 @@ def apply():
         'lamarkdown.ext.markers',
     )
 
-    md.css(r'''
-        @import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&family=Merriweather&family=Merriweather+Sans&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+    for name, value in {
+        'la-sans-font':         '"Open Sans", sans-serif',
+        'la-serif-font':        '"Merriweather", serif',
+        'la-monospace-font':    '"Inconsolata", monospace',
+        'la-main-font':         'var(--la-sans-font)',
+        'la-header-font':       'var(--la-serif-font)',
 
+        'la-main-color':        'black',
+        'la-main-background':   'white',
+        'la-side-shadow-color': 'var(--la-main-color)',
+        'la-side-background':   '#404040',
+
+        'la-admonition-border-color':  '#606060',
+        'la-note-border-color':        '#0060c0',
+        'la-note-background':          '#c0d8ff',
+        'la-warning-border-color':     '#c03030',
+        'la-warning-background':       '#ffc0c0',
+
+        'la-table-border-color':       'black',
+        'la-table-head-background':    '#ffc080',
+        'la-table-oddrow-background':  'var(--la-main-background)',
+        'la-table-evenrow-background': '#fff0e0',
+
+        'la-bullet1-color': '#0080ff',
+        'la-bullet1-shape': r'"\25A0"',
+        'la-bullet2-color': '#80c0ff',
+        'la-bullet2-shape': r'"\25B8"',
+        'la-number-color': '#ff6000',
+    }.items():
+        if name not in la.css_vars:
+            la.css_vars[name] = value
+
+    la.css_files(
+        'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather&family=Inconsolata:wght@500&display=swap'
+    )
+
+    la.css(r'''
         @media screen {
-            html { background: #404040; }
+            html { background: var(--la-side-background); }
             body {
-                box-shadow: 5px 5px 10px black;
+                box-shadow: 5px 5px 10px var(--la-side-shadow-color);
                 max-width: 50em;
                 padding: 4em;
                 margin-left: auto;
@@ -35,83 +67,84 @@ def apply():
         }
 
         html {
-            font-family: 'Open Sans', sans-serif;
+            font-family: var(--la-main-font);
             line-height: 1.8em;
         }
 
         body {
-            background: white;
+            color:      var(--la-main-color);
+            background: var(--la-main-background);
         }
     ''')
 
-    md.css_rule(
+    la.css_rule(
         ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
-        'font-family: "Merriweather", serif;'
+        'font-family: var(--la-header-font);'
     )
 
-    md.css_rule(
+    la.css_rule(
         ['h2', 'h3', 'h4', 'h5', 'h6'],
         'margin-top: 1.5em;'
     )
 
-    md.css_rule('pre', 'line-height: 1.7em;')
-    md.css_rule('code', 'font-family: "Inconsolata", monospace;')
+    la.css_rule('pre', 'line-height: 1.7em;')
+    la.css_rule('code', 'font-family: var(--la-monospace-font);')
 
-    md.css_rule(
+    la.css_rule(
         '.admonition',
         '''
         border-radius: 5px;
-        border: 1px solid #606060;
+        border: 1px solid var(--la-admonition-border-color);
         padding: 0 1em;
         margin: 1ex 0;
         '''
     )
 
-    md.css_rule(
+    la.css_rule(
         '.admonition-title',
         '''
         font-weight: bold;
-        font-family: "Merriweather Sans", sans-serif;
+        font-family: var(--la-main-font);
         '''
     )
 
-    md.css_rule(
+    la.css_rule(
         '.admonition.note',
         '''
-        border: 1px solid #0060c0;
-        background: #c0d8ff;
+        border: 1px solid var(--la-note-border-color);
+        background: var(--la-note-background);
         '''
     )
 
-    md.css_rule(
+    la.css_rule(
         '.admonition.warning',
         '''
-        border: 1px solid #c03030;
-        background: #ffc0c0;
+        border: 1px solid var(--la-warning-border-color);
+        background: var(--la-warning-background);
         '''
     )
 
-    md.css(
+    la.css(
         r'''
         ul > li::marker {
-            color: #0080ff;
-            content: '\25A0\00A0';
+            color: var(--la-bullet1-color);
+            content: var(--la-bullet1-shape) '\00A0';
         }
         ''',
         if_selectors = 'ul'
     )
 
-    md.css(
+    la.css(
         r'''
         ul ul > li::marker {
-            color: #80c0ff;
-            content: '\25B8\00A0';
+            color: var(--la-bullet2-color);
+            content: var(--la-bullet2-shape) '\00A0';
         }
         ''',
         if_selectors = 'ul ul'
     )
 
-    md.css(
+    la.css(
         r'''
         ol {
             width: 100%;
@@ -129,7 +162,7 @@ def apply():
             display: table-cell;
             width: 2ex;
             padding-right: 0.5em;
-            color: #ff6000;
+            color: var(--la-number-color);
             font-weight: bold;
         }
 
@@ -145,7 +178,7 @@ def apply():
         if_selectors = 'ol'
     )
 
-    md.css(
+    la.css(
         r'''
         ol ol > li::before {
             width: 3ex;
@@ -154,7 +187,7 @@ def apply():
         if_selectors = 'ol ol'
     )
 
-    md.css(
+    la.css(
         r'''
         ol ol ol > li::before {
             width: 4ex;
@@ -163,7 +196,7 @@ def apply():
         if_selectors = 'ol ol ol'
     )
 
-    md.css(
+    la.css(
         r'''
         .alpha + ol > li::before {
             content: "(" counter(listitem, lower-alpha) ") ";
@@ -172,7 +205,7 @@ def apply():
         if_selectors = '.alpha + ol'
     )
 
-    md.css(
+    la.css(
         r'''
         .roman + ol > li::before {
             content: "(" counter(listitem, lower-roman) ") ";
@@ -181,29 +214,30 @@ def apply():
         if_selectors = '.roman + ol'
     )
 
-    md.css(
+    la.css(
         r'''
         li {
             margin: 0.5em 0 0.5em 0;
             padding-left: 0.5em;
             padding-top: 0em;
             width: calc(100% - 1ex);
+            margin-left: -1ex;
         }
         ''',
         if_selectors = ['ul', 'ol']
     )
 
-    md.css(
+    la.css(
         r'''
         table {
             border-collapse: collapse;
-            border-bottom: 1px solid black;
+            border-bottom: 1px solid var(--la-table-border-color);
         }
 
         table thead tr {
-            background-color: #ffc080;
-            border-top: 1px solid black;
-            border-bottom: 1px solid black;
+            background-color: var(--la-table-head-background);
+            border-top: 1px solid var(--la-table-border-color);
+            border-bottom: 1px solid var(--la-table-border-color);
         }
 
         td, th {
@@ -211,11 +245,11 @@ def apply():
         }
 
         tbody tr:nth-child(odd) {
-            background-color: white;
+            background-color: var(--la-table-oddrow-background);
         }
 
         tbody tr:nth-child(even) {
-            background-color: #fff0e0;
+            background-color: var(--la-table-evenrow-background);
         }
         ''',
         if_selectors = 'table'
