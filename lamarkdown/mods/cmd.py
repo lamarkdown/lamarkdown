@@ -8,7 +8,7 @@ def apply(unix_prompt = '[user@pc]$', win_prompt = r'C:\>'):
 
     la.css(r'''
         .unixcmd::before, .wincmd::before, [prompt]::before, .unixcmd br+::before, .wincmd br+::before, [prompt] br+::before {
-            font-family: var(--la-monospace-font);
+            font-family: var(--la-monospace-font, monospace);
             color: var(--la-prompt-color);
         }
         ''',

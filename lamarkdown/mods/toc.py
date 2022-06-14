@@ -17,8 +17,8 @@ def apply(from_level: int = 2, to_level: int = 6, title = 'Contents'):
                 width: 20em;
                 max-height: 90%;
                 border-radius: 0.5ex;
-                background: var(--la-main-background);
-                box-shadow: 5px 5px 10px var(--la-side-shadow-color);
+                background: var(--la-main-background, white);
+                box-shadow: 5px 5px 10px var(--la-side-shadow-color, black);
             }
 
             .toc:hover, .toc:focus {

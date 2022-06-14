@@ -14,6 +14,7 @@ from typing import Callable, List, Optional, Set
 class Resource:
     def as_style(self)  -> str: raise NotImplementedError
     def as_script(self) -> str: raise NotImplementedError
+    def get_raw_content(self) -> str: raise NotImplementedError
     def add_or_coalesce(self, res_list) -> str: raise NotImplementedError
     def prepend_or_coalesce(self, res_list) -> str: raise NotImplementedError
 
@@ -44,6 +45,8 @@ class ContentResource:
     def as_script(self) -> str:
         return f'<script>\n{self.content}\n</script>'
 
+    def get_raw_content(self) -> str:
+        return self.content
 
     def add_or_coalesce(self, res_list):
         if len(res_list) > 0 and isinstance(res_list[-1], ContentResource):
@@ -73,6 +76,9 @@ class UrlResource:
 
     def as_script(self) -> str:
         return f'<script src="{html.escape(self.url)}"{self._integrity()}></script>'
+
+    def get_raw_content(self) -> str:
+        return ''
 
     def add_or_coalesce(self, res_list):
         res_list.append(self)

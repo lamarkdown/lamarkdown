@@ -11,14 +11,14 @@ def apply(pageHeight = 1200):
                 position: absolute;
                 right: 0%;
                 top: 0%;
-                background: var(--la-main-background);
-                color: var(--la-main-color);
+                background: var(--la-main-background, white);
+                color: var(--la-main-color, black);
                 padding: 0 1em;
                 margin-top: -1px;
             }
 
             .pageN:not(:last-child) {
-                border-bottom: 1px solid var(--la-main-color);
+                border-bottom: 1px solid var(--la-main-color, black);
             }
         }
 

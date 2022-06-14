@@ -8,7 +8,7 @@ This is where we invoke Python Markdown, but also:
 
 import lamarkdown
 from .build_params import BuildParams, Variant
-from .resources import ResourceSpec, Resource, ContentResource
+from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
 from .progress import Progress
 from . import resources
 
@@ -23,7 +23,7 @@ from io import StringIO
 import locale
 import os
 import re
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Set
 from xml.etree import ElementTree
 
 
@@ -156,18 +156,28 @@ def invoke_python_markdown(build_params: BuildParams):
 
 def resources(spec_list: List[ResourceSpec],
               xpaths_found: Set[str],
-              build_params: Progress) -> List[Resource]:
+              build_params: Progress,
+              filter_fn: Callable[[ResourceSpec],bool] = lambda: True) -> List[Resource]:
     res_list = []
     for spec in spec_list:
-        res = spec.make_resource(xpaths_found, build_params)
-        if res:
-            res.add_or_coalesce(res_list)
+        if filter_fn(spec):
+            res = spec.make_resource(xpaths_found, build_params)
+            if res:
+                res.add_or_coalesce(res_list)
     return res_list
 
 
 _parser = lxml.html.HTMLParser(default_doctype = False,
                                remove_blank_text = True,
                                remove_comments = True)
+
+CSS_VAR_REGEX = re.compile(
+    r'''
+    (?<![\w-])   # Starts after a non-word/dash char
+    --           # Starts with this
+    [\w-]+       # Contains letters, digits, _ and -.
+    ''',         # Also matches greedily, so we don't need a negative lookahead.
+    re.VERBOSE)
 
 def write_html(content_html: str,
                meta: Dict[str,List[str]],
@@ -232,23 +242,51 @@ def write_html(content_html: str,
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 
-    css_res_list = resources(build_params.css, xpaths_found, build_params.progress)
+    # Split the CSS resources up into a list of links, to occur first, and a list of embedded
+    # content to be included after. It is assumed that the external resources should be loaded
+    # first.
 
-    #css_vars = {}
-    #for name, value in build_params.css_vars.items():
-        #regex = re.compile(f'(?<=[^a-zA-Z0-9_-])--{re.escape(name)}(?=[^a-zA-Z0-9_-])')
+    css_link_list    = resources(build_params.css, xpaths_found, build_params.progress,
+                                 lambda spec: not isinstance(spec, ContentResourceSpec))
+    css_content_list = resources(build_params.css, xpaths_found, build_params.progress,
+                                 lambda spec: isinstance(spec, ContentResourceSpec))
 
-        #if any(regex.search(res.content)
-               #for res in css_res_list
-               #if isinstance(res, ContentResource)):
-            #css_vars[name] = value
+    # css_content_list should contain a single element, or possibly (rarely) be empty, because of
+    # the coalescing of content resources.
+    if len(css_content_list) > 1:
+        raise AssertionError
 
-    #if css_vars:
-    if build_params.css_vars:
-        ContentResource(
-            ':root {\n' + '\n'.join(f'--{name}: {value};'
-                                    for name, value in build_params.css_vars.items()) + '\n}'
-        ).prepend_or_coalesce(css_res_list)
+
+    if len(css_content_list) == 1:
+        # Figure out which CSS variables (custom properties) we need to define, based on whether
+        # they're actually being used. We do this through simple regexes, rather than elaborate CSS
+        # parsing, because it's far easier, and false positives (e.g., if a property is named
+        # inside a string) don't do any real damage.
+
+        # (We check if css_content_list is non-empty, though, because if it is, then we assume no
+        # variables need be defined.)
+        vars_used = set(CSS_VAR_REGEX.findall(css_content_list[0].get_raw_content()))
+
+        vars_to_be_defined = {}
+        while len(vars_used) > 0:
+            css_var_name = vars_used.pop()[2:] # Strip '--' prefix
+            if css_var_name in build_params.css_vars:
+                value = build_params.css_vars[css_var_name]
+                vars_to_be_defined[css_var_name] = value
+
+                # A variable definition may reference other variables. If so, add them to the set.
+                vars_used.update(CSS_VAR_REGEX.findall(value))
+
+        if vars_to_be_defined:
+            # If we found any variables we can define, create an extra ContentResource, to be
+            # prepended to the existing embedded CSS.
+            ContentResource(
+                ':root {\n' + '\n'.join(
+                    f'--{name}: {value};'
+                    for name, value in sorted(vars_to_be_defined.items())
+                ) + '\n}'
+            ).prepend_or_coalesce(css_content_list)
+
 
     full_html_template = '''
         <!DOCTYPE html>
@@ -265,7 +303,7 @@ def write_html(content_html: str,
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css = ''.join(res.as_style() + '\n' for res in css_res_list),
+        css = ''.join(res.as_style() + '\n' for res in css_link_list + css_content_list),
         errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()
                          if not error.consumed),
