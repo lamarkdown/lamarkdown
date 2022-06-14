@@ -179,7 +179,7 @@ class LatexPreprocessor(Preprocessor):
 
     TEX_RE = re.compile(
         fr'''
-        ^[ \t]*                         # Start on a new line
+        ^ (?P<indent> [ \t]* )          # Start on a new line; preserve indent
         (
             (?P<doc>                    # Full document syntax
                 (?P<docclass>
@@ -285,6 +285,7 @@ class LatexPreprocessor(Preprocessor):
                 return_text.append(raw_text[last_match_end:match_start])
 
             # Accumulate the placeholder text in return_text.
+            return_text.append(match['indent'])
             return_text.append(self._format_latex(match))
             last_match_end = match.end()
 
