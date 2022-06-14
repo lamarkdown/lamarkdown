@@ -12,6 +12,8 @@ import time
 
 DIRECTORY_BUILD_FILE = 'md_build.py'
 
+VERSION = '0.3'
+
 
 def existing_file(a: str) -> str:
     if not os.path.exists(a):
@@ -21,7 +23,10 @@ def existing_file(a: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.')
+        prog        = 'lamd',
+        description = 'Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.')
+
+    parser.add_argument('-v', '--version', action='version', version=f'Lamarkdown {VERSION}')
 
     parser.add_argument('input', metavar='INPUT.md', type=str,
                         help='Input markdown (.md) file')
@@ -40,9 +45,10 @@ def main():
 
     parser.add_argument('-l', '--live', action='store_true',
                         help='Keep running, recompile automatically when source changes are detected, and serve the resulting file from localhost.')
-    
+
     parser.add_argument('--clean', action='store_true',
                         help='Clear the cache before compiling the document.')
+
 
     args = parser.parse_args()
 
@@ -50,9 +56,9 @@ def main():
     src_dir = os.path.dirname(src_file)
     base_name = src_file.rsplit('.', 1)[0]
     build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
-    
+
     # Changing into the source directory (in case we're not in it) means that further file paths
-    # referenced during the build process will be relative to the source file, and not 
+    # referenced during the build process will be relative to the source file, and not
     # (necessarily) whatever arbitrary directory we started in.
     os.chdir(src_dir)
 
@@ -73,7 +79,7 @@ def main():
         is_live = args.live is True
     )
     os.makedirs(build_dir, exist_ok = True)
-    
+
     if args.clean:
         build_params.cache.clear()
 
