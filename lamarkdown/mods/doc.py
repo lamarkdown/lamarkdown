@@ -1,5 +1,6 @@
 import lamarkdown as la
 import pymdownx
+from lxml.etree import SubElement
 
 def apply():
     la.extensions(
@@ -17,6 +18,12 @@ def apply():
         'lamarkdown.ext.eval',
         'lamarkdown.ext.markers',
     )
+
+    la.extension('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
+    # Note:
+    # * The user can choose NOT to have a table-of-contents just by omitting '[TOC]'
+    # * The user can also re-configure the 'toc' extension simply by calling
+    #   la.extension('toc', ...).
 
     for name, value in {
         'la-sans-font':         '"Open Sans", sans-serif',
@@ -56,22 +63,30 @@ def apply():
 
     la.css(r'''
         @media screen {
-            html { background: var(--la-side-background); }
-            body {
+            html, body {
+                background: var(--la-side-background);
+                margin: 0;
+            }
+            #doc-parent {
+                display: flex;
+                height: 100vh;
+            }
+            #document {
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color);
                 max-width: 50em;
                 padding: 4em;
                 margin-left: auto;
                 margin-right: auto;
+                overflow: auto;
             }
         }
 
-        html {
+        html, body {
             font-family: var(--la-main-font);
             line-height: 1.8em;
         }
 
-        body {
+        #document {
             color:      var(--la-main-color);
             background: var(--la-main-background);
         }
@@ -254,3 +269,56 @@ def apply():
         ''',
         if_selectors = 'table'
     )
+
+    la.css(
+        r'''
+        @media screen {
+            #toc {
+                overflow: auto;
+                width: 20em;
+                background: var(--la-main-background, white);
+                box-shadow: 5px 5px 10px var(--la-side-shadow-color, black);
+            }
+        }
+
+        #toc {
+            padding: 1em;
+        }
+
+        #toc .toctitle {
+            font-weight: bold;
+            margin: 0;
+        }
+
+        #toc ul {
+            padding-left: 1.5em;
+        }
+
+        #toc a {
+            text-decoration: none;
+        }
+
+        #toc a:hover {
+            text-decoration: underline;
+        }
+        ''',
+        if_selectors = '#toc'
+    )
+
+    def create_flex_structure(root):
+        flex_container = SubElement(root, 'div', attrib={'id': 'doc-parent'})
+        doc_element = SubElement(flex_container, 'div', attrib={'id': 'document'})
+
+        for doc_child in root:
+            if doc_child is not flex_container:
+                # This should move (not just copy) each element into
+                doc_element.append(doc_child)
+
+        toc_list = doc_element.xpath('//*[@class="toc"]')
+        if toc_list:
+            toc = toc_list[0]
+            flex_container.insert(0, toc)
+            toc.attrib['id'] = 'toc'
+
+
+    la.with_tree(create_flex_structure)
