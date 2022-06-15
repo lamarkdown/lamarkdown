@@ -80,6 +80,18 @@ def apply():
                 overflow: auto;
                 resize: horizontal;
             }
+            pre {
+                overflow: auto;
+            }
+        }
+
+        @media print {
+            pre {
+                /* In paper/PDF, 'pull out all stops' to ensure that all code is visible, even if
+                   we must break lines in strange places. */
+                white-space: pre-wrap;
+                word-break: break-all;
+            }
         }
 
         html, body {
