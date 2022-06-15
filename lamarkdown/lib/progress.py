@@ -13,47 +13,47 @@ class Message:
         self._location = location
         self._msg = msg
         self._details_list = details_list
-        
+
     def print(self):
         print(f'{self.LOCATION_COLOUR}{self.TAG}{self._location}:{RESET} {self.MSG_COLOUR}{self._msg}{RESET}')
-        
+
         for details in self._details_list:
             if details[-1] == '\n':
-                details = details[:-1]            
+                details = details[:-1]
             print(textwrap.indent(details, '  | ', lambda line: True))
             print('  ---')
-                
+
 class ProgressMsg(Message):
     LOCATION_COLOUR = '\033[35m'
     MSG_COLOUR = '\033[35m'
     TAG = ''
-    
+
 class WarningMsg(Message):
     LOCATION_COLOUR = '\033[33;1m'
     MSG_COLOUR = '\033[37;1m'
     TAG = '[!] '
-    
+
 class ErrorMsg(Message):
     LOCATION_COLOUR = '\033[31;1m'
     MSG_COLOUR = '\033[37;1m'
-    TAG = '[!!] '    
-    
+    TAG = '[!!] '
+
     PANEL_STYLE = 'border: 2px dashed yellow; background: #800000; padding: 1ex;'
     MSG_STYLE = 'font-weight: bold; color: white;'
     LOCATION_STYLE = 'color: yellow;'
     DETAILS_STYLE = 'max-width: calc(100% - 1ex);'
-    
+
     MAX_ROWS = 30
     MAX_COLS = 110
-    
+
     def __init__(self, *args):
         super().__init__(*args)
         self._consumed = False
-        
+
     @property
     def consumed(self):
         return self._consumed
-        
+
 
     def as_dom_element(self) -> ElementTree.Element:
         panel_elem = ElementTree.Element('form', style = self.PANEL_STYLE)
@@ -99,23 +99,22 @@ class Progress:
         if isinstance(msg, ErrorMsg):
             self._errors.append(msg)
         return msg
-            
+
     def progress(self, *args, **kwargs):
         return self.show(ProgressMsg(*args), **kwargs)
-    
+
     def warning(self, *args, **kwargs):
         return self.show(WarningMsg(*args), **kwargs)
-    
+
     def error(self, *args, **kwargs):
         return self.show(ErrorMsg(*args), **kwargs)
-    
+
     def error_from_exception(self, location: str, e: Exception, *details_list: str, **kwargs):
         return self.show(ErrorMsg(location, str(e), ''.join(traceback.format_exc()), *details_list), **kwargs)
-        
+
     def get_errors(self):
         return list(self._errors)
-    
+
     def clear_errors(self):
         self._errors.clear()
-    
-    #def wait_msg(self, location: str, msg: str):
+
