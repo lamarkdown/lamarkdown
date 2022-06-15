@@ -157,7 +157,7 @@ def invoke_python_markdown(build_params: BuildParams):
 def resources(spec_list: List[ResourceSpec],
               xpaths_found: Set[str],
               build_params: Progress,
-              filter_fn: Callable[[ResourceSpec],bool] = lambda: True) -> List[Resource]:
+              filter_fn: Callable[[ResourceSpec],bool] = lambda _: True) -> List[Resource]:
     res_list = []
     for spec in spec_list:
         if filter_fn(spec):
