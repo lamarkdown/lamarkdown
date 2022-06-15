@@ -25,7 +25,12 @@ import webbrowser
 from typing import List
 
 
-PORT_RANGE = range(8000, 8020)
+DEFAULT_PORT_RANGE = range(8000, 8020)
+
+ANY_ADDRESS = '' # The empty string will cause the server to listen on all interfaces, as per the
+                 # socket documentation https://docs.python.org/3/library/socket.html
+LOOPBACK_ADDRESS = '127.0.0.1'
+
 
 class Content:
     def __init__(self, build_params):
@@ -334,8 +339,11 @@ def get_handler(content: Content):
 
 
 
-def watch_live(build_params: BuildParams,
-               all_build_params: List[BuildParams]):
+def watch_live(build_params    : BuildParams,
+               all_build_params: List[BuildParams],
+               address         : str   = LOOPBACK_ADDRESS,
+               port_range      : range = DEFAULT_PORT_RANGE,
+               launch_browser  : bool  = True):
 
     content = Content(build_params)
     content.update(all_build_params)
@@ -358,10 +366,10 @@ def watch_live(build_params: BuildParams,
 
         # Iterate over a port range, and pick the first free port.
         port = None
-        for try_port in PORT_RANGE:
+        for try_port in port_range:
             try:
                 # Create the server. This attempts to bind to the given port.
-                server = http.server.HTTPServer(('', try_port), get_handler(content))
+                server = http.server.HTTPServer((address, try_port), get_handler(content))
                 port = try_port
                 break
             except OSError: # Port in use; try next one.
@@ -369,22 +377,24 @@ def watch_live(build_params: BuildParams,
 
         if port:
             build_params.progress.progress('Live updating', 'Launching server and browser, and monitoring changes to source/build files.',
-                f'Browse to http://localhost:{port}\nPress Ctrl-C to quit.')
+                f'Browse to http://{address or "localhost"}:{port}\nPress Ctrl-C to quit.')
 
-            # We want to open a web browser at the address we're serving, but not before the
-            # server is running. Hence, we start a new thread, which waits 0.5 secs while the
-            # main thread calls serve_forever(), then runs the browser.
-            def open_browser():
-                time.sleep(0.5)
-                webbrowser.open(f'http://localhost:{port}')
-                main_thread.join()
+            if launch_browser:
+                # We want to open a web browser at the address we're serving, but not before the
+                # server is running. Hence, we start a new thread, which waits 0.5 secs while the
+                # main thread calls serve_forever(), then runs the browser.
+                def open_browser():
+                    time.sleep(0.5)
+                    webbrowser.open(f'http://localhost:{port}')
+                    main_thread.join()
 
-            threading.Thread(target = open_browser).start()
+                threading.Thread(target = open_browser).start()
+
             server.serve_forever()
         else:
             build_params.progress.error(
                 'Live updating',
-                f'Cannot launch server: all ports in range {PORT_RANGE.start}-{PORT_RANGE.stop - 1} are in use.')
+                f'Cannot launch server: all ports in range {port_range.start}-{port_range.stop - 1} are in use.')
 
     except KeyboardInterrupt: # Ctrl-C
         pass
