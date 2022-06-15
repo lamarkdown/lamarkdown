@@ -73,11 +73,12 @@ def apply():
             }
             #document {
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color);
-                max-width: 50em;
+                width: 50em;
                 padding: 4em;
                 margin-left: auto;
                 margin-right: auto;
                 overflow: auto;
+                resize: horizontal;
             }
         }
 
@@ -276,6 +277,7 @@ def apply():
             #toc {
                 overflow: auto;
                 width: 20em;
+                resize: horizontal;
                 background: var(--la-main-background, white);
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color, black);
             }
