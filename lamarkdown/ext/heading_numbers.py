@@ -58,7 +58,7 @@ class HeadingNumbersExtension(markdown.Extension):
         self.config = {
             'from_level': [1, 'Highest-level heading to number.'],
             'to_level':   [6, 'Lowest-level heading to number.'],
-            'sep':        ['\u2003', 'Separator string, inserted between the number and the original heading text.'],
+            'sep':        [' ', 'Separator string, inserted between the number and the original heading text.'],
         }
         super().__init__(**kwargs)
 

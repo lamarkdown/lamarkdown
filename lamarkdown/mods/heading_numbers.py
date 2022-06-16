@@ -2,7 +2,7 @@ import lamarkdown as la
 
 COUNTER_PREFIX = '_lamd_sec_'
 
-def apply(from_level: int = 2, to_level: int = 6, sep = '\u2003', method = 'static'):
+def apply(from_level: int = 2, to_level: int = 6, sep = ' ', method = 'static'):
 
     if not (1 <= from_level <= to_level <= 6):
         raise ValueError(f'from_level {from_level} must be <= to_level {to_level}, and both must be between 1 and 6 inclusive.')

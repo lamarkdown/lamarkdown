@@ -1,6 +1,6 @@
 from lamarkdown import *
 
-def apply(pageHeight = 1200, element_id = 'document'):
+def apply(pageHeight = 1200, element_id = 'la-doc'):
     css(fr'''
         @media screen {{
             #{element_id} {{
@@ -25,20 +25,6 @@ def apply(pageHeight = 1200, element_id = 'document'):
             }}
         }}
     ''')
-
-    #.pageN {{
-        #position: absolute;
-        #right: 0%;
-        #top: 0%;
-        #background: var(--la-main-background, white);
-        #color: var(--la-main-color, black);
-        #padding: 0 1em;
-        #margin-top: -1px;
-    #}}
-
-    #.pageN:not(:last-child) {{
-        #border-bottom: 1px solid var(--la-main-color, black);
-    #}}
 
     js(fr'''
         (() =>
@@ -66,11 +52,3 @@ def apply(pageHeight = 1200, element_id = 'document'):
             }}
         }})()
     ''')
-
-            #/*let elem = document.createElement('div');
-            #elem.className = 'pageN';
-            #elem.style.top = 'auto';
-            #elem.style.bottom = '0';
-            #elem.textContent = n;
-            #elem.title = 'Pseudo page number';
-            #doc_element.append(elem);*/
