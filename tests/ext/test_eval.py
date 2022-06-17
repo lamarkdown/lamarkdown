@@ -1,3 +1,4 @@
+from ..util.mock_progress import MockProgress
 import unittest
 
 import markdown
@@ -6,16 +7,6 @@ from lamarkdown.ext import eval
 import datetime
 import re
 from textwrap import dedent
-import xml.etree.ElementTree
-
-
-class MockMsg:
-    def as_dom_element(self, *a, **l):
-        return xml.etree.ElementTree.Element('mock')
-
-class MockProgress:
-    def error(self, *a, **k):                return MockMsg()
-    def error_from_exception(self, *a, **k): return MockMsg()
 
 
 class EvalTestCase(unittest.TestCase):

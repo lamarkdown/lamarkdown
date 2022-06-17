@@ -1,3 +1,4 @@
+from ..util.mock_progress import MockProgress
 import unittest
 
 import markdown
@@ -82,6 +83,7 @@ class LatexTestCase(unittest.TestCase):
             extensions = ['lamarkdown.ext.latex'],
             extension_configs = {'lamarkdown.ext.latex': {
                 'build_dir': self.tmp_dir,
+                'progress': MockProgress(),
                 'tex': f'python {self.mock_tex_command} in.tex out.pdf',
                 'pdf_svg_converter': f'python {self.mock_pdf2svg_command} in.pdf out.svg',
                 **kwargs

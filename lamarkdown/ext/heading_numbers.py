@@ -56,7 +56,7 @@ class HeadingNumbersTreeProcessor(markdown.treeprocessors.Treeprocessor):
 class HeadingNumbersExtension(markdown.Extension):
     def __init__(self, **kwargs):
         self.config = {
-            'from_level': [1, 'Highest-level heading to number.'],
+            'from_level': [2, 'Highest-level heading to number.'],
             'to_level':   [6, 'Lowest-level heading to number.'],
             'sep':        [' ', 'Separator string, inserted between the number and the original heading text.'],
         }
