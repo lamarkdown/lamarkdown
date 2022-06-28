@@ -93,7 +93,7 @@ def compile_variant(variant: Variant,
         return (
             split[0]
             + prev_build_params.variant_name_sep
-            + variant.name
+            + build_params.name
             + '.'
             + (split[1] if len(split) == 2 else '')
         )

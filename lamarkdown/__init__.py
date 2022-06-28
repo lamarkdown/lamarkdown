@@ -12,6 +12,7 @@ from .lib.build_params import BuildParams, Variant
 from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
+import lxml.html
 
 import importlib
 import os.path
@@ -75,17 +76,19 @@ def prune(selector: Optional[str] = None,
     if xpath is not None:
         with_xpath(xpath, hook)
 
-def with_selector(selector: str, fn: Callable):
+def with_selector(selector: str,
+                  fn: Callable[[lxml.html.HtmlElement],None]):
     with_xpath(CSSSelector(selector).path, fn)
 
-def with_xpath(xpath: str, fn: Callable):
+def with_xpath(xpath: str,
+               fn: Callable[[lxml.html.HtmlElement],None]):
     _callable(fn)
     def hook(root):
         for element in root.xpath(xpath):
             fn(element)
     with_tree(hook)
 
-def with_tree(fn: Callable):
+def with_tree(fn: Callable[[lxml.html.HtmlElement],None]):
     _callable(fn)
     _params().tree_hooks.append(fn)
 

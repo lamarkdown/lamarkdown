@@ -397,6 +397,7 @@ class LatexTestCase(unittest.TestCase):
         html = self.run_markdown(
             r'''
             * List item 1
+
             * List item 2
 
                 \begin{document}
@@ -406,6 +407,8 @@ class LatexTestCase(unittest.TestCase):
 
                     Latex code 3
                 \end{document}
+
+                Trailing paragraph
 
             * List item 3
             ''')
@@ -421,7 +424,20 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
+        self.assertRegex(
+            html,
+            fr'''(?x)
+            \s* <ul>
+            \s* <li> \s* <p> List[ ]item[ ]1 \s* </p> \s* </li>
+            \s* <li>
+            \s* <p> List[ ]item[ ]2 \s* </p>
+            \s* <p> <img[ ]src="data:image/svg\+xml;base64,{re.escape(self.mock_svg_b64)}" \s* /? > \s* </p>
+            \s* <p> Trailing[ ]paragraph \s* </p>
+            \s* </li>
+            \s* <li> \s* <p> List[ ]item[ ]3 \s* </p> \s* </li>
+            \s* </ul>
+            \s*
+            ''')
 
 
     def test_embedding_as_svg_element(self):

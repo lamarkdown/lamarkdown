@@ -7,6 +7,12 @@ class MockMsg:
 class MockProgress:
     def progress(self, *a, **k):             return MockMsg()
     def warning(self, *a, **k):              return MockMsg()
-    def error(self, *a, **k):                return MockMsg()
-    def error_from_exception(self, *a, **k): return MockMsg()
+    def error(self, *a, **k):
+        print(a)
+        return MockMsg()
+
+    def error_from_exception(self, *a, **k):
+        print(a)
+        return MockMsg()
+
     def get_errors(self, *a, **k):           return []
