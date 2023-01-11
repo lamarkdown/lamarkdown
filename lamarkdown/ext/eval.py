@@ -71,7 +71,7 @@ class EvalInlineProcessor(InlineProcessor):
         else:
             element = self.progress.error(
                 'Eval',
-                f'Unrecognised label - no available replacement value',
+                f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_code" option is set to False, so the text will not be executed as code.)',
                 code
             ).as_dom_element()
 

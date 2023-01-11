@@ -239,8 +239,8 @@ class LatexPreprocessor(Preprocessor):
 
             full_doc = (
                 f'\\documentclass[{self.doc_class_options}]{{{self.doc_class}}}\n'
-                + (self.prepend or "")
                 + '\\usepackage{tikz}\n'
+                + (self.prepend or "")
                 + (match_obj.group('preamble') or "")
                 + (main_part)
             )
@@ -431,7 +431,7 @@ class LatexPostprocessor(Postprocessor):
                 self.cache[cache_key] = self.embedder.generate_html(svg_content)
 
             except CommandException as e:
-                return self.progress.error('Latex', str(e), e.output, full_doc).as_html_str()
+                return self.progress.error('Latex', str(e), e.output, latex).as_html_str()
 
         # We make a copy of the cached element, because different instances of it could
         # conceivably be assigned different attributes below.
