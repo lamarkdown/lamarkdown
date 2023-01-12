@@ -67,17 +67,21 @@ def apply():
                 background: var(--la-side-background);
                 margin: 0;
             }
-            #doc-parent {
+            #la-doc-parent {
                 display: flex;
+                flex-direction: row;
                 height: 100vh;
             }
-            #document {
+            #la-doc-area {
+                flex-grow: 3;
+                overflow: auto;
+            }
+            #la-doc {
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color);
-                width: 50em;
+                max-width: 50em;
                 padding: 4em;
                 margin-left: auto;
                 margin-right: auto;
-                overflow: auto;
                 resize: horizontal;
             }
             pre {
@@ -99,7 +103,7 @@ def apply():
             line-height: 1.8em;
         }
 
-        #document {
+        #la-doc {
             color:      var(--la-main-color);
             background: var(--la-main-background);
         }
@@ -114,6 +118,8 @@ def apply():
         ['h2', 'h3', 'h4', 'h5', 'h6'],
         'margin-top: 1.5em;'
     )
+
+    la.css_rule('.hnumber', 'margin-right: 1em;')
 
     la.css_rule('pre', 'line-height: 1.7em;')
     la.css_rule('code', 'font-family: var(--la-monospace-font);')
@@ -320,8 +326,13 @@ def apply():
     )
 
     def create_flex_structure(root):
-        flex_container = SubElement(root, 'div', attrib={'id': 'doc-parent'})
-        doc_element = SubElement(flex_container, 'div', attrib={'id': 'document'})
+        flex_container = SubElement(root, 'div', attrib={'id': 'la-doc-parent'})
+        doc_area = SubElement(flex_container, 'div', attrib={'id': 'la-doc-area'})
+        doc_element = SubElement(doc_area, 'div',
+                                 attrib={
+                                     'id': 'la-doc',
+                                     'tabindex': '0', # Supports keyboard focus
+                                 })
 
         for doc_child in root:
             if doc_child is not flex_container:
@@ -336,3 +347,7 @@ def apply():
 
 
     la.with_tree(create_flex_structure)
+
+    # We want the main content to be focused, or else keyboard scrolling won't seem to
+    # work.
+    la.js('document.getElementById("la-doc").focus();')
