@@ -42,6 +42,10 @@ class MarkersExtension(markdown.Extension):
 
     def extendMarkdown(self, md):
         proc = MarkersProcessor(md)
+        
+        # Auto-load attr_list, since the markers extension is essentially useless without it.
+        md.registerExtensions(['attr_list'], {}) 
+        
         md.treeprocessors.register(proc, 'lamarkdown.markers', 100)
 
 
