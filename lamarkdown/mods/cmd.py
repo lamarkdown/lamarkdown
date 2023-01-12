@@ -1,6 +1,14 @@
 import lamarkdown as la
 
+# Allows authors to mark certain paragraphs as (sets of) Unix/Windows/other commands.
+
+# Limitation: currently the '{prompt=...}' syntax can only apply to one command at a time (due to
+# CSS limitations).
+
 def apply(unix_prompt = '[user@pc]$', win_prompt = r'C:\>'):
+    
+    # We rely on attr_list to mark the line/paragraph to be styled as command(s).
+    la.extension('attr_list')
 
     la.css_vars['la-prompt-color'] = '#808080';
     la.css_vars['la-unix-prompt-shape'] = '"' + unix_prompt.replace('\\', '\\\\') + '"'
