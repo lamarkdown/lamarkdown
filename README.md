@@ -47,6 +47,10 @@ This will launch a local web-server and a web-browser, and will keep `mydocument
 any changes made to `mydocument.md`, until you press Ctrl+C in the terminal.
 
 
+## Full Documentation
+
+See the full documentation at [lamarkdown.github.io](https://lamarkdown.github.io).
+
 <!--## Wiki
 
 For detailed documentation, see [the wiki](https://bitbucket.org/cooperdja/lamarkdown/wiki/).-->
