@@ -15,51 +15,38 @@ address the same document-preparation use case. To this end, Lamarkdown:
 * Allows embedding of Latex environments (or entire Latex documents), with the resulting output converted
     to SVG format and embedded within the HTML.
 
-Further goals of the project (sometimes also associated with Latex document preparation) are to:
+Further goals of the project are to:
 
 * Provide a live-updating feature to improve editing productivity. When enabled, the markdown file
     is automatically re-compiled, and the HTML document auto-reloaded, when changes are detected.
 * Provide a scheme for compiling multiple variants of a single source document.
 
 
-## Requirements
+## Requirements and Installation
 
-Lamarkdown depends on Python 3.7+, and the "markdown", "lxml", "cssselect", "pymdown-extensions",
-"watchdog" packages (the latter needed for live-updating).
+Lamarkdown depends on Python 3.7+. To install via pip:
 
-Additionally, to embed Latex code, you need an existing Latex distribution (e.g., Texlive). The
-actual commands are configurable, but by default the Lamarkdown latex extension runs 'xelatex' and
-'dvisvgm'.
+`$ pip install lamarkdown`
+
+However, to embed Latex code, you need a Latex distribution (e.g., [Texlive](https://tug.org/texlive/)), 
+which must be installed separately. The actual commands are configurable. By default, Lamarkdown's 
+Latex extension runs 'xelatex' and 'dvisvgm'.
 
 
-## Installation
-
-First, download this repository. Then, if you have `pip`, you can use it to install lamarkdown as follows:
-
-* In the terminal, navigate to the lamarkdown directory (containing `setup.cfg`).
-
-* Run this command:
-
-    `$ pip install .`
-    (including the ".")
-
-Alternately (on Linux/MacOS), you can place the contents of the repository wherever you like, and set your `PATH` environment variable to point to it, such that you can run `lamd.py`.
-
-## Basic usage
+## Basic Usage
 
 To compile `mydocument.md` into `mydocument.html`, just run:
 
 `$ lamd mydocument.md`
 
-(Or `lamd.py` if appropriate.)
-
 You can enable the live-update mode using `-l`/`--live`:
 
-`$ lamd -l mydoc.md`
+`$ lamd -l mydocument.md`
 
-This will launch a local web-server and a web-browser, and will keep `mydoc.html` in sync with any
-changes made to `mydoc.md`, until you press Ctrl+C in the terminal.
+This will launch a local web-server and a web-browser, and will keep `mydocument.html` in sync with 
+any changes made to `mydocument.md`, until you press Ctrl+C in the terminal.
 
-## Wiki
 
-For detailed documentation, see [the wiki](https://bitbucket.org/cooperdja/lamarkdown/wiki/).
+<!--## Wiki
+
+For detailed documentation, see [the wiki](https://bitbucket.org/cooperdja/lamarkdown/wiki/).-->
