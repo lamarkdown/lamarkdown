@@ -33,8 +33,6 @@ class EvalTestCase(unittest.TestCase):
 
 
     def test_date(self):
-        '''Check a single Latex environment.'''
-
         html = self.run_markdown(
             r'''
             Sometext $`date` sometext
@@ -52,8 +50,6 @@ class EvalTestCase(unittest.TestCase):
         )
 
     def test_custom_replacement(self):
-        '''Check a single Latex environment.'''
-
         html = self.run_markdown(
             r'''
             Sometext $`xyz` sometext
