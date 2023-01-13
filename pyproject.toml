@@ -5,8 +5,8 @@ description = "A tool for compiling markdown files into standalone HTML document
 authors = ["David J A Cooper <dave@djac.au>"]
 license = "MIT"
 readme = "README.md"
-repository = "https://bitbucket.org/cooperdja/lamarkdown"
-documentation = "https://bitbucket.org/cooperdja/lamarkdown/wiki/Home"
+repository = "https://github.com/lamarkdown/lamarkdown"
+documentation = "https://lamarkdown.github.io"
 keywords = ["markdown"]
 classifiers = [
     "Development Status :: 3 - Alpha",
