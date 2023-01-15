@@ -12,7 +12,7 @@ from .lib.build_params import BuildParams, Variant
 from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
-import lxml.html
+from lxml.html import HtmlElement
 
 import importlib
 import os.path
@@ -77,20 +77,24 @@ def prune(selector: Optional[str] = None,
         with_xpath(xpath, hook)
 
 def with_selector(selector: str,
-                  fn: Callable[[lxml.html.HtmlElement],None]):
+                  fn: Callable[[HtmlElement],None]):
     with_xpath(CSSSelector(selector).path, fn)
 
 def with_xpath(xpath: str,
-               fn: Callable[[lxml.html.HtmlElement],None]):
+               fn: Callable[[HtmlElement],None]):
     _callable(fn)
     def hook(root):
         for element in root.xpath(xpath):
             fn(element)
     with_tree(hook)
 
-def with_tree(fn: Callable[[lxml.html.HtmlElement],None]):
+def with_tree(fn: Callable[[HtmlElement],Optional[HtmlElement]]):
     _callable(fn)
     _params().tree_hooks.append(fn)
+
+def with_html(fn: Callable[[str],Optional[str]]):
+    _callable(fn)
+    _params().html_hooks.append(fn)
 
 def extensions(*extensions: Union[str,Extension]):
     for e in extensions:
@@ -203,15 +207,15 @@ def js_files(*url_list: List[str], **kwargs):
     _params().js.extend(_url_resources(url_list, mime_type = 'text/javascript', **kwargs))
 
 
-def wrap_content(start: str, end: str):
-    p = _params()
-    p.content_start = start + p.content_start
-    p.content_end += end
+#def wrap_content(start: str, end: str):
+    #p = _params()
+    #p.content_start = start + p.content_start
+    #p.content_end += end
 
-def wrap_content_inner(start: str, end: str):
-    p = _params()
-    p.content_start += start
-    p.content_end = end + p.content_end
+#def wrap_content_inner(start: str, end: str):
+    #p = _params()
+    #p.content_start += start
+    #p.content_end = end + p.content_end
 
 def embed_resources(embed: Optional[bool] = True):
     _params().embed_resources = embed
