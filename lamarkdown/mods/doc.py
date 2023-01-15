@@ -17,6 +17,7 @@ def apply():
         'lamarkdown.ext.latex',
         'lamarkdown.ext.eval',
         'lamarkdown.ext.markers',
+        'lamarkdown.ext.pybtex',
     )
 
     la.extension('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
