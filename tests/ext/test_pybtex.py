@@ -83,10 +83,10 @@ class PybtexTestCase(unittest.TestCase):
         
         self.assertRegex(
             html,
-            fr'''(?sx)
+            r'''(?sx)
             \s* <h1>Heading</h1>
-            \s* <p>Citation[ ]B[ ]<cite[ ]id="pybtexcite:1-1">\[1]</cite>,[ ]citation[ ]X[ ]\[@refX].</p>
-            \s* <dl> 
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>]</cite>,[ ]citation[ ]X[ ]\[@refX].</p>
+            \s* <dl[ ]id="la-bibliography"> 
             \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
@@ -96,17 +96,17 @@ class PybtexTestCase(unittest.TestCase):
 
     def test_links(self):
         linked_citations = r'''
-            \s* <p>Citation[ ]B[ ]<cite[ ]id="pybtexcite:1-1">\[<a[ ]href="\#pybtexref:1">1,[ ]p\.[ ]5</a>\]</cite>,[ ]
-                   citation[ ]C[ ]<cite[ ]id="pybtexcite:2-1">\[<a[ ]href="\#pybtexref:2">2</a>\]</cite>.</p>
-            \s* <p>Citation[ ]D[ ]<cite[ ]id="pybtexcite:3-1">\[<a[ ]href="\#pybtexref:3">3[ ]maybe</a>\]</cite>,[ ]
-                   citation[ ]B[ ]<cite[ ]id="pybtexcite:1-2">\[<a[ ]href="\#pybtexref:1">1</a>\]</cite>.</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<a[ ]href="\#pybtexref:1"[ ]id="pybtexcite:1-1">1</a>,[ ]p\.[ ]5\]</cite>,[ ]
+                   citation[ ]C[ ]<cite>\[<a[ ]href="\#pybtexref:2"[ ]id="pybtexcite:2-1">2</a>\]</cite>.</p>
+            \s* <p>Citation[ ]D[ ]<cite>\[<a[ ]href="\#pybtexref:3"[ ]id="pybtexcite:3-1">3</a>[ ]maybe\]</cite>,[ ]
+                   citation[ ]B[ ]<cite>\[<a[ ]href="\#pybtexref:1"[ ]id="pybtexcite:1-2">1</a>\]</cite>.</p>
         '''
         
         unlinked_citations = r'''
-            \s* <p>Citation[ ]B[ ]<cite[ ]id="pybtexcite:1-1">\[1,[ ]p\.[ ]5\]</cite>,[ ]
-                   citation[ ]C[ ]<cite[ ]id="pybtexcite:2-1">\[2\]</cite>.</p>
-            \s* <p>Citation[ ]D[ ]<cite[ ]id="pybtexcite:3-1">\[3[ ]maybe\]</cite>,[ ]
-                   citation[ ]B[ ]<cite[ ]id="pybtexcite:1-2">\[1\]</cite>.</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>,[ ]p\.[ ]5\]</cite>,[ ]
+                   citation[ ]C[ ]<cite>\[<span[ ]id="pybtexcite:2-1">2</span>\]</cite>.</p>
+            \s* <p>Citation[ ]D[ ]<cite>\[<span[ ]id="pybtexcite:3-1">3</span>[ ]maybe\]</cite>,[ ]
+                   citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-2">1</span>\]</cite>.</p>
         '''
         
         linked_refs = r'''
@@ -145,7 +145,7 @@ class PybtexTestCase(unittest.TestCase):
                 fr'''(?sx)
                 \s* <h1>Heading</h1>
                 {cite_regex}
-                \s* <dl> 
+                \s* <dl[ ]id="la-bibliography"> 
                 {ref_regex}
                 \s* </dl>
                 \s*
@@ -159,14 +159,14 @@ class PybtexTestCase(unittest.TestCase):
         src_citation_c = r'Citation C [@refC].'
         
         regex_references = r'''
-            \s* <dl>
+            \s* <dl[ ]id="la-bibliography">
             \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
             \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
             \s* </dl>
         '''
         
-        regex_citation_b = r'\s* <p>Citation[ ]B[ ]<cite[ ]id="pybtexcite:1-1">\[1]</cite>.</p>'
-        regex_citation_c = r'\s* <p>Citation[ ]C[ ]<cite[ ]id="pybtexcite:2-1">\[2]</cite>.</p>'
+        regex_citation_b = r'\s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>]</cite>.</p>'
+        regex_citation_c = r'\s* <p>Citation[ ]C[ ]<cite>\[<span[ ]id="pybtexcite:2-1">2</span>]</cite>.</p>'
         
         # We're testing different placements of the 'place marker, which determines 
         data = [
@@ -221,5 +221,29 @@ class PybtexTestCase(unittest.TestCase):
             
             self.assertRegex(html, regex)
             
-            
+    
+    def test_multipart_citations(self):
+        html = self.run_markdown(
+            r'''
+            Citation B [see @refB, p. 5; @refC maybe; not @refX].
+            ''',
+            file = [],
+            references = self.REFERENCES,
+            hyperlinks = 'none')
         
+        self.assertRegex(
+            html, 
+            r'''(?sx)
+            \s* <p>Citation[ ]B[ ]<cite>\[see[ ]
+                <span[ ]id="pybtexcite:1-1">1</span>,[ ]p\.[ ]5;[ ]
+                <span[ ]id="pybtexcite:2-1">2</span>[ ]maybe;[ ]not[ ]@refX\]</cite>.</p>
+            \s* <dl[ ]id="la-bibliography"> 
+            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* </dl>
+            \s*
+            ''')
+
+
+    def test_citation_key_syntax(self):
+        pass

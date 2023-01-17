@@ -22,40 +22,94 @@ from typing import List
 from xml.etree import ElementTree
 
 
+# TODO (desirable):
+# * hover popups (if possible; maybe just store the entry in the <cite> element's 'title' attribute?)
+# * optional long-form citations that specify the authors' names (similar to the Latex natbib package).
+#   - plus non-parenthetical references (the equivalent of \citet{...})
+
+# * Tests
+#   - test that we haven't clobbered other kinds of reference/linking syntax
+#   - test for the 'complex key' syntax (enclosed in braces)
+
+
 class CitationInlineProcessor(InlineProcessor):
    
-    # A citation syntactically consists of '[@' <citekey> [<extra>] ']'.
-    # Where <citekey> is defined as per https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod
-    # _except_ that '[' and ']' are invalid, since we use them to enclose a citation.
+    # A citation consists of '[...]' containing one or more citation keys (@xyz), at least one of 
+    # which matches an entry in the reference database. There can be free-form text within the 
+    # brackets, before, after and in-between citation keys.
     #
-    # <extra> is additional free-form text, starting with an invalid citekey character 
-    # (such as ' ', ',' or '\'). This text will be added to the citation.
+    # (This describes the general syntax. In practice, most citations _probably_ contain just one
+    # citation key and no before/after text; e.g., [@author1990].)
+    #
+    # This is intended to be compatible (more-or-less) with the syntax used by Pandoc, and 
+    # RMarkdown. (See https://pandoc.org/MANUAL.html#extension-citations).
+    #
+    # Specifically, a citation key can either:
+    # (a) consist of letters, digits and _, with selected other characters available as single-char 
+    #     internal punctuation (e.g., '--' cannot be part of the key, nor can a key end with '.'); 
+    #     OR
+    # (b) be surrounded by braces (which are not part of the key), and contain any non-brace 
+    #     characters as well as, optionally, matching pairs of braces (not nested braces though;
+    #     Pandoc may allow arbitrary nesting, but this seems a rarefied ability).
     
-    #REGEX = '\\[@([^\x00-\x20 "#%\'(),=[\\]\\\\{}~]+)([^]]*)\\]'
+    # (For reference, the BibTex format -- including allowed citation key characters -- is 
+    # described here: https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod.
+    # However, I feel it's best to emulate Pandoc/RMarkdown for this purpose.)
     
-    REGEX = '\\[@([a-zA-Z0-9!$&*+./:;<>?^_`|-]+)\\\\?([^]]*)\\]'
+    CITE_REGEX = r'''
+        @(
+            (?P<simple_key> [a-zA-Z0-9_]+ ( [:.#$%&+?<>~/-] [a-zA-Z0-9_]+ )* )
+            |
+            \{ (?P<complex_key> [^{}]* ( \{ [^{}]* \} )* ) \}
+        )
+        (?P<post> [^]@]* )
+    '''
+    
+    GROUP_REGEX = fr'''(?x)
+        \[
+        (?P<pre> [^]@]* )
+        (?P<main> ({CITE_REGEX})+)
+        \]
+    '''
+    
+    CITE_REGEX_COMPILED = re.compile(f'(?x){CITE_REGEX}')
     
     def __init__(self, bib_data: pybtex.database.BibliographyData, 
                        cited_keys: List[str]):
-        super().__init__(self.REGEX)
+        super().__init__(self.GROUP_REGEX)
         self.bib_data = bib_data
         self.cited_keys = cited_keys
         
-    def handleMatch(self, match, data):
-        key = match.group(1)
-        if key in self.bib_data.entries:
-            extra = match.group(2)
-            self.cited_keys.append(key)
-            elem = ElementTree.Element('cite')
-            elem.attrib['key'] = key
-            elem.attrib['extra'] = extra
-            return elem, match.start(0), match.end(0)
-    
-        else:
-            # If the apparent citekey isn't in the reference database, then just leave everything
-            # as it is. 
-            return None, None, None
+
+    def handleMatch(self, group_match, data):        
+        cite_elem = ElementTree.Element('cite')
+        cite_elem.text = group_match.group('pre')
         
+        def a1(text): cite_elem.text += text
+        append_last = a1
+
+        any_valid_citations = False
+        for cite_match in self.CITE_REGEX_COMPILED.finditer(group_match.group('main')):
+            key = cite_match.group('simple_key') or cite_match.group('complex_key')
+            if key in self.bib_data.entries:
+                any_valid_citations = True
+                self.cited_keys.append(key)
+                span = ElementTree.SubElement(cite_elem, 'span')
+                span.attrib['key'] = key
+                span.tail = cite_match.group('post')
+                
+                def a2(text): span.tail += text
+                append_last = a2
+                
+            else:
+                append_last(cite_match.group())
+            
+        if any_valid_citations:
+            return cite_elem, group_match.start(), group_match.end()
+        
+        else:
+            return None, None, None
+                    
         
 class ModifiedPybtexHtmlBackend(pybtex.backends.html.Backend):
     def __init__(self):
@@ -92,34 +146,30 @@ class PybtexTreeProcessor(Treeprocessor):
         formatted_biblio = self.bib_style.format_bibliography(self.bib_data, self.cited_keys)
         
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels' 
-        # created by Pybtex.
+        # created by Pybtex, and 'id' and 'href' attributes to assist linking.
         entries = {entry.key: entry for entry in formatted_biblio.entries}
         n_citations = {}
         create_forward_links = self.ext.getConfig('hyperlinks') in ['both', 'forward']
         
-        for elem in root.iter(tag = 'cite'):
-            key = elem.attrib['key']
-            extra = elem.attrib['extra']
-            
-            del elem.attrib['key']
-            del elem.attrib['extra']
-            
-            label = entries[key].label
-            n_citations[label] = n_citations.get(label, 0) + 1                    
-            elem.attrib['id'] = f'pybtexcite:{label}-{n_citations[label]}'
-            
-            if create_forward_links:                    
-                elem.text = '['
-                link = ElementTree.SubElement(elem, 'a', attrib = {'href': f'#pybtexref:{label}'})
-                link.text = label + extra
-                link.tail = ']'
-            else:
-                elem.text = f'[{label + extra}]'
-                                
-        # TODO: we also want:
-        # * hover popups (if possible; maybe just store the entry in the <cite> element's 'title' attribute?)
-        # * configurable citation formats; e.g., as per the Latex natbib package.
-              
+        for elem in root.iter(tag = 'cite'):     
+            for child in elem:
+                key = child.attrib.get('key')
+                if child.tag == 'span' and key is not None:
+                    del child.attrib['key']
+                    
+                    label = entries[key].label
+                    n_citations[label] = n_citations.get(label, 0) + 1                    
+                    child.attrib['id'] = f'pybtexcite:{label}-{n_citations[label]}'
+                    child.text = label
+                    
+                    if create_forward_links:                    
+                        child.tag = 'a'
+                        child.attrib['href'] = f'#pybtexref:{label}'
+                        
+            elem.text = f'[{elem.text}'
+            elem[-1].tail += ']'
+        
+                                    
         # Generate the full bibliography HTML
         biblio_html = io.StringIO()
         # pybtex.backends.html.Backend('utf-8').write_to_stream(formatted_biblio, biblio_html)
@@ -188,10 +238,9 @@ class PybtexTreeProcessor(Treeprocessor):
                 copy_tree(dest_element, src_child)
 
         copy_tree(biblio_root, biblio_tree.find('.//dl'))
+        biblio_root.attrib['id'] = 'la-bibliography'
         
-        # Add <dl> element (the bibliography) to the root
-        # TODO: we actually want to look for a placeholder to replace (and only append as a fallback).
-
+        
     
 class PybtexExtension(markdown.Extension):
     def __init__(self, **kwargs):
@@ -307,12 +356,12 @@ class PybtexExtension(markdown.Extension):
         
         cited_keys = []
 
-        # The inline processor just replaces [@...] with <cite key="..." />, and gathers the set
-        # of all cited keys.
+        # The inline processor identifies citations, creates tree nodes to keep track of them 
+        # (with details to be filled in later), and gathers the set of all cited keys.
         inline_proc = CitationInlineProcessor(bib_parser.data, cited_keys)
         md.inlinePatterns.register(inline_proc, 'lamarkdown.pybtex', 130)
 
-        # The tree processor must come after the inline processor. Python-Markdown runs all inline
+        # The tree processor must run _after_ the inline processor. Python-Markdown runs all inline
         # processors from within a TreeProcessor named InlineProcessor, with priority 20, so 
         # PybtexTreeProcessor must have lower priority than that.
         tree_proc = PybtexTreeProcessor(md, self, bib_parser.data, bib_style, cited_keys)
