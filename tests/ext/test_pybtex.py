@@ -62,10 +62,46 @@ class PybtexTestCase(unittest.TestCase):
         
         self.assertRegex(
             html,
-            fr'''(?sx)
+            r'''(?sx)
             \s* <h1>Heading</h1>
             '''
         )
+        
+        
+    def test_not_mangling_other_things(self):
+        # Check standard link and image syntax to make sure it still works. The Pymtex extension 
+        # should avoid matching:
+        # [user@refA.com]             - '@' must come after a non-word character.
+        # [@refA](http://example.com) - [...] must not be followed by '('.
+        # [@refA][1]                  - [...] must not be followed by '['.
+        # ![@refA](image.jpg)         - [...] must not be preceeded by '!' (or followed by '(').
+        #
+        # It _should_ match [@refE]. That's there to ensure the extension is actually running.
+        
+        html = self.run_markdown(
+            r'''
+            [user@refA.com]
+            [@refA](http://example.com)
+            [@refA][1]
+            ![@refA](image.jpg)
+            [@refE]
+            [1]: http://example.com
+            ''',
+            file = [],
+            references = self.REFERENCES)
+            
+        self.assertRegex(
+            html,
+            r'''(?sx)
+            \s* <p>\[user@refA\.com]
+            \s* <a[ ]href="http://example.com">@refA</a>
+            \s* <a[ ]href="http://example.com">@refA</a>
+            \s* <img[ ]alt="@refA"[ ]src="image\.jpg"\s*/?>
+            \s* <cite>.*</cite>
+            \s* </p>
+            .*
+            ''')
+        
         
     def test_non_matching_citations(self):
         

@@ -26,6 +26,9 @@ from xml.etree import ElementTree
 # * hover popups (if possible; maybe just store the entry in the <cite> element's 'title' attribute?)
 # * optional long-form citations that specify the authors' names (similar to the Latex natbib package).
 #   - plus non-parenthetical references (the equivalent of \citet{...})
+# * option to integrate reference list into footnotes.
+# * specify reference database files in document metadata 
+# * equivalent to \cite*{...} in document metadata
 
 # * Tests
 #   - test that we haven't clobbered other kinds of reference/linking syntax
@@ -38,13 +41,13 @@ class CitationInlineProcessor(InlineProcessor):
     # which matches an entry in the reference database. There can be free-form text within the 
     # brackets, before, after and in-between citation keys.
     #
-    # (This describes the general syntax. In practice, most citations _probably_ contain just one
-    # citation key and no before/after text; e.g., [@author1990].)
+    # (In practice, most citations _probably_ contain just one citation key and no before/after 
+    # text; e.g., [@author1990].)
     #
     # This is intended to be compatible (more-or-less) with the syntax used by Pandoc, and 
-    # RMarkdown. (See https://pandoc.org/MANUAL.html#extension-citations).
+    # RMarkdown. (See https://pandoc.org/MANUAL.html#extension-citations.)
     #
-    # Specifically, a citation key can either:
+    # Specifically, a citation key (starting after a @) can either:
     # (a) consist of letters, digits and _, with selected other characters available as single-char 
     #     internal punctuation (e.g., '--' cannot be part of the key, nor can a key end with '.'); 
     #     OR
@@ -57,6 +60,8 @@ class CitationInlineProcessor(InlineProcessor):
     # However, I feel it's best to emulate Pandoc/RMarkdown for this purpose.)
     
     CITE_REGEX = r'''
+        (?<! \w ) # Require '@' to come after a non-word character, so as to avoid matching 
+                  # things like me@example.com.
         @(
             (?P<simple_key> [a-zA-Z0-9_]+ ( [:.#$%&+?<>~/-] [a-zA-Z0-9_]+ )* )
             |
@@ -66,10 +71,14 @@ class CitationInlineProcessor(InlineProcessor):
     '''
     
     GROUP_REGEX = fr'''(?x)
+        (?<! ! ) # The preceding character must not be '!', to avoid conflicts with the syntax for
+                 # embedding images.
         \[
         (?P<pre> [^]@]* )
         (?P<main> ({CITE_REGEX})+)
         \]
+        (?! [\[(] ) # The trailing character must not be '(' or '[', to avoid conflicts with the 
+                    # link syntax.
     '''
     
     CITE_REGEX_COMPILED = re.compile(f'(?x){CITE_REGEX}')
@@ -240,6 +249,17 @@ class PybtexTreeProcessor(Treeprocessor):
         copy_tree(biblio_root, biblio_tree.find('.//dl'))
         biblio_root.attrib['id'] = 'la-bibliography'
         
+        # Finally, run Python Markdown's inline processors across the new sub-tree. These handle
+        # things like formatting (e.g., _emph_) and links (e.g., [Example](http://example.com)).
+        #
+        # We're constrained to run this TreeProcessor *after* the normal inline processors (because
+        # CitationInlineProcessor must run first to finds all the citations). So we need to run 
+        # the inline processors again, on just the reference list produced by Pybtex. 
+        #
+        # Otherwise, we won't wouldn't be able to use normal markdown syntax inside the reference 
+        # list, and this would prevent sensible handling of URLs.
+        markdown.treeprocessors.InlineProcessor(self.md).run(biblio_root)
+        
         
     
 class PybtexExtension(markdown.Extension):
@@ -278,23 +298,23 @@ class PybtexExtension(markdown.Extension):
             ],
             'style': [
                 'unsrt', 
-                'Reference style ("alpha", "plain", "unsrt", "unsrtalpha").'
+                'Overall style ("alpha", "plain", "unsrt", "unsrtalpha").'
             ],
             'label_style': [
-                None, 
-                '...'
+                '', 
+                '"" (default), "alpha" or "number".'
             ],
             'name_style': [
-                None, 
-                '...'
+                '', 
+                '"" (default), "lastfirst" or "plain".'
             ],
             'sorting_style': [
-                None, 
-                '...'
+                '', 
+                '"" (default), "author_year_title" or "none".'
             ],
             'abbreviate_names': [
                 False, 
-                'True/False...'
+                'If True, use initials for first/middle names. If False (default), use full names.'
             ],
             'min_crossrefs': [
                 2, 
@@ -347,9 +367,9 @@ class PybtexExtension(markdown.Extension):
         # Pybtex formatter -- creates the document reference list.
         bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting', self.getConfig('style'))
         bib_style = bib_style_cls(
-            label_style      = self.getConfig('label_style'),
-            name_style       = self.getConfig('name_style'),
-            sorting_style    = self.getConfig('sorting_style'),
+            label_style      = self.getConfig('label_style') or None,
+            name_style       = self.getConfig('name_style') or None,
+            sorting_style    = self.getConfig('sorting_style') or None,
             abbreviate_names = self.getConfig('abbreviate_names'),
             min_crossrefs    = self.getConfig('min_crossrefs')
         )
