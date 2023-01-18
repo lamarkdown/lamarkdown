@@ -1,18 +1,20 @@
 import unittest
 
+import lamarkdown.ext
 import markdown
-from lamarkdown.ext import sections
 
 import re
+import sys
 from textwrap import dedent
 
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class SectionsTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.sections'],
-            extension_configs = {'lamarkdown.ext.sections':
+            extensions = ['la.sections'],
+            extension_configs = {'la.sections':
             {
                 **kwargs
             }}

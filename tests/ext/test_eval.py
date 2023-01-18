@@ -1,20 +1,22 @@
 from ..util.mock_progress import MockProgress
 import unittest
 
+import lamarkdown.ext
 import markdown
-from lamarkdown.ext import eval
 
 import datetime
 import re
+import sys
 from textwrap import dedent
 
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class EvalTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.eval'],
-            extension_configs = {'lamarkdown.ext.eval':
+            extensions = ['la.eval'],
+            extension_configs = {'la.eval':
             {
                 'progress': MockProgress(),
                 **kwargs

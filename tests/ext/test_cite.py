@@ -1,15 +1,16 @@
 import unittest
 
+import lamarkdown.ext
 import markdown
-from lamarkdown.ext import sections
 
 import re
+import sys
 import tempfile
 from textwrap import dedent
 
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
-class CiteTestCase(unittest.TestCase):
-    
+class CiteTestCase(unittest.TestCase): 
     REFERENCES = r'''
         @article{refA,
             author = "The Author A",
@@ -45,8 +46,8 @@ class CiteTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, more_extensions=[], **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.cite', *more_extensions],
-            extension_configs = {'lamarkdown.ext.cite':
+            extensions = ['la.cite', *more_extensions],
+            extension_configs = {'la.cite':
             {
                 **kwargs
             }}

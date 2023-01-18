@@ -13,11 +13,15 @@ def apply():
         'pymdownx.highlight', # Needed for control over whether 'super-fences' uses Pygments or not
         'pymdownx.extra',
 
-        # Lamarkdown internal extensions
-        'lamarkdown.ext.latex',
-        'lamarkdown.ext.eval',
-        'lamarkdown.ext.markers',
-        'lamarkdown.ext.cite',
+        # Lamarkdown internal extensions.
+        
+        # Note: the package is 'lamarkdown.ext' (hence 'lamarkdown.ext.latex', etc.). However, 
+        # 'la' ('la.latex') is nicer. To make that work, we use the '[tool.poetry.plugins]' section
+        # in `pyproject.toml` (equivalent to 'entry points' in other build setups).
+        'la.cite',
+        'la.eval',
+        'la.latex',
+        'la.markers',
     )
 
     la.extension('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
