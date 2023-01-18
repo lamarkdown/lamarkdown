@@ -1,7 +1,13 @@
 '''
-# Pybtex Extension
+# Cite Extension
+
+Allows embedding citations (e.g., [@author1990] or [see @author1; @author2; @{abc;def!}] ), which 
+are collected to generate a bibliography, based on an external database file.
+
+We use the Pybtex package to read the database file(s) and format the bibliography.
 
 '''
+
 from lamarkdown.lib.progress import Progress
 
 import markdown
@@ -95,8 +101,8 @@ class MetadataPreprocessor(Preprocessor):
         meta = self.md.__dict__.get('Meta', {})
         
         for filename in meta.get('bibliography', []):
+            self.ext.getConfig('live_update_deps').add(filename)
             try:
-                self.ext.getConfig('live_update_deps').add(filename)
                 self.bib_parser.parse_file(filename)
             except Exception as e:
                 self.ext.getConfig('progress').error_from_exception('Pybtex', e)
@@ -116,8 +122,6 @@ class MetadataPreprocessor(Preprocessor):
 
 
 class CitationInlineProcessor(InlineProcessor):
-   
-    
     def __init__(self, bib_parser, cited_keys: List[str]):
         super().__init__(GROUP_REGEX)
         self.bib_parser = bib_parser
@@ -159,7 +163,7 @@ class ModifiedPybtexHtmlBackend(pybtex.backends.html.Backend):
         super().__init__('utf-8')
         
     def write_entry(self, key, label, text):
-        self.output(f'<dt id="pybtexref:{label}">{label}</dt>\n')
+        self.output(f'<dt id="la-ref:{label}">{label}</dt>\n')
         self.output(f'<dd label="{label}">{text}</dd>\n')
         # Note: the 'label' attribute will be deleted later on. It's just here to help match up
         # this HTML (the reference) with its corresponding citations.
@@ -208,12 +212,12 @@ class PybtexTreeProcessor(Treeprocessor):
                     
                     label = entries[key].label
                     n_citations[label] = n_citations.get(label, 0) + 1                    
-                    child.attrib['id'] = f'pybtexcite:{label}-{n_citations[label]}'
+                    child.attrib['id'] = f'la-cite:{label}-{n_citations[label]}'
                     child.text = label
                     
                     if create_forward_links:                    
                         child.tag = 'a'
-                        child.attrib['href'] = f'#pybtexref:{label}'
+                        child.attrib['href'] = f'#la-ref:{label}'
                         
             elem.text = f'[{elem.text}'
             elem[-1].tail += ']'
@@ -246,14 +250,14 @@ class PybtexTreeProcessor(Treeprocessor):
                     dd[-1].tail += ' '
                     
                 if n_cites == 1:
-                    back_link = lxml.etree.SubElement(dd, 'a', attrib = {'href': f'#pybtexcite:{label}-1'})
+                    back_link = lxml.etree.SubElement(dd, 'a', attrib = {'href': f'#la-cite:{label}-1'})
                     back_link.text = '↩'
                     
                 else:
                     span = lxml.etree.SubElement(dd, 'span')
                     span.text = '↩ '
                     for i in range(1, n_cites + 1):
-                        back_link = lxml.etree.SubElement(span, 'a', attrib = {'href': f'#pybtexcite:{label}-{i}'})
+                        back_link = lxml.etree.SubElement(span, 'a', attrib = {'href': f'#la-cite:{label}-{i}'})
                         back_link.text = str(i)
                         back_link.tail = ' '
                     back_link.tail = ''
@@ -306,7 +310,7 @@ class PybtexTreeProcessor(Treeprocessor):
         
         
     
-class PybtexExtension(markdown.Extension):
+class CiteExtension(markdown.Extension):
     def __init__(self, **kwargs):
         p = None
         try:
@@ -319,7 +323,6 @@ class PybtexExtension(markdown.Extension):
         live_update_deps = p.live_update_deps if p else set()
         
         self.config = {
-            # Todo: also allow embedded reference information, as a string in the build file.
             'progress': [
                 p.progress if p else Progress(),    
                 'An object accepting progress messages.'
@@ -450,4 +453,4 @@ class PybtexExtension(markdown.Extension):
 
 
 def makeExtension(**kwargs):
-    return PybtexExtension(**kwargs)
+    return CiteExtension(**kwargs)

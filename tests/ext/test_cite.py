@@ -8,7 +8,7 @@ import tempfile
 from textwrap import dedent
 
 
-class PybtexTestCase(unittest.TestCase):
+class CiteTestCase(unittest.TestCase):
     
     REFERENCES = r'''
         @article{refA,
@@ -45,8 +45,8 @@ class PybtexTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, more_extensions=[], **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.pybtex', *more_extensions],
-            extension_configs = {'lamarkdown.ext.pybtex':
+            extensions = ['lamarkdown.ext.cite', *more_extensions],
+            extension_configs = {'lamarkdown.ext.cite':
             {
                 **kwargs
             }}
@@ -122,9 +122,9 @@ class PybtexTestCase(unittest.TestCase):
             html,
             r'''(?sx)
             \s* <h1>Heading</h1>
-            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>]</cite>,[ ]citation[ ]X[ ]\[@refX].</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>,[ ]citation[ ]X[ ]\[@refX].</p>
             \s* <dl[ ]id="la-bibliography"> 
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
             '''
@@ -133,30 +133,30 @@ class PybtexTestCase(unittest.TestCase):
 
     def test_links(self):
         linked_citations = r'''
-            \s* <p>Citation[ ]B[ ]<cite>\[<a[ ]href="\#pybtexref:1"[ ]id="pybtexcite:1-1">1</a>,[ ]p\.[ ]5\]</cite>,[ ]
-                   citation[ ]C[ ]<cite>\[<a[ ]href="\#pybtexref:2"[ ]id="pybtexcite:2-1">2</a>\]</cite>.</p>
-            \s* <p>Citation[ ]D[ ]<cite>\[<a[ ]href="\#pybtexref:3"[ ]id="pybtexcite:3-1">3</a>[ ]maybe\]</cite>,[ ]
-                   citation[ ]B[ ]<cite>\[<a[ ]href="\#pybtexref:1"[ ]id="pybtexcite:1-2">1</a>\]</cite>.</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]id="la-cite:1-1">1</a>,[ ]p\.[ ]5\]</cite>,[ ]
+                   citation[ ]C[ ]<cite>\[<a[ ]href="\#la-ref:2"[ ]id="la-cite:2-1">2</a>\]</cite>.</p>
+            \s* <p>Citation[ ]D[ ]<cite>\[<a[ ]href="\#la-ref:3"[ ]id="la-cite:3-1">3</a>[ ]maybe\]</cite>,[ ]
+                   citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]id="la-cite:1-2">1</a>\]</cite>.</p>
         '''
         
         unlinked_citations = r'''
-            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>,[ ]p\.[ ]5\]</cite>,[ ]
-                   citation[ ]C[ ]<cite>\[<span[ ]id="pybtexcite:2-1">2</span>\]</cite>.</p>
-            \s* <p>Citation[ ]D[ ]<cite>\[<span[ ]id="pybtexcite:3-1">3</span>[ ]maybe\]</cite>,[ ]
-                   citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-2">1</span>\]</cite>.</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>,[ ]p\.[ ]5\]</cite>,[ ]
+                   citation[ ]C[ ]<cite>\[<span[ ]id="la-cite:2-1">2</span>\]</cite>.</p>
+            \s* <p>Citation[ ]D[ ]<cite>\[<span[ ]id="la-cite:3-1">3</span>[ ]maybe\]</cite>,[ ]
+                   citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-2">1</span>\]</cite>.</p>
         '''
         
         linked_refs = r'''
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* [ ]<span>↩[ ]<a[ ]href="\#pybtexcite:1-1">1</a>
-                                                                    [ ]<a[ ]href="\#pybtexcite:1-2">2</a></span></dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* [ ]<a[ ]href="\#pybtexcite:2-1">↩</a></dd>
-            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* [ ]<a[ ]href="\#pybtexcite:3-1">↩</a></dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* [ ]<span>↩[ ]<a[ ]href="\#la-cite:1-1">1</a>
+                                                                    [ ]<a[ ]href="\#la-cite:1-2">2</a></span></dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* [ ]<a[ ]href="\#la-cite:2-1">↩</a></dd>
+            \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* [ ]<a[ ]href="\#la-cite:3-1">↩</a></dd>
         '''
 
         unlinked_refs = r'''
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* \. </dd>
         '''
         
         data = [('both',    linked_citations,   linked_refs),
@@ -197,13 +197,13 @@ class PybtexTestCase(unittest.TestCase):
         
         regex_references = r'''
             \s* <dl[ ]id="la-bibliography">
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
             \s* </dl>
         '''
         
-        regex_citation_b = r'\s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="pybtexcite:1-1">1</span>]</cite>.</p>'
-        regex_citation_c = r'\s* <p>Citation[ ]C[ ]<cite>\[<span[ ]id="pybtexcite:2-1">2</span>]</cite>.</p>'
+        regex_citation_b = r'\s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>.</p>'
+        regex_citation_c = r'\s* <p>Citation[ ]C[ ]<cite>\[<span[ ]id="la-cite:2-1">2</span>]</cite>.</p>'
         
         # We're testing different placements of the 'place marker, which determines 
         data = [
@@ -272,11 +272,11 @@ class PybtexTestCase(unittest.TestCase):
             html, 
             r'''(?sx)
             \s* <p>Citation[ ]B[ ]<cite>\[see[ ]
-                <span[ ]id="pybtexcite:1-1">1</span>,[ ]p\.[ ]5;[ ]
-                <span[ ]id="pybtexcite:2-1">2</span>[ ]maybe;[ ]not[ ]@refX\]</cite>.</p>
+                <span[ ]id="la-cite:1-1">1</span>,[ ]p\.[ ]5;[ ]
+                <span[ ]id="la-cite:2-1">2</span>[ ]maybe;[ ]not[ ]@refX\]</cite>.</p>
             \s* <dl[ ]id="la-bibliography"> 
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
             ''')
@@ -327,13 +327,13 @@ class PybtexTestCase(unittest.TestCase):
             html, 
             r'''(?sx)
             \s* <h1>Heading</h1>
-            \s* <p><cite>\[see[ ]<span[ ]id="pybtexcite:1-1">1</span>;[ ]
-                                 <span[ ]id="pybtexcite:2-1">2</span>;[ ]
-                                 <span[ ]id="pybtexcite:3-1">3</span>]</cite></p>
+            \s* <p><cite>\[see[ ]<span[ ]id="la-cite:1-1">1</span>;[ ]
+                                 <span[ ]id="la-cite:2-1">2</span>;[ ]
+                                 <span[ ]id="la-cite:3-1">3</span>]</cite></p>
             \s* <dl[ ]id="la-bibliography"> 
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
             ''')
@@ -394,11 +394,11 @@ class PybtexTestCase(unittest.TestCase):
             r'''(?sx)
             \s* <h1>Heading</h1>
             \s* <dl[ ]id="la-bibliography"> 
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:4">4</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:5">5</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:4">4</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:5">5</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
             ''')
@@ -419,9 +419,9 @@ class PybtexTestCase(unittest.TestCase):
             r'''(?sx)
             \s* <h1>Heading</h1>
             \s* <dl[ ]id="la-bibliography"> 
-            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
-            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* \. </dd>
             \s* </dl>
             \s*
             ''')
