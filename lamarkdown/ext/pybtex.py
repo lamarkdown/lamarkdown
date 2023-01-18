@@ -23,16 +23,10 @@ from typing import List
 from xml.etree import ElementTree
 
 
-# TODO (desirable):
-# * hover popups (if possible; maybe just store the entry in the <cite> element's 'title' attribute?)
-# * trigger live updating when a reference database file changes.
-
-
-# TODO (long-term):
+# TODO:
 # * investigate https://github.com/brechtm/citeproc-py (a citation style language (CSL) processor)
 #   - I think this is how we get long-form citations that specify the authors' names (similar to the Latex natbib package), and/or non-parenthetical references (the equivalent of \citet{...})
 #   - It may also influence how/whether we integrate referencing into the footnote system
-
 
 
 
@@ -102,7 +96,8 @@ class MetadataPreprocessor(Preprocessor):
         
         for filename in meta.get('bibliography', []):
             try:
-                self.bib_parser.parse_file(filename)                
+                self.ext.getConfig('live_update_deps').add(filename)
+                self.bib_parser.parse_file(filename)
             except Exception as e:
                 self.ext.getConfig('progress').error_from_exception('Pybtex', e)
                 
@@ -321,10 +316,18 @@ class PybtexExtension(markdown.Extension):
             pass # Use default defaults
 
         progress = p.progress if p else Progress()
+        live_update_deps = p.live_update_deps if p else set()
         
         self.config = {
             # Todo: also allow embedded reference information, as a string in the build file.
-            'progress': [p.progress if p else Progress(), 'An object accepting progress messages.'],
+            'progress': [
+                p.progress if p else Progress(),    
+                'An object accepting progress messages.'
+            ],
+            'live_update_deps': [
+                p.live_update_deps if p else set(), 
+                'An updatable set of files that should be monitored for changes during live updating.'
+            ],
             'file': [
                 'references.bib', 
                 'A string, or list of strings, containing the filename(s) of Bibtex-formatted reference lists.'
@@ -390,6 +393,8 @@ class PybtexExtension(markdown.Extension):
             files = [file_spec]
         else:
             files = list(file_spec)
+            
+        self.getConfig('live_update_deps').update(files)
         
         ref_str = self.getConfig('references')
         if ref_str:

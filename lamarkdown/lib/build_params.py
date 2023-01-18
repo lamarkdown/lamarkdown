@@ -57,7 +57,7 @@ class BuildParams:
     progress: Progress
     is_live: bool
 
-    # These fields *are* modifiable by build modules:
+    # These fields *are* modifiable by build modules (or even extensions):
     name:               str                        = ''
     variant_name_sep:   str                        = '_'
     variants:           List[Variant]              = field(default_factory=list)
@@ -74,7 +74,8 @@ class BuildParams:
     content_end:        str                        = ''
     env:                Dict[str,Any]              = field(default_factory=Environment)
     output_namer:       Callable[[str],str]        = lambda t: t
-
+    live_update_deps:   Set[str]                   = field(default_factory=set)
+    
     def set_current(self):
         BuildParams.current = self
 
@@ -116,4 +117,5 @@ class BuildParams:
         self.content_end = ''
         self.env = Environment()
         self.output_namer = lambda t: t
+        self.live_update_deps = set()
 
