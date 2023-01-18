@@ -6,6 +6,7 @@ from lamarkdown.lib.progress import Progress
 
 import markdown
 from markdown.inlinepatterns import InlineProcessor
+from markdown.preprocessors import Preprocessor
 from markdown.treeprocessors import Treeprocessor
 
 import pybtex.backends.html
@@ -24,69 +25,107 @@ from xml.etree import ElementTree
 
 # TODO (desirable):
 # * hover popups (if possible; maybe just store the entry in the <cite> element's 'title' attribute?)
-# * optional long-form citations that specify the authors' names (similar to the Latex natbib package).
-#   - plus non-parenthetical references (the equivalent of \citet{...})
-# * option to integrate reference list into footnotes.
-# * specify reference database files in document metadata 
-# * equivalent to \cite*{...} in document metadata
+# * trigger live updating when a reference database file changes.
 
-# * Tests
-#   - test that we haven't clobbered other kinds of reference/linking syntax
-#   - test for the 'complex key' syntax (enclosed in braces)
+
+# TODO (long-term):
+# * investigate https://github.com/brechtm/citeproc-py (a citation style language (CSL) processor)
+#   - I think this is how we get long-form citations that specify the authors' names (similar to the Latex natbib package), and/or non-parenthetical references (the equivalent of \citet{...})
+#   - It may also influence how/whether we integrate referencing into the footnote system
+
+
+
+
+# A citation consists of '[...]' containing one or more citation keys (@xyz), at least one of 
+# which matches an entry in the reference database. There can be free-form text within the 
+# brackets, before, after and in-between citation keys.
+#
+# (In practice, most citations _probably_ contain just one citation key and no before/after 
+# text; e.g., [@author1990].)
+#
+# This is intended to be compatible (more-or-less) with the syntax used by Pandoc, and 
+# RMarkdown. (See https://pandoc.org/MANUAL.html#extension-citations.)
+#
+# Specifically, a citation key (starting after a @) can either:
+# (a) consist of letters, digits and _, with selected other characters available as single-char 
+#     internal punctuation (e.g., '--' cannot be part of the key, nor can a key end with '.'); 
+#     OR
+# (b) be surrounded by braces (which are not part of the key), and contain any non-brace 
+#     characters as well as, optionally, matching pairs of braces (not nested braces though;
+#     Pandoc may allow arbitrary nesting, but this seems a rarefied ability).
+
+# (For reference, the BibTex format -- including allowed citation key characters -- is 
+# described here: https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod.
+# However, I feel it's best to emulate Pandoc/RMarkdown for this purpose.)
+
+CITE_REGEX = r'''
+    (?<! \w ) # Require '@' to come after a non-word character, so as to avoid matching 
+              # things like me@example.com.
+    @(
+        (?P<simple_key> [a-zA-Z0-9_]+ ( [:.#$%&+?<>~/-] [a-zA-Z0-9_]+ )* )
+        |
+        \{ (?P<complex_key> [^{}]* ( \{ [^{}]* \} )* ) \}
+    )
+    (?P<post> [^]@]* )
+'''
+
+GROUP_REGEX = fr'''(?x)
+    (?<! ! ) # The preceding character must not be '!', to avoid conflicts with the syntax for
+             # embedding images.
+    \[
+    (?P<pre> [^]@]* )
+    (?P<main> ({CITE_REGEX})+)
+    \]
+    (?! [\[(] ) # The trailing character must not be '(' or '[', to avoid conflicts with the 
+                # link syntax.
+'''
+
+CITE_REGEX_COMPILED = re.compile(f'(?x){CITE_REGEX}')
+
+
+class MetadataPreprocessor(Preprocessor):
+    """
+    Handles directives in the document's metadata, specifically:
+    'bibliography' -- specifies additional reference database files; and 
+    'nocite' -- lists references to be added to the bibliography regardless of whether they're 
+    actual cited in-text.
+    """
+    
+    def __init__(self, md, ext, bib_parser, cited_keys: List[str]):
+        super().__init__(md)
+        self.ext = ext
+        self.bib_parser = bib_parser
+        self.cited_keys = cited_keys
+    
+    def run(self, lines):
+        meta = self.md.__dict__.get('Meta', {})
+        
+        for filename in meta.get('bibliography', []):
+            try:
+                self.bib_parser.parse_file(filename)                
+            except Exception as e:
+                self.ext.getConfig('progress').error_from_exception('Pybtex', e)
+                
+        for nocite in meta.get('nocite', []):
+            if '@*' in nocite:
+                # Wildcard specified; reference all entries.
+                self.cited_keys.extend(self.bib_parser.data.entries.keys())
+                break
+            
+            for cite_match in CITE_REGEX_COMPILED.finditer(nocite):
+                key = cite_match.group('simple_key') or cite_match.group('complex_key')
+                if key in self.bib_parser.data.entries:
+                    self.cited_keys.append(key)
+                
+        return lines # Unmodified
 
 
 class CitationInlineProcessor(InlineProcessor):
    
-    # A citation consists of '[...]' containing one or more citation keys (@xyz), at least one of 
-    # which matches an entry in the reference database. There can be free-form text within the 
-    # brackets, before, after and in-between citation keys.
-    #
-    # (In practice, most citations _probably_ contain just one citation key and no before/after 
-    # text; e.g., [@author1990].)
-    #
-    # This is intended to be compatible (more-or-less) with the syntax used by Pandoc, and 
-    # RMarkdown. (See https://pandoc.org/MANUAL.html#extension-citations.)
-    #
-    # Specifically, a citation key (starting after a @) can either:
-    # (a) consist of letters, digits and _, with selected other characters available as single-char 
-    #     internal punctuation (e.g., '--' cannot be part of the key, nor can a key end with '.'); 
-    #     OR
-    # (b) be surrounded by braces (which are not part of the key), and contain any non-brace 
-    #     characters as well as, optionally, matching pairs of braces (not nested braces though;
-    #     Pandoc may allow arbitrary nesting, but this seems a rarefied ability).
     
-    # (For reference, the BibTex format -- including allowed citation key characters -- is 
-    # described here: https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod.
-    # However, I feel it's best to emulate Pandoc/RMarkdown for this purpose.)
-    
-    CITE_REGEX = r'''
-        (?<! \w ) # Require '@' to come after a non-word character, so as to avoid matching 
-                  # things like me@example.com.
-        @(
-            (?P<simple_key> [a-zA-Z0-9_]+ ( [:.#$%&+?<>~/-] [a-zA-Z0-9_]+ )* )
-            |
-            \{ (?P<complex_key> [^{}]* ( \{ [^{}]* \} )* ) \}
-        )
-        (?P<post> [^]@]* )
-    '''
-    
-    GROUP_REGEX = fr'''(?x)
-        (?<! ! ) # The preceding character must not be '!', to avoid conflicts with the syntax for
-                 # embedding images.
-        \[
-        (?P<pre> [^]@]* )
-        (?P<main> ({CITE_REGEX})+)
-        \]
-        (?! [\[(] ) # The trailing character must not be '(' or '[', to avoid conflicts with the 
-                    # link syntax.
-    '''
-    
-    CITE_REGEX_COMPILED = re.compile(f'(?x){CITE_REGEX}')
-    
-    def __init__(self, bib_data: pybtex.database.BibliographyData, 
-                       cited_keys: List[str]):
-        super().__init__(self.GROUP_REGEX)
-        self.bib_data = bib_data
+    def __init__(self, bib_parser, cited_keys: List[str]):
+        super().__init__(GROUP_REGEX)
+        self.bib_parser = bib_parser
         self.cited_keys = cited_keys
         
 
@@ -98,9 +137,9 @@ class CitationInlineProcessor(InlineProcessor):
         append_last = a1
 
         any_valid_citations = False
-        for cite_match in self.CITE_REGEX_COMPILED.finditer(group_match.group('main')):
+        for cite_match in CITE_REGEX_COMPILED.finditer(group_match.group('main')):
             key = cite_match.group('simple_key') or cite_match.group('complex_key')
-            if key in self.bib_data.entries:
+            if key in self.bib_parser.data.entries:
                 any_valid_citations = True
                 self.cited_keys.append(key)
                 span = ElementTree.SubElement(cite_elem, 'span')
@@ -134,12 +173,17 @@ class ModifiedPybtexHtmlBackend(pybtex.backends.html.Backend):
 class PybtexTreeProcessor(Treeprocessor):
     def __init__(self, md, 
                        ext: 'PybtexExtension', 
-                       bib_data: pybtex.database.BibliographyData,
+                       bib_parser,
                        bib_style: pybtex.style.formatting.BaseStyle,
                        cited_keys: List[str]):
         super().__init__(md)
         self.ext = ext
-        self.bib_data = bib_data
+        
+        # It's really just bib_parser.data that we want, but since BibliographyFilePreprocessor
+        # may add/change the data between here and run() below, it seems safer to pass the parser
+        # itself.
+        self.bib_parser = bib_parser
+        
         self.bib_style = bib_style
         
         # 'cited_keys' will be empty at first, but in between here and run() below, 
@@ -152,7 +196,8 @@ class PybtexTreeProcessor(Treeprocessor):
         if len(self.cited_keys) == 0:
             return
         
-        formatted_biblio = self.bib_style.format_bibliography(self.bib_data, self.cited_keys)
+        formatted_biblio = self.bib_style.format_bibliography(self.bib_parser.data, 
+                                                              self.cited_keys)
         
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels' 
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.
@@ -194,13 +239,17 @@ class PybtexTreeProcessor(Treeprocessor):
             label = dd.attrib['label']
             del dd.attrib['label']
             
-            if create_back_links:                
+            n_cites = n_citations.get(label, 0)
+            if create_back_links and n_cites > 0:
+                # (a) Even if create_back_links == False, we must still 'del' the label attribute.
+                # (b) There could be 0 citations, if the reference was provided via 'nocite'. Only
+                #     add links if there are citations.
+                    
                 if len(dd) == 0:
                     dd.text += ' '
                 else:
                     dd[-1].tail += ' '
-                
-                n_cites = n_citations[label]
+                    
                 if n_cites == 1:
                     back_link = lxml.etree.SubElement(dd, 'a', attrib = {'href': f'#pybtexcite:{label}-1'})
                     back_link.text = '↩'
@@ -363,7 +412,7 @@ class PybtexExtension(markdown.Extension):
                 bib_parser.parse_file(file)                
             except Exception as e:
                 self.getConfig('progress').error_from_exception('Pybtex', e)
-                    
+                                    
         # Pybtex formatter -- creates the document reference list.
         bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting', self.getConfig('style'))
         bib_style = bib_style_cls(
@@ -376,15 +425,21 @@ class PybtexExtension(markdown.Extension):
         
         cited_keys = []
 
+        # The pre-processor handles additional directives given in the document metadata. Since 
+        # it's another extension's preprocessor ('meta') that _parses_ the metadata, our 
+        # preprocessor must run with a lower priority (than 27). 
+        pre_proc = MetadataPreprocessor(md, self, bib_parser, cited_keys)
+        md.preprocessors.register(pre_proc, 'biblio_files', -10)
+
         # The inline processor identifies citations, creates tree nodes to keep track of them 
         # (with details to be filled in later), and gathers the set of all cited keys.
-        inline_proc = CitationInlineProcessor(bib_parser.data, cited_keys)
+        inline_proc = CitationInlineProcessor(bib_parser, cited_keys)
         md.inlinePatterns.register(inline_proc, 'lamarkdown.pybtex', 130)
 
         # The tree processor must run _after_ the inline processor. Python-Markdown runs all inline
         # processors from within a TreeProcessor named InlineProcessor, with priority 20, so 
         # PybtexTreeProcessor must have lower priority than that.
-        tree_proc = PybtexTreeProcessor(md, self, bib_parser.data, bib_style, cited_keys)
+        tree_proc = PybtexTreeProcessor(md, self, bib_parser, bib_style, cited_keys)
         md.treeprocessors.register(tree_proc, 'lamarkdown.sections', 10)
 
 

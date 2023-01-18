@@ -4,6 +4,7 @@ import markdown
 from lamarkdown.ext import sections
 
 import re
+import tempfile
 from textwrap import dedent
 
 
@@ -42,9 +43,9 @@ class PybtexTestCase(unittest.TestCase):
         }
     '''
 
-    def run_markdown(self, markdown_text, **kwargs):
+    def run_markdown(self, markdown_text, more_extensions=[], **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.pybtex'],
+            extensions = ['lamarkdown.ext.pybtex', *more_extensions],
             extension_configs = {'lamarkdown.ext.pybtex':
             {
                 **kwargs
@@ -282,4 +283,146 @@ class PybtexTestCase(unittest.TestCase):
 
 
     def test_citation_key_syntax(self):
-        pass
+        html = self.run_markdown(
+            fr'''            
+            # Heading 
+            [see @1:a.2b$3c&4+d?5<e>6~f/7-g; @{{![]!}}; @{{;;;}}]
+            ''',
+            file = [],
+            references = r'''
+                @article{refA,
+                    author = "The Author A",
+                    title = "The Title A",
+                    journal = "The Journal A",
+                    year = "1990"
+                }
+                @article{1:a.2b$3c&4+d?5<e>6~f/7-g,
+                    author = "The Author B",
+                    title = "The Title B",
+                    journal = "The Journal B",
+                    year = "1991"
+                }
+                @article{![]!,
+                    author = "The Author C",
+                    title = "The Title C",
+                    journal = "The Journal C",
+                    year = "1992"
+                }
+                @article{;;;,
+                    author = "The Author D",
+                    title = "The Title D",
+                    journal = "The Journal D",
+                    year = "1993"
+                }
+                @article{refE,
+                    author = "The Author E",
+                    title = "The Title E",
+                    journal = "The Journal E",
+                    year = "1994"
+                }
+            ''',
+            hyperlinks = 'none')
+        
+        self.assertRegex(
+            html, 
+            r'''(?sx)
+            \s* <h1>Heading</h1>
+            \s* <p><cite>\[see[ ]<span[ ]id="pybtexcite:1-1">1</span>;[ ]
+                                 <span[ ]id="pybtexcite:2-1">2</span>;[ ]
+                                 <span[ ]id="pybtexcite:3-1">3</span>]</cite></p>
+            \s* <dl[ ]id="la-bibliography"> 
+            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* </dl>
+            \s*
+            ''')
+    
+    
+    def test_reference_sources(self):
+        with tempfile.TemporaryDirectory() as dir:
+                    
+            # Create four different reference database files:
+            for r in ['A', 'B', 'C', 'D']:            
+                with open(f'{dir}/references{r}.bib', 'w') as ref_file:
+                    ref_file.write(fr'''
+                        @article{{ref{r},
+                            author = "The Author {r}",
+                            title = "The Title {r}",
+                            journal = "The Journal {r}",
+                            year = "1990"
+                        }}
+                    ''')
+            
+            html = self.run_markdown(
+                fr'''
+                bibliography: {dir}/referencesA.bib
+                              {dir}/referencesB.bib
+
+                [@refA]
+                [@refB]
+                [@refC]
+                [@refD]
+                [@refE]
+                ''',
+                more_extensions = ['meta'],
+                file = [f'{dir}/referencesC.bib', f'{dir}/referencesD.bib'],
+                references = r'''
+                    @article{refE,
+                        author = "The Author E",
+                        title = "The Title E",
+                        journal = "The Journal E",
+                        year = "1994"
+                    }            
+                ''',
+                hyperlinks = 'none')
+
+
+    def test_nocite(self):
+        html = self.run_markdown(
+            fr'''
+            nocite: @*
+            
+            # Heading 
+            ''',
+            more_extensions = ['meta'],
+            file = [],
+            references = self.REFERENCES)
+        
+        self.assertRegex(
+            html, 
+            r'''(?sx)
+            \s* <h1>Heading</h1>
+            \s* <dl[ ]id="la-bibliography"> 
+            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:4">4</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:5">5</dt> \s* <dd> .* \. </dd>
+            \s* </dl>
+            \s*
+            ''')
+
+        html = self.run_markdown(
+            fr'''
+            nocite: @refB, @refC
+                    @refD
+            
+            # Heading 
+            ''',
+            more_extensions = ['meta'],
+            file = [],
+            references = self.REFERENCES)
+        
+        self.assertRegex(
+            html, 
+            r'''(?sx)
+            \s* <h1>Heading</h1>
+            \s* <dl[ ]id="la-bibliography"> 
+            \s* <dt[ ]id="pybtexref:1">1</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:2">2</dt> \s* <dd> .* \. </dd>
+            \s* <dt[ ]id="pybtexref:3">3</dt> \s* <dd> .* \. </dd>
+            \s* </dl>
+            \s*
+            ''')
+
