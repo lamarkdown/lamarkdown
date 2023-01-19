@@ -10,6 +10,8 @@ flexibility.)
 
 from .lib.build_params import BuildParams, Variant
 from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
+from .lib import fenced_blocks
+
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 import lxml.html
@@ -50,6 +52,51 @@ def target(fn: Callable[[str],str]):
 
 def base_name():
     _params().output_namer = lambda t: t
+
+def allow_exec(allow = True):
+    _params().allow_exec = allow
+
+def fenced_block(name: str,
+                 format: Callable,
+                 validator: Callable = None,
+                 css_class: str = name,
+                 cached: bool = True):
+    if cached:
+        def cached_format(source, language, css_class, options, md, **kwargs):
+            p = _params()
+            try:
+                cache_key = (source, language, css_class, options)
+                if cache_key not in p.cache:
+                    p.cache[cache_key] = format(source, language, css_class, options, md, **kwargs)
+
+                return p.cache[cache_key]
+
+            except Exception as e: # Not expecting an exception, but any internal errors will be
+                                   # swallowed by pymdownx.superfences.
+                print(str(e))
+
+    fence_dict = {
+        'name': name,
+        'class': css_class,
+        'format': cached_format if cached else format
+    }
+    if validator:
+        fence_dict['validator'] = validator
+
+    extension('pymdownx.superfences').setdefault('custom_fences', []).append(fence_dict)
+
+
+def fenced_command(command: List[str],
+                   title: str,
+                   css_class: str = None,
+                   validator: Callable = None,
+                   cached: bool = True):
+    fenced_block(command[0],
+                 format = fenced_blocks.command_formatter(_params(), command, title),
+                 validator = validator,
+                 css_class = css_class or command[0],
+                 cached = cached)
+
 
 def variants(*args, **kwargs):
     p = _params()

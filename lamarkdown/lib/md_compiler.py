@@ -1,7 +1,7 @@
 '''
 This is where we invoke Python Markdown, but also:
 
-* We find and invoke the build modules ('md_build.py', etc.)
+* We find and invoke the build files ('md_build.py', etc.)
 * We determine what variants (if any) the document has.
 * We build the complete HTML document around Python Markdown's output.
 '''

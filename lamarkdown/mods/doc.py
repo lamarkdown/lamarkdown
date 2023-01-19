@@ -14,8 +14,8 @@ def apply():
         'pymdownx.extra',
 
         # Lamarkdown internal extensions.
-        
-        # Note: the package is 'lamarkdown.ext' (hence 'lamarkdown.ext.latex', etc.). However, 
+
+        # Note: the package is 'lamarkdown.ext' (hence 'lamarkdown.ext.latex', etc.). However,
         # 'la' ('la.latex') is nicer. To make that work, we use the '[tool.poetry.plugins]' section
         # in `pyproject.toml` (equivalent to 'entry points' in other build setups).
         'la.cite',
@@ -29,6 +29,8 @@ def apply():
     # * The user can choose NOT to have a table-of-contents just by omitting '[TOC]'
     # * The user can also re-configure the 'toc' extension simply by calling
     #   la.extension('toc', ...).
+
+    la.plots()
 
     for name, value in {
         'la-sans-font':         '"Open Sans", sans-serif',
