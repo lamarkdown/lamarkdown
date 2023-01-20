@@ -13,12 +13,12 @@ sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class EvalTestCase(unittest.TestCase):
 
-    def run_markdown(self, markdown_text, **kwargs):
+    def run_markdown(self, markdown_text, expect_error = False, **kwargs):
         md = markdown.Markdown(
             extensions = ['la.eval'],
             extension_configs = {'la.eval':
             {
-                'progress': MockProgress(),
+                'progress': MockProgress(expect_error),
                 **kwargs
             }}
         )
@@ -87,6 +87,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $`111+222` sometext
             ''',
+            expect_error = True,
             allow_exec = False
         )
 

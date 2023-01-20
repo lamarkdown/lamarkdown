@@ -14,7 +14,7 @@ from .lib import fenced_blocks
 
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
-import lxml.html
+from lxml.html import HtmlElement
 
 import importlib
 import os.path
@@ -42,9 +42,9 @@ def get_params():
 def name(n: str):
     _params().name = n
 
-def _callable(fn):
+def _callable(fn, which = 'argument'):
     if not callable(fn):
-        raise ValueError(f'Expected a function/callable, but received {type(fn).__name__} (value {fn})')
+        raise ValueError(f'{which} expected to be a function/callable, but was {type(fn).__name__} (value {fn})')
 
 def target(fn: Callable[[str],str]):
     _callable(fn)
@@ -63,11 +63,9 @@ def fenced_block(name: str,
                  cached: bool = True,
                  check_exec: bool = False):
 
-    if not callable(formatter):
-        raise ValueError(f'"formatter" parameter should be a function/callable, but received {type(formatter).__name__} (value {formatter})')
-
-    if validator is not None and not callable(validator):
-        raise ValueError(f'"validator" parameter should be a function/callable, but received {type(validator).__name__} (value {validator})')
+    _callable(formatter, 'formatter')
+    if validator is not None:
+        _callable(validator, 'validator')
 
     if cached:
         formatter = fenced_blocks.caching_formatter(_params(), name, formatter)
@@ -112,20 +110,24 @@ def prune(selector: Optional[str] = None,
         with_xpath(xpath, hook)
 
 def with_selector(selector: str,
-                  fn: Callable[[lxml.html.HtmlElement],None]):
+                  fn: Callable[[HtmlElement],None]):
     with_xpath(CSSSelector(selector).path, fn)
 
 def with_xpath(xpath: str,
-               fn: Callable[[lxml.html.HtmlElement],None]):
+               fn: Callable[[HtmlElement],None]):
     _callable(fn)
     def hook(root):
         for element in root.xpath(xpath):
             fn(element)
     with_tree(hook)
 
-def with_tree(fn: Callable[[lxml.html.HtmlElement],None]):
+def with_tree(fn: Callable[[HtmlElement],Optional[HtmlElement]]):
     _callable(fn)
     _params().tree_hooks.append(fn)
+
+def with_html(fn: Callable[[str],Optional[str]]):
+    _callable(fn)
+    _params().html_hooks.append(fn)
 
 def extensions(*extensions: Union[str,Extension]):
     for e in extensions:
@@ -237,16 +239,6 @@ def css_files(*url_list: List[str], **kwargs):
 def js_files(*url_list: List[str], **kwargs):
     _params().js.extend(_url_resources(url_list, mime_type = 'text/javascript', **kwargs))
 
-
-def wrap_content(start: str, end: str):
-    p = _params()
-    p.content_start = start + p.content_start
-    p.content_end += end
-
-def wrap_content_inner(start: str, end: str):
-    p = _params()
-    p.content_start += start
-    p.content_end = end + p.content_end
 
 def embed_resources(embed: Optional[bool] = True):
     _params().embed_resources = embed

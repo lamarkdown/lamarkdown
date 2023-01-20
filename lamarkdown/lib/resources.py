@@ -9,6 +9,7 @@ import html
 import os.path
 import re
 from typing import Callable, List, Optional, Set
+import urllib.request
 
 
 class Resource:
@@ -126,6 +127,7 @@ class UrlResourceSpec(ResourceSpec):
 
         super().__init__(xpaths_required)
         self.url_factory = url_factory
+        self.cache = cache
         self.embed = embed
         self.hash_type = hash_type
         self.base_path = base_path

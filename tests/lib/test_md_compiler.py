@@ -40,7 +40,8 @@ class MdCompilerTestCase(unittest.TestCase):
         self.root = lxml.html.parse(html_file, self.html_parser)
 
         # Now find and parse the CSS code, if any:
-        self.css_sheets = [self.css_parser.parseString(elem.text) for elem in self.root.xpath('/html/head/style')]
+        self.css_sheets = [self.css_parser.parseString(t)
+                           for t in self.root.xpath('/html/head/style/text()')]
 
         self.full_html = lxml.html.tostring(self.root, with_tail = False, encoding = 'unicode')
 
@@ -87,13 +88,13 @@ class MdCompilerTestCase(unittest.TestCase):
 
         # The meta charset declaration should be there as a matter of course.
         assert_that(
-            self.root.xpath('/html/head/meta[@charset="utf-8"]'),
-            contains_exactly(instance_of(lxml.html.HtmlElement)))
+            self.root.xpath('count(/html/head/meta[@charset="utf-8"])'),
+            is_(1))
 
         # The title should be taken from the <h1> element.
         assert_that(
-            self.root.xpath('/html/head/title')[0].text,
-            is_('Heading'))
+            self.root.xpath('/html/head/title/text()'),
+            contains_exactly('Heading'))
 
         # Check the document structure.
         assert_that(
@@ -191,8 +192,44 @@ class MdCompilerTestCase(unittest.TestCase):
         ''')
 
         assert_that(
-            self.root.xpath('/html/body/script')[0].text.strip(),
+            self.root.xpath('/html/body/script/text()')[0].strip(),
             is_(expected_js.strip()))
+
+
+    def test_css_js_files(self):
+
+        # Create mock .css and .js files. Lamarkdown *might* check that these exist, but it
+        # shouldn't matter what they contain.
+        for f in ['cssfile.css', 'jsfile.js']:
+            with open(os.path.join(self.tmp_dir, f), 'w'): pass
+
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading
+
+                Paragraph1
+                ''',
+            build = r'''
+                import lamarkdown as la
+                la.css_files("cssfile.css")
+                la.js_files("jsfile.js")
+                ''',
+            build_defaults = False
+        )
+
+        # Assert that the <link rel="stylesheet" href="..."> element exists.
+        assert_that(
+            self.root.xpath('count(/html/head/link[@rel="stylesheet"][@href="cssfile.css"])'),
+            is_(1))
+
+        # Assert that the <script src="..."> element exists, and that it comes after <p>.
+        assert_that(
+            self.root.xpath('count(/html/body/p/following-sibling::script[@src="jsfile.js"])'),
+            is_(1))
+
+
+    #def test_css_js_files_embedded(self):
+        #......
 
 
     def test_variants(self):
@@ -243,7 +280,8 @@ class MdCompilerTestCase(unittest.TestCase):
             self.set_results(os.path.join(self.tmp_dir, f + '.html'))
 
         def exists():
-            assert_that(self.root.xpath('/html/body/h1')[0].text, is_('Heading'))
+            assert_that(
+                self.root.xpath('/html/body/h1/text()'), contains_exactly('Heading'))
 
         # Check variant A, which should have the default name.
         exists()
@@ -275,7 +313,7 @@ class MdCompilerTestCase(unittest.TestCase):
         assert_that(self.root.xpath('/html/body/p'),  not_(empty()))
 
 
-    def test_tree_queries(self):
+    def test_tree_hooks(self):
         self.run_md_compiler(
             markdown = r'''
                 # Heading1
@@ -296,37 +334,150 @@ class MdCompilerTestCase(unittest.TestCase):
                 def for_each_p(element):
                     element.text += " p"
 
-                def modify_tree(root):
-                    lxml.etree.SubElement(root, "div", attrib={"id": "test"})
+                def add_sub_element(root):
+                    lxml.etree.SubElement(root, "div", attrib={"id": "child"})
+
+                def add_parent_element(root):
+                    new_root = lxml.etree.Element("div", attrib={"id": "parent"})
+                    new_root.extend(root)
+                    return new_root
 
                 la.with_selector("h1", for_each_h1)
                 la.with_xpath("//p", for_each_p)
-                la.with_tree(modify_tree)
+                la.with_tree(add_sub_element)
+                la.with_tree(add_parent_element)
             ''',
             build_defaults = False
         )
 
         assert_that(
-            [elem.text for elem in self.root.xpath('//h1')],
+            self.root.xpath('//h1/text()'),
             contains_exactly('Heading1 h1', 'Heading2 h1'))
 
         assert_that(
-            [elem.text for elem in self.root.xpath('//p')],
+            self.root.xpath('//p/text()'),
             contains_exactly('Paragraph1 p', 'Paragraph2 p'))
 
         assert_that(
-            self.root.xpath('//div')[0].attrib,
-            is_({'id': 'test'}))
+            self.root.xpath('count(//div[@id="parent"]/div[@id="child"])'),
+            is_(1))
+
+
+    def test_html_hooks(self):
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading
+
+                Paragraph
+                ''',
+            build = r'''
+                import lamarkdown as la
+                la.with_html(lambda html: f'<div id="parent">{html}</div>')
+            ''',
+            build_defaults = False
+        )
+
+        assert_that(
+            self.root.xpath('''count(/html/body/div[@id="parent"]
+                                                   [h1="Heading"]
+                                                   [p="Paragraph"])'''),
+            is_(1))
+
+
+    def test_extensions(self):
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading {#testid}
+
+                Paragraph PARA
+
+                *[PARA]: description
+                ''',
+            build = r'''
+                import lamarkdown as la
+                la.extensions('abbr', 'attr_list')
+            ''',
+            build_defaults = False
+        )
+
+        # Check the document structure.
+        assert_that(
+            self.body_html,
+            matches_regexp(
+                r'''(?x)
+                \s* <body>
+                \s* <h1[ ]id="testid"> Heading </h1>
+                \s* <p> Paragraph \s* <abbr[ ]title="description"> PARA </abbr> </p>
+                \s* </body>
+                \s*
+                '''
+            )
+        )
+
+
+    def test_extension_config(self):
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading...
+
+                "Paragraph" --- <<Text>>
+                ''',
+            build = r'''
+                import lamarkdown as la
+                cfg = la.extension('smarty', smart_dashes = True, smart_quotes = False)
+                cfg["smart_angled_quotes"] = True
+                cfg["smart_ellipses"] = False
+            ''',
+            build_defaults = False
+        )
+
+        assert_that(
+            self.body_html,
+            matches_regexp(
+                r'''(?x)
+                \s* <body>
+                \s* <h1> Heading... </h1>
+                \s* <p> "Paragraph" [ ] (&mdash;|—) [ ] (&laquo;|«) Text (&raquo;|») </p>
+                \s* </body>
+                \s*
+                '''
+            )
+        )
+
+
+    def test_extension_object(self):
+        for methodName in ['extension', 'extensions']:
+            self.run_md_compiler(
+                markdown = r'''
+                    # Heading
+
+                    Paragraph
+                    ''',
+                build = fr'''
+                    import lamarkdown as la
+                    import markdown
+
+                    class TestPostprocessor(markdown.postprocessors.Postprocessor):
+                        def run(self, text):
+                            return text + '<div>Extension</div>'
+
+                    class TestExtension(markdown.Extension):
+                        def extendMarkdown(self, md):
+                            md.postprocessors.register(TestPostprocessor(), 'test-proc', 25)
+
+                    la.{methodName}(TestExtension())
+                ''',
+                build_defaults = False
+            )
+
+            assert_that(
+                self.root.xpath('//div/text()')[0],
+                is_('Extension'))
+
 
     # API functions:
     # ---
     #def get_build_dir():
     #def get_env():
     #def get_params():
-    #def extensions(*extensions: Union[str,Extension]):
-    #def extension(extension: Union[str,Extension], cfg_dict = {}, **cfg_kwargs):
-    #def css_files(*url_list: List[str], **kwargs):
-    #def js_files(*url_list: List[str], **kwargs):
-    #def wrap_content(start: str, end: str):
-    #def wrap_content_inner(start: str, end: str):
     #def embed_resources(embed: Optional[bool] = True):

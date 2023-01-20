@@ -47,6 +47,7 @@ pymdown-extensions = ">=9"
 watchdog = "^2.1.9"
 pendulum = "^2.1.2"
 diskcache = "^5.4.0"
+pybtex = "^0.24.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
