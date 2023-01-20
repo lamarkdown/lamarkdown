@@ -67,7 +67,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $`111+222` sometext
             ''',
-            allow_code = True
+            allow_exec = True
         )
 
         self.assertRegex(
@@ -87,7 +87,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $`111+222` sometext
             ''',
-            allow_code = False
+            allow_exec = False
         )
 
         self.assertNotIn('333', html)
@@ -98,7 +98,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $```'triple delimiter'``` sometext
             ''',
-            allow_code = True
+            allow_exec = True
         )
 
         self.assertIn('triple delimiter', html)
@@ -109,7 +109,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext #///'alt delimiter'///& sometext
             ''',
-            allow_code = True,
+            allow_exec = True,
             start = '#',
             end = '&',
             delimiter = '/'

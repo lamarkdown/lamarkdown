@@ -14,10 +14,7 @@ class SectionsTestCase(unittest.TestCase):
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
             extensions = ['la.sections'],
-            extension_configs = {'la.sections':
-            {
-                **kwargs
-            }}
+            extension_configs = {'la.sections': kwargs}
         )
         return md.convert(dedent(markdown_text).strip())
 

@@ -57,45 +57,33 @@ def allow_exec(allow = True):
     _params().allow_exec = allow
 
 def fenced_block(name: str,
-                 format: Callable,
+                 formatter: Callable,
                  validator: Callable = None,
                  css_class: str = name,
-                 cached: bool = True):
+                 cached: bool = True,
+                 check_exec: bool = False):
+
+    if not callable(formatter):
+        raise ValueError(f'"formatter" parameter should be a function/callable, but received {type(formatter).__name__} (value {formatter})')
+
+    if validator is not None and not callable(validator):
+        raise ValueError(f'"validator" parameter should be a function/callable, but received {type(validator).__name__} (value {validator})')
+
     if cached:
-        def cached_format(source, language, css_class, options, md, **kwargs):
-            p = _params()
-            try:
-                cache_key = (source, language, css_class, options)
-                if cache_key not in p.cache:
-                    p.cache[cache_key] = format(source, language, css_class, options, md, **kwargs)
+        formatter = fenced_blocks.caching_formatter(_params(), name, formatter)
 
-                return p.cache[cache_key]
+    if check_exec:
+        formatter = fenced_blocks.exec_formatter(_params(), name, formatter)
 
-            except Exception as e: # Not expecting an exception, but any internal errors will be
-                                   # swallowed by pymdownx.superfences.
-                print(str(e))
-
-    fence_dict = {
+    extension('pymdownx.superfences').setdefault('custom_fences', []).append({
         'name': name,
         'class': css_class,
-        'format': cached_format if cached else format
-    }
-    if validator:
-        fence_dict['validator'] = validator
+        'format': formatter,
+        **({'validator': validator} if validator else {})
+    })
 
-    extension('pymdownx.superfences').setdefault('custom_fences', []).append(fence_dict)
-
-
-def fenced_command(command: List[str],
-                   title: str,
-                   css_class: str = None,
-                   validator: Callable = None,
-                   cached: bool = True):
-    fenced_block(command[0],
-                 format = fenced_blocks.command_formatter(_params(), command, title),
-                 validator = validator,
-                 css_class = css_class or command[0],
-                 cached = cached)
+def command_formatter(command: List[str]):
+    return fenced_blocks.command_formatter(_params(), command)
 
 
 def variants(*args, **kwargs):

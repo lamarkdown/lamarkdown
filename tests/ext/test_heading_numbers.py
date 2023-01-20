@@ -1,6 +1,6 @@
 import unittest
 
-import lamarkdown.ext 
+import lamarkdown.ext
 import markdown
 
 import sys
@@ -13,11 +13,7 @@ class HeadingNumbersTestCase(unittest.TestCase):
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
             extensions = ['la.heading_numbers'],
-            extension_configs = {'la.heading_numbers':
-            {
-
-                **kwargs
-            }}
+            extension_configs = {'la.heading_numbers': kwargs}
         )
         return md.convert(dedent(markdown_text).strip())
 

@@ -1,9 +1,18 @@
 import lamarkdown as la
 from ..lib import fenced_blocks
 
-def apply(scale = 1.0):
+def apply():
     for cmd in ['dot', 'neato', 'circo', 'fdp', 'osage', 'patchwork', 'sfdp', 'twopi']:
-        la.fenced_command([cmd, '-Tsvg'], f'Graphviz ({cmd})')
+        la.fenced_block(f'graphviz-{cmd}', la.command_formatter([cmd, '-Tsvg']))
 
-    la.fenced_command(['plantuml', '-tsvg', '-p'], 'PlantUML')
-    la.fenced_block('matplotlib', fenced_blocks.matplotlib_formatter(la.get_params()))
+    la.fenced_block('plantuml', la.command_formatter(['plantuml', '-tsvg', '-p']))
+
+    la.fenced_block(
+        'matplotlib',
+        fenced_blocks.matplotlib_formatter(la.get_params()),
+        check_exec = True)
+
+    la.fenced_block(
+        'r-plot',
+        fenced_blocks.r_plot_formatter(la.get_params()),
+        check_exec = True)
