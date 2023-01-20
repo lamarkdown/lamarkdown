@@ -14,7 +14,7 @@ import time
 
 DIRECTORY_BUILD_FILE = 'md_build.py'
 
-VERSION = '0.9'
+VERSION = '0.10'
 
 
 def existing_file(a: str) -> str:
