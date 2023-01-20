@@ -1,7 +1,7 @@
 '''
 This is where we invoke Python Markdown, but also:
 
-* We find and invoke the build modules ('md_build.py', etc.)
+* We find and invoke the build files ('md_build.py', etc.)
 * We determine what variants (if any) the document has.
 * We build the complete HTML document around Python Markdown's output.
 '''
@@ -185,6 +185,13 @@ def write_html(content_html: str,
 
     build_params.progress.progress(os.path.basename(build_params.output_file), 'Creating output document')
 
+    # Run HTML hook functions
+    # (Note: content_html *does not* have a <body> element wrapped around it at this point.)
+    for fn in build_params.html_hooks:
+        new_content_html = fn(content_html)
+        if new_content_html is not None:
+            content_html = new_content_html
+
     buf = StringIO(content_html)
     try:
         root_element = lxml.html.parse(buf, _parser).find('body')
@@ -192,18 +199,26 @@ def write_html(content_html: str,
         build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
         return
 
-    # Run hook functions
+    # Run tree hook functions
     for fn in build_params.tree_hooks:
-        fn(root_element)
+        new_root = fn(root_element)
+        if new_root is not None:
+            # Allow hook functions to replace (and return) the whole root element if they want.
+            root_element = new_root
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
     xpaths_found = {xp for xp in build_params.resource_xpaths if root_element.xpath(xp)}
 
-    # Serialise document tree. ('root_element' is the <body> element, and we want to exclude
-    # that tag for now, so we serialise each child element separately.)
-    content_html = ''.join(lxml.etree.tostring(elem, encoding = 'unicode', method = 'html')
-                           for elem in root_element)
+    # Serialise document tree.
+    if root_element.tag == 'body':
+        # Exclude the <body> element for now -- just serialise each child element separately.
+        content_html = ''.join(lxml.etree.tostring(elem, encoding = 'unicode', method = 'html')
+                               for elem in root_element)
+    else:
+        # This isn't <body> (presumably because a hook function has changed it), so serialise it
+        # as-is.
+        content_html = lxml.etree.tostring(root_element, encoding = 'unicode', method = 'html')
 
     # Default title, if we can't a better one
     title_html = os.path.basename(build_params.target_base)
@@ -296,7 +311,7 @@ def write_html(content_html: str,
         <title>{title_html:s}</title>
         {css:s}</head>
         <body>{errors:s}
-        {content_start:s}{content_html:s}{content_end:s}
+        {content_html:s}
         {js:s}</body>
         </html>
     '''
@@ -307,9 +322,7 @@ def write_html(content_html: str,
         errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()
                          if not error.consumed),
-        content_start = build_params.content_start,
         content_html = content_html,
-        content_end = build_params.content_end,
         js = ''.join(res.as_script() + '\n'
                      for res in resources(build_params.js, xpaths_found, build_params.progress)),
     )

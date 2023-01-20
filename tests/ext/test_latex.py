@@ -1,14 +1,17 @@
 from ..util.mock_progress import MockProgress
 import unittest
 
+import lamarkdown.ext 
 import markdown
-from lamarkdown.ext import latex
 
 import base64
 import os.path
 import re
+import sys
 import tempfile
 from textwrap import dedent
+
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class LatexTestCase(unittest.TestCase):
     def setUp(self):
@@ -80,8 +83,8 @@ class LatexTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.latex'],
-            extension_configs = {'lamarkdown.ext.latex': {
+            extensions = ['la.latex'],
+            extension_configs = {'la.latex': {
                 'build_dir': self.tmp_dir,
                 'progress': MockProgress(),
                 'tex': f'python {self.mock_tex_command} in.tex out.pdf',

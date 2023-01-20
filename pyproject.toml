@@ -29,6 +29,14 @@ classifiers = [
 [tool.poetry.scripts]
 lamd = "lamarkdown.lib.lamd:main"
 
+[tool.poetry.plugins."markdown.extensions"]
+"la.cite"            = "lamarkdown.ext.cite:CiteExtension"
+"la.eval"            = "lamarkdown.ext.eval:EvalExtension"
+"la.heading_numbers" = "lamarkdown.ext.heading_numbers:HeadingNumbersExtension"
+"la.latex"           = "lamarkdown.ext.latex:LatexExtension"
+"la.markers"         = "lamarkdown.ext.markers:MarkersExtension"
+"la.sections"        = "lamarkdown.ext.sections:SectionsExtension"
+
 [tool.poetry.dependencies]
 python = "^3.7"
 markdown = "^3.3.7"
@@ -39,6 +47,7 @@ pymdown-extensions = ">=9"
 watchdog = "^2.1.9"
 pendulum = "^2.1.2"
 diskcache = "^5.4.0"
+pybtex = "^0.24.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
