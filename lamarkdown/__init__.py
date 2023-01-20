@@ -10,6 +10,8 @@ flexibility.)
 
 from .lib.build_params import BuildParams, Variant
 from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
+from .lib import fenced_blocks
+
 from markdown.extensions import Extension
 from lxml.cssselect import CSSSelector
 from lxml.html import HtmlElement
@@ -50,6 +52,39 @@ def target(fn: Callable[[str],str]):
 
 def base_name():
     _params().output_namer = lambda t: t
+
+def allow_exec(allow = True):
+    _params().allow_exec = allow
+
+def fenced_block(name: str,
+                 formatter: Callable,
+                 validator: Callable = None,
+                 css_class: str = name,
+                 cached: bool = True,
+                 check_exec: bool = False):
+
+    if not callable(formatter):
+        raise ValueError(f'"formatter" parameter should be a function/callable, but received {type(formatter).__name__} (value {formatter})')
+
+    if validator is not None and not callable(validator):
+        raise ValueError(f'"validator" parameter should be a function/callable, but received {type(validator).__name__} (value {validator})')
+
+    if cached:
+        formatter = fenced_blocks.caching_formatter(_params(), name, formatter)
+
+    if check_exec:
+        formatter = fenced_blocks.exec_formatter(_params(), name, formatter)
+
+    extension('pymdownx.superfences').setdefault('custom_fences', []).append({
+        'name': name,
+        'class': css_class,
+        'format': formatter,
+        **({'validator': validator} if validator else {})
+    })
+
+def command_formatter(command: List[str]):
+    return fenced_blocks.command_formatter(_params(), command)
+
 
 def variants(*args, **kwargs):
     p = _params()

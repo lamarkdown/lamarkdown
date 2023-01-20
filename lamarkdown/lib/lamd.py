@@ -52,6 +52,9 @@ def main():
     parser.add_argument('-B', '--no-auto-build-files', action='store_true',
                         help='Suppresses build file auto-detection, so that only build files specified with -b/--build will be loaded. Lamarkdown will not automatically read "md_build.py" or "<source>.py" in this case.')
 
+    parser.add_argument('-e', '--allow-exec', action='store_true',
+                        help='Allows execution of code from a markdown document, if/when requested (not just from the build files).')
+
     parser.add_argument('-D', '--no-build-defaults', action='store_true',
                         help='Suppresses the automatic default settings in case no build files exist. Has no effect if any build files are found and read.')
 
@@ -97,7 +100,9 @@ def main():
         build_defaults = not args.no_build_defaults,
         cache = diskcache.Cache(os.path.join(build_dir, 'cache')),
         progress = Progress(),
-        is_live = args.live is True
+        is_live = args.live is True,
+        allow_exec_cmdline = args.allow_exec is True,
+        allow_exec         = args.allow_exec is True
     )
     os.makedirs(build_dir, exist_ok = True)
 

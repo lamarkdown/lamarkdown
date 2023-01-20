@@ -69,7 +69,8 @@ class MdCompilerTestCase(unittest.TestCase):
             build_defaults = build_defaults,
             cache = {},
             progress = MockProgress(),
-            is_live = is_live
+            is_live = is_live,
+            allow_exec_cmdline = False
         )
 
         md_compiler.compile(bp)

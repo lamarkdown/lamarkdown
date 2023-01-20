@@ -348,16 +348,24 @@ def watch_live(build_params    : BuildParams,
     content = Content(build_params)
     content.update(all_build_params)
 
+    dependency_files = [
+        build_params.src_file,
+        *build_params.build_files,
+        *(os.path.abspath(f) for f in build_params.live_update_deps)
+    ]
+    dependency_paths = {os.path.dirname(p) for p in dependency_files if p}
+
     class SourceFileEventHandler(watchdog.events.FileSystemEventHandler):
         def on_closed(self, event): # When something else finishes writing to a file
-            if event.src_path == build_params.src_file or event.src_path in build_params.build_files:
+            # We're watching entire directory(ies), but we really only want to know about the 
+            # specific set of files.
+            if event.src_path in dependency_files:
                 content.recompile()
 
-    paths = {os.path.dirname(p) for p in [build_params.src_file] + build_params.build_files if p}
 
     handler = SourceFileEventHandler()
     observer = watchdog.observers.Observer()
-    for path in paths:
+    for path in dependency_paths:
         observer.schedule(handler, path)
     observer.start()
 

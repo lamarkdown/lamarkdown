@@ -13,7 +13,7 @@ of the form $`...` (or $``...``, etc). There are two approaches to doing this:
     time, into the document.
 
 2.  The extension can also execute the contents of $`...` as raw Python code. This will only be done
-    if (a) the 'allow_code' config option is True (by default it is False), and (b) if there is no
+    if (a) the 'allow_exec' config option is True (by default it is False), and (b) if there is no
     matching key in the replacement dict.
 
     When executing code this way, the result will be converted to a string, which will replace the
@@ -28,7 +28,7 @@ of the form $`...` (or $``...``, etc). There are two approaches to doing this:
     If there is an error in the expression, the error message will instead appear in the document,
     highlighted in red.
 
-    This approach has _security implications_! The `allow_code` option must not be enabled if there
+    This approach has _security implications_! The `allow_exec` option must not be enabled if there
     is any question about whether to trust the author of the markdown file.
 '''
 
@@ -48,11 +48,11 @@ DEFAULT_REPLACEMENTS = {
 
 
 class EvalInlineProcessor(InlineProcessor):
-    def __init__(self, regex, md, progress, replace, allow_code, env):
+    def __init__(self, regex, md, progress, replace, allow_exec, env):
         super().__init__(regex, md)
         self.progress = progress
         self.replace = replace
-        self.allow_code = allow_code
+        self.allow_exec = allow_exec
         self.env = env
 
     def handleMatch(self, match, data):
@@ -62,7 +62,7 @@ class EvalInlineProcessor(InlineProcessor):
         if code_stripped in self.replace:
             element.text = str(self.replace[code_stripped])
 
-        elif self.allow_code:
+        elif self.allow_exec:
             try:
                 element.text = str(eval(code, self.env))
             except Exception as e:
@@ -71,7 +71,7 @@ class EvalInlineProcessor(InlineProcessor):
         else:
             element = self.progress.error(
                 'Eval',
-                f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_code" option is set to False, so the text will not be executed as code.)',
+                f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
                 code
             ).as_dom_element()
 
@@ -93,13 +93,34 @@ class EvalExtension(Extension):
             pass
 
         self.config = {
-            'progress':   [p.progress  if p else Progress(), 'An object accepting progress messages.'],
-            'replace':    [DEFAULT_REPLACEMENTS, 'A dict for looking up replacement values for labels encountered in $`...`.'],
-            'allow_code': [False, 'Whether or not to execute raw Python code (if the text does not match any fixed replacements).'],
-            'env':        [dict(p.env) if p else {}, 'Environment in which to evaluate expressions (if allow_code==True).'],
-            'start':      ['$',   'Character (or string) marking the start of an eval expression'],
-            'end':        ['',    'Character (or string) marking the end of an eval expression'],
-            'delimiter':  ['`',   'Character (or string) enclosing an eval expression (after the start and before the end strings)'],
+            'progress': [
+                p.progress  if p else Progress(),
+                'An object accepting progress messages.'
+            ],
+            'replace': [
+                DEFAULT_REPLACEMENTS,
+                'A dict for looking up replacement values for labels encountered in $`...`.'
+            ],
+            'allow_exec': [
+                p.allow_exec if p else False,
+                'Whether or not to execute raw Python code (if the text does not match any fixed replacements).'
+            ],
+            'env': [
+                dict(p.env) if p else {},
+                'Environment in which to evaluate expressions (if allow_exec==True).'
+            ],
+            'start': [
+                '$',
+                'Character (or string) marking the start of an eval expression'
+            ],
+            'end': [
+                '',
+                'Character (or string) marking the end of an eval expression'
+            ],
+            'delimiter': [
+                '`',
+                'Character (or string) enclosing an eval expression (after the start and before the end strings)'
+            ],
         }
         super().__init__(**kwargs)
 
@@ -112,7 +133,7 @@ class EvalExtension(Extension):
             f'{start}(?P<bt>{delim}+)(?P<code>.*?)(?P=bt){end}', md,
             progress = self.getConfig('progress'),
             replace = self.getConfig('replace'),
-            allow_code = self.getConfig('allow_code'),
+            allow_exec = self.getConfig('allow_exec'),
             env = self.getConfig('env'))
 
         # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have

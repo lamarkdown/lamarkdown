@@ -1,20 +1,22 @@
 from ..util.mock_progress import MockProgress
 import unittest
 
+import lamarkdown.ext
 import markdown
-from lamarkdown.ext import eval
 
 import datetime
 import re
+import sys
 from textwrap import dedent
 
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class EvalTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.eval'],
-            extension_configs = {'lamarkdown.ext.eval':
+            extensions = ['la.eval'],
+            extension_configs = {'la.eval':
             {
                 'progress': MockProgress(),
                 **kwargs
@@ -65,7 +67,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $`111+222` sometext
             ''',
-            allow_code = True
+            allow_exec = True
         )
 
         self.assertRegex(
@@ -85,7 +87,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $`111+222` sometext
             ''',
-            allow_code = False
+            allow_exec = False
         )
 
         self.assertNotIn('333', html)
@@ -96,7 +98,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext $```'triple delimiter'``` sometext
             ''',
-            allow_code = True
+            allow_exec = True
         )
 
         self.assertIn('triple delimiter', html)
@@ -107,7 +109,7 @@ class EvalTestCase(unittest.TestCase):
             r'''
             Sometext #///'alt delimiter'///& sometext
             ''',
-            allow_code = True,
+            allow_exec = True,
             start = '#',
             end = '&',
             delimiter = '/'

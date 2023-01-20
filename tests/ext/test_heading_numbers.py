@@ -1,21 +1,19 @@
 import unittest
 
+import lamarkdown.ext
 import markdown
-from lamarkdown.ext import heading_numbers
 
+import sys
 from textwrap import dedent
 
+sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class HeadingNumbersTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, **kwargs):
         md = markdown.Markdown(
-            extensions = ['lamarkdown.ext.heading_numbers'],
-            extension_configs = {'lamarkdown.ext.heading_numbers':
-            {
-
-                **kwargs
-            }}
+            extensions = ['la.heading_numbers'],
+            extension_configs = {'la.heading_numbers': kwargs}
         )
         return md.convert(dedent(markdown_text).strip())
 

@@ -17,20 +17,24 @@ from xml.etree import ElementTree
 
 
 class MarkersProcessor(markdown.treeprocessors.Treeprocessor):
-    REGEX = re.compile('/(\{[^}]*\})')
+    REGEX = re.compile(r'/({[^}]*})')
 
     def __init__(self, md):
         super().__init__(md)
 
     def run(self, root):
-        for element in root:
+        for element in root.iter('p'):
             if isinstance(element.text, str):
                 match = self.REGEX.fullmatch(element.text)
                 if match:
+                    # Not a paragraph anymore
+                    element.tag = 'div'
+                    
+                    # Leave just the attribute list, for attr_list to parse later.
                     element.text = '\n' + match.group(1)
+                    
+                    # Stop it being rendered in the output.
                     element.set('style', 'display: none;')
-
-            self.run(element)
 
         return None
 
@@ -41,13 +45,10 @@ class MarkersExtension(markdown.Extension):
         super().__init__(**kwargs)
 
     def extendMarkdown(self, md):
-        proc = MarkersProcessor(md)
-        
         # Auto-load attr_list, since the markers extension is essentially useless without it.
         md.registerExtensions(['attr_list'], {}) 
         
-        md.treeprocessors.register(proc, 'lamarkdown.markers', 100)
-
+        md.treeprocessors.register(MarkersProcessor(md), 'markers', 100)
 
 
 def makeExtension(**kwargs):
