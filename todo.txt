@@ -1,8 +1,0 @@
-TODO
-
-* More metadata: author(s), creation program, creation time, etc.
-    - Allow metadata to be specified in the build module AND/OR by the 'meta' extension
-
-* Find a way to simplify extension naming;
-    e.g. 'lamdx.eval' or 'la.eval' or '.eval'.
-

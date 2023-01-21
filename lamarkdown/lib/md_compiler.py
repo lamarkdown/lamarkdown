@@ -253,7 +253,7 @@ def write_html(content_html: str,
         # (2) The convention (for specifying the HTML language) allows a full language tag,
         #     but the examples appear to favour the language only, without the region.
 
-        locale_parts = (locale.getdefaultlocale()[0] or 'en').split('_')
+        locale_parts = (locale.getlocale()[0] or 'en').split('_')
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
 

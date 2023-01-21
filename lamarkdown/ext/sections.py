@@ -31,19 +31,19 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
 
     def __init__(self, md, separator):
         super().__init__(md)
-        self._regex = re.compile('^[ ]*' + re.escape(separator) + '([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
+        self._regex = re.compile('^[ ]*' + re.escape(separator) + r'([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
 
     def test(self, parent, block):
         self._match = self._regex.fullmatch(block)
         return self._match
 
     def run(self, parent, blocks):
-        blocks.pop(0) # We don't actually need the block, but we have to discard it.        
-        elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: _SEPARATOR_ATTR_VALUE})        
+        blocks.pop(0) # We don't actually need the block, but we have to discard it.
+        elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: _SEPARATOR_ATTR_VALUE})
         attr_list = self._match.group("attr")
         if attr_list:
             AttrListTreeprocessor().assign_attrs(elem, attr_list)
-        
+
 
 
 class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):

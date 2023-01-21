@@ -1,5 +1,7 @@
 import lamarkdown as la
 import pymdownx
+
+import copy
 from lxml.etree import SubElement
 
 def apply():
@@ -60,6 +62,8 @@ def apply():
         'la-bullet2-color': '#80c0ff',
         'la-bullet2-shape': r'"\25B8"',
         'la-number-color': '#ff6000',
+
+        'la-box-corner-radius': '5px',
     }.items():
         if name not in la.css_vars:
             la.css_vars[name] = value
@@ -134,7 +138,7 @@ def apply():
     la.css_rule(
         '.admonition',
         '''
-        border-radius: 5px;
+        border-radius: var(--la-box-corner-radius);
         border: 1px solid var(--la-admonition-border-color);
         padding: 0 1em;
         margin: 1ex 0;
@@ -299,37 +303,67 @@ def apply():
     la.css(
         r'''
         @media screen {
-            #toc {
+            #la-toc-sidebar {
                 overflow: auto;
                 width: 20em;
                 resize: horizontal;
                 background: var(--la-main-background, white);
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color, black);
             }
+
+            #la-toc-inline {
+                display: none;
+            }
         }
 
-        #toc {
+        @media print {
+            #la-toc-sidebar {
+                display: none;
+            }
+        }
+
+        .la-toc {
             padding: 1em;
         }
 
-        #toc .toctitle {
+        .la-toc .toctitle {
             font-weight: bold;
             margin: 0;
         }
 
-        #toc ul {
+        .la-toc ul {
             padding-left: 1.5em;
         }
 
-        #toc a {
+        .la-toc a {
             text-decoration: none;
         }
 
-        #toc a:hover {
+        .la-toc a:hover {
             text-decoration: underline;
         }
         ''',
-        if_selectors = '#toc'
+        if_selectors = '.la-toc'
+    )
+
+    la.css(r'''
+        #la-bibliography {
+            display: grid;
+            width: 100%;
+            grid-template-columns: 0fr 1fr;
+        }
+
+        #la-bibliography > dt {
+            grid-column: 1;
+            margin-top: 1ex;
+        }
+
+        #la-bibliography > dd {
+            grid-column: 2;
+            margin-top: 1ex;
+        }
+        ''',
+        if_selectors = '#la-bibliography'
     )
 
     def create_flex_structure(root):
@@ -348,9 +382,13 @@ def apply():
 
         toc_list = doc_element.xpath('//*[@class="toc"]')
         if toc_list:
-            toc = toc_list[0]
-            flex_container.insert(0, toc)
-            toc.attrib['id'] = 'toc'
+            inline_toc = toc_list[0]
+            inline_toc.attrib['class'] = 'la-toc'
+            sidebar_toc = copy.deepcopy(inline_toc)
+
+            inline_toc.attrib['id'] = 'la-toc-inline'
+            sidebar_toc.attrib['id'] = 'la-toc-sidebar'
+            flex_container.insert(0, sidebar_toc)
 
 
     la.with_tree(create_flex_structure)
