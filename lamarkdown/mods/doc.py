@@ -1,7 +1,14 @@
 import lamarkdown as md
 import pymdownx
 
-def apply():
+default_import_fonts = dict(
+    serif = 'https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap',
+    sans = 'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap',
+    monospace = 'https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&display=swap',
+)
+
+def apply(import_fonts = {}):    
+    
     md.extensions(
         'admonition', # 'Notes', 'warnings', etc.
         'meta',       # Allows for defining metadata in the markdown.
@@ -17,12 +24,20 @@ def apply():
         'lamarkdown.ext.eval',
         'lamarkdown.ext.markers',
     )
+    
+    #@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&family=Merriweather&family=Merriweather+Sans&display=swap');
+        #@import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap');
+        #@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&display=swap');
+        #@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+    
+    fonts = dict(default_import_fonts)
+    fonts.update(import_fonts)
+    
+    for url in fonts.values():
+        if url is not None:
+            md.css(f'@import url({url});')
 
     md.css(r'''
-        @import url('https://fonts.googleapis.com/css2?family=Merriweather&family=Merriweather+Sans&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@500&family=Merriweather&family=Merriweather+Sans&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-
         @media screen {
             html { background: #404040; }
             body {
@@ -58,7 +73,7 @@ def apply():
     md.css_rule('code', 'font-family: "Inconsolata", monospace;')
 
     md.css_rule(
-        '.admonition',
+        ['.admonition', '.boxed'],
         '''
         border-radius: 5px;
         border: 1px solid #606060;
