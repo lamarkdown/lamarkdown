@@ -11,8 +11,8 @@ class MockProgress:
     def __init__(self, expect_error: bool = False):
         self.expect_error = expect_error
 
-    def progress(self, *a, **k):             return MockMsg()
-    def warning(self, *a, **k):              return MockMsg()
+    def progress(self, *a, **k): return MockMsg()
+    def warning(self, *a, **k):  return MockMsg()
     def error(self, location, msg, *a, **k):
         if not self.expect_error:
             raise MockProgressException(f'{location}: {msg}')
@@ -25,4 +25,4 @@ class MockProgress:
         else:
             return MockMsg()
 
-    def get_errors(self, *a, **k):           return []
+    def get_errors(self, *a, **k): return []

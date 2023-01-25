@@ -16,6 +16,7 @@ element. If a divider appears before any other content, then it *won't* create a
 import markdown
 from markdown.extensions.attr_list import AttrListTreeprocessor
 
+import copy
 import re
 from xml.etree import ElementTree
 
@@ -50,14 +51,14 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
         super().__init__(md)
 
-    def run(self, root):
+    def run(self, root):      
         sections_found = False
         first = True
         new_root = ElementTree.Element('div')
         section = ElementTree.Element('section')
         section.text = '\n'
         section.tail = '\n'
-
+        
         for element in root:
             if element.tag == 'div' and element.attrib[_SEPARATOR_ATTR] == _SEPARATOR_ATTR_VALUE:
                 sections_found = True
@@ -65,21 +66,20 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     # Allow for a 'separator' right at the start, which serves purely to specify
                     # attributes, and doesn't create a blank first section.
                     new_root.append(section)
-
+        
                 section = ElementTree.Element('section')
                 section.text = '\n'
                 section.tail = '\n'
-                section.attrib = element.attrib
-                del section.attrib[_SEPARATOR_ATTR]
-
+                section.attrib = {k: v for k, v in element.attrib.items() if k != _SEPARATOR_ATTR}
+        
             else:
-                section.append(element)
-
+                section.append(copy.deepcopy(element))
+        
             first = False
-
+        
         new_root.append(section)
         return new_root if sections_found else root
-
+        
 
 
 class SectionsExtension(markdown.Extension):
@@ -94,9 +94,9 @@ class SectionsExtension(markdown.Extension):
         tree_proc = SectionTreeProcessor(md)
 
         # Block processor priority must be >50, to override HRProcessor.
-        md.parser.blockprocessors.register(block_proc, 'lamarkdown.sections', 60)
+        md.parser.blockprocessors.register(block_proc, 'la-sections-block', 60)
 
-        md.treeprocessors.register(tree_proc, 'lamarkdown.sections', 30)
+        md.treeprocessors.register(tree_proc, 'la-sections-tree', 30)
 
 
 

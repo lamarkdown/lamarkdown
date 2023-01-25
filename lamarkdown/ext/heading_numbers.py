@@ -74,7 +74,7 @@ class HeadingNumbersExtension(markdown.Extension):
         # * We must run after 'attr_list' (priority 8) in order to query class="notnumbered".
         # * We must run before 'toc' (priority 5), to get numbers into the table-of-contents.
 
-        md.treeprocessors.register(proc, 'lamarkdown.ext.heading_numbers', 7)
+        md.treeprocessors.register(proc, 'la-heading-numbers-tree', 7)
 
 
 

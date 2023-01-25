@@ -548,8 +548,8 @@ class LatexExtension(Extension):
             strip_html_comments = self.getConfig('strip_html_comments'),
         )
 
-        md.preprocessors.register(self.preprocessor, 'latex-pre', 15)
-        md.postprocessors.register(self.postprocessor, 'latex-post', 25)
+        md.preprocessors.register(self.preprocessor, 'la-latex-pre', 15)
+        md.postprocessors.register(self.postprocessor, 'la-latex-post', 25)
 
 
 

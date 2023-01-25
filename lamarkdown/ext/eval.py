@@ -138,7 +138,7 @@ class EvalExtension(Extension):
 
         # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have
         # a higher priority than that (or not use backticks).
-        md.inlinePatterns.register(proc, 'lamarkdown.eval', 200)
+        md.inlinePatterns.register(proc, 'la-eval-inline', 200)
 
 
 def makeExtension(**kwargs):

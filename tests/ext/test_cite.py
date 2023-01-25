@@ -1,3 +1,4 @@
+from ..util.mock_progress import MockProgress
 import unittest
 
 import lamarkdown.ext
@@ -47,7 +48,10 @@ class CiteTestCase(unittest.TestCase):
     def run_markdown(self, markdown_text, more_extensions=[], **kwargs):
         md = markdown.Markdown(
             extensions = ['la.cite', *more_extensions],
-            extension_configs = {'la.cite': kwargs}
+            extension_configs = {'la.cite': {
+                'progress': MockProgress(),
+                **kwargs
+            }}
         )
         return md.convert(dedent(markdown_text).strip())
 

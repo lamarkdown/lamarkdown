@@ -190,6 +190,8 @@ class PybtexTreeProcessor(Treeprocessor):
         self.cited_keys = cited_keys
 
     def run(self, root):
+        progress = self.ext.getConfig('progress')
+        
         # 'cited_keys' should have been populated by now. If it's still empty, it means there are
         # no citations, and we can cut short the Treeprocessor:
         if len(self.cited_keys) == 0:
@@ -199,10 +201,11 @@ class PybtexTreeProcessor(Treeprocessor):
             formatted_biblio = self.bib_style.format_bibliography(self.bib_parser.data,
                                                                   self.cited_keys)
         except pybtex.exceptions.PybtexError as e:
-            self.ext.getConfig('progress').error('la.cite (pybtex)', str(e))
+            progress.error('la.cite (pybtex)', str(e))
             return
-
-
+        
+        progress.progress('la.cite', f'{len(self.cited_keys)} citation(s)')
+        
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels'
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.
         entries = {entry.key: entry for entry in formatted_biblio.entries}
@@ -312,7 +315,7 @@ class PybtexTreeProcessor(Treeprocessor):
         # Otherwise, we won't wouldn't be able to use normal markdown syntax inside the reference
         # list, and this would prevent sensible handling of URLs.
         markdown.treeprocessors.InlineProcessor(self.md).run(biblio_root)
-
+        
 
 
 class CiteExtension(markdown.Extension):
@@ -442,18 +445,18 @@ class CiteExtension(markdown.Extension):
         # it's another extension's preprocessor ('meta') that _parses_ the metadata, our
         # preprocessor must run with a lower priority (than 27).
         pre_proc = MetadataPreprocessor(md, self, bib_parser, cited_keys)
-        md.preprocessors.register(pre_proc, 'biblio_files', -10)
+        md.preprocessors.register(pre_proc, 'la-cite-pre', -10)
 
         # The inline processor identifies citations, creates tree nodes to keep track of them
         # (with details to be filled in later), and gathers the set of all cited keys.
         inline_proc = CitationInlineProcessor(bib_parser, cited_keys)
-        md.inlinePatterns.register(inline_proc, 'lamarkdown.pybtex', 130)
+        md.inlinePatterns.register(inline_proc, 'la-cite-inline', 130)
 
         # The tree processor must run _after_ the inline processor. Python-Markdown runs all inline
         # processors from within a TreeProcessor named InlineProcessor, with priority 20, so
         # PybtexTreeProcessor must have lower priority than that.
         tree_proc = PybtexTreeProcessor(md, self, bib_parser, bib_style, cited_keys)
-        md.treeprocessors.register(tree_proc, 'lamarkdown.sections', 10)
+        md.treeprocessors.register(tree_proc, 'la-cite-tree', 10)
 
 
 
