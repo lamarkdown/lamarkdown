@@ -14,6 +14,7 @@ import lxml.etree
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+import os.path
 from typing import Any, Callable, ClassVar, Dict, Iterable, List, Optional, Set
 
 class ResourceError(Exception): pass
@@ -59,23 +60,23 @@ class BuildParams:
     allow_exec_cmdline: bool
 
     # These fields *are* modifiable by build modules (or even extensions):
-    name:               str                        = ''
-    variant_name_sep:   str                        = '_'
-    variants:           List[Variant]              = field(default_factory=list)
-    named_extensions:   Dict[str,Dict[str,Any]]    = field(default_factory=dict)
-    obj_extensions:     List[Extension]            = field(default_factory=list)
-    tree_hooks:         List[Callable]             = field(default_factory=list)
-    html_hooks:         List[Callable]             = field(default_factory=list)
-    css_vars:           Dict[str,str]              = field(default_factory=dict)
-    css:                List[ResourceSpec]         = field(default_factory=list)
-    js:                 List[ResourceSpec]         = field(default_factory=list)
-    resource_path:      str                        = None
-    embed_resources:    Optional[bool]             = None
-    resource_hash_type: Optional[str]              = None
-    env:                Dict[str,Any]              = field(default_factory=Environment)
-    output_namer:       Callable[[str],str]        = lambda t: t
-    allow_exec:         bool                       = False
-    live_update_deps:   Set[str]                   = field(default_factory=set)
+    name:                 str                        = ''
+    variant_name_sep:     str                        = '_'
+    variants:             List[Variant]              = field(default_factory=list)
+    named_extensions:     Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    obj_extensions:       List[Extension]            = field(default_factory=list)
+    tree_hooks:           List[Callable]             = field(default_factory=list)
+    html_hooks:           List[Callable]             = field(default_factory=list)
+    css_vars:             Dict[str,str]              = field(default_factory=dict)
+    css:                  List[ResourceSpec]         = field(default_factory=list)
+    js:                   List[ResourceSpec]         = field(default_factory=list)
+    custom_resource_path: str                        = None
+    embed_resources:      Optional[bool]             = None
+    resource_hash_type:   Optional[str]              = None
+    env:                  Dict[str,Any]              = field(default_factory=Environment)
+    output_namer:         Callable[[str],str]        = lambda t: t
+    allow_exec:           bool                       = False
+    live_update_deps:     Set[str]                   = field(default_factory=set)
 
     def set_current(self):
         BuildParams.current = self
@@ -91,6 +92,10 @@ class BuildParams:
     @property
     def output_file(self):
         return self.output_namer(self.target_file)
+
+    @property
+    def resource_path(self):
+        return self.custom_resource_path or os.path.dirname(os.path.abspath(self.src_file))
 
     @property
     def resource_xpaths(self) -> Set[str]:
@@ -113,6 +118,7 @@ class BuildParams:
         self.css_vars = {}
         self.css = []
         self.js = []
+        self.custom_resource_path = None
         self.embed_resources = None
         self.resource_hash_type = None
         self.env = Environment()

@@ -226,7 +226,7 @@ def _url_resources(url_list: List[str],
                               cache = p.cache,
                               embed = embed,
                               hash_type = hash_type,
-                              base_path = p.resource_path or os.path.dirname(os.path.abspath(p.src_file)),
+                              resource_path = p.resource_path,
                               mime_type = mime_type,
                               embed_policy = lambda: p.embed_resources,
                               hash_type_policy = lambda: p.resource_hash_type)

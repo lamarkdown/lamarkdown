@@ -154,10 +154,10 @@ def invoke_python_markdown(build_params: BuildParams):
     return content_html, meta
 
 
-def resources(spec_list: List[ResourceSpec],
-              xpaths_found: Set[str],
-              build_params: Progress,
-              filter_fn: Callable[[ResourceSpec],bool] = lambda _: True) -> List[Resource]:
+def resource_list(spec_list: List[ResourceSpec],
+                  xpaths_found: Set[str],
+                  build_params: Progress,
+                  filter_fn: Callable[[ResourceSpec],bool] = lambda _: True) -> List[Resource]:
     res_list = []
     for spec in spec_list:
         if filter_fn(spec):
@@ -198,6 +198,13 @@ def write_html(content_html: str,
     except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
         build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
         return
+
+    # Embed media resources, if needed
+    if build_params.embed_resources is not False:
+        resources.embed_media(root_element,
+                              build_params.resource_path,
+                              build_params.cache,
+                              build_params.progress)
 
     # Run tree hook functions
     for fn in build_params.tree_hooks:
@@ -261,10 +268,10 @@ def write_html(content_html: str,
     # content to be included after. It is assumed that the external resources should be loaded
     # first.
 
-    css_link_list    = resources(build_params.css, xpaths_found, build_params.progress,
-                                 lambda spec: not isinstance(spec, ContentResourceSpec))
-    css_content_list = resources(build_params.css, xpaths_found, build_params.progress,
-                                 lambda spec: isinstance(spec, ContentResourceSpec))
+    css_link_list    = resource_list(build_params.css, xpaths_found, build_params.progress,
+                                     lambda spec: not isinstance(spec, ContentResourceSpec))
+    css_content_list = resource_list(build_params.css, xpaths_found, build_params.progress,
+                                     lambda spec: isinstance(spec, ContentResourceSpec))
 
     # css_content_list should contain a single element, or possibly (rarely) be empty, because of
     # the coalescing of content resources.
@@ -324,7 +331,9 @@ def write_html(content_html: str,
                          if not error.consumed),
         content_html = content_html,
         js = ''.join(res.as_script() + '\n'
-                     for res in resources(build_params.js, xpaths_found, build_params.progress)),
+                     for res in resource_list(build_params.js,
+                                              xpaths_found,
+                                              build_params.progress)),
     )
 
     with open(build_params.output_file, 'w') as target:
