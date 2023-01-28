@@ -1,6 +1,7 @@
 from .progress import Progress
 
 import diskcache
+import fontTools.ttLib
 
 from base64 import b64encode
 from dataclasses import dataclass
@@ -16,13 +17,15 @@ from typing import Callable, List, Optional, Set, Tuple
 import urllib.request
 
 
+DEFAULT_USER_AGENT = None
 DEFAULT_CACHE_EXPIRY = 86400 # By default, cache resources for 24 hours
 URL_SCHEME_REGEX = re.compile('[a-z]+:')
 
 def read_url(url: str,
              resource_path: str,
              cache,
-             progress: Progress) -> Tuple[bool, bytes, str]:
+             progress: Progress,
+             user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
     if URL_SCHEME_REGEX.match(url):
         cache_entry = cache.get(url)
 
@@ -115,6 +118,20 @@ def make_data_url(url: str,
             progress
         ).encode()
 
+    elif mime_type in ['font/ttf', 'font/otf']:
+        cache_key = ('ttf-to-woff2', content_bytes)
+        if cache_key in cache:
+            content_bytes = cache[cache_key]
+        else:
+            font = fontTools.ttLib.TTFont(io.BytesIO(content_bytes))
+            buf = io.BytesIO()
+            font.flavor = 'woff2'
+            font.save(buf)
+            content_bytes = buf.getvalue()
+            cache[cache_key] = content_bytes
+
+        mime_type = 'font/woff2'
+
     return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
 
 
@@ -150,6 +167,12 @@ CSS_URL_REGEX = re.compile(fr'''(?xs)
         {CSS_STRING_REGEX_BASE}
     )
     \s*\)
+
+    # Find and discard trailing 'format()' declaration. (It's not useful for embedded data URLs,
+    # and if we're changing font formats from ttf to woff2, it's not going to be correct either.)
+    (
+        \s* format \( [^)]* \)
+    )?
 ''')
 
 # CSS @import can be written either '@import "..."' or '@import url(...)'. We're only matching the
@@ -409,6 +432,10 @@ class UrlResourceSpec(ResourceSpec):
             hash_type = 'sha256'
 
         if embed:
+            # TODO: probably better to make a ContentResource instead here, to avoid (at least one
+            # level of) base64 encoding, for space efficiency.
+            # However, I recall that doing so had some odd side-effects when used on JavaScript code
+            # in RevealJS...
             return UrlResource(make_data_url(url, self.resource_path, self.mime_type, self.cache, progress))
 
         elif hash_type:
