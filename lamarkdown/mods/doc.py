@@ -4,6 +4,10 @@ import pymdownx
 import copy
 from lxml.etree import SubElement
 
+# default_import_fonts = dict(
+#     serif =
+# )
+
 def apply():
     la.extensions(
         'admonition', # 'Notes', 'warnings', etc.
@@ -69,7 +73,7 @@ def apply():
             la.css_vars[name] = value
 
     la.css_files(
-        'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather&family=Inconsolata:wght@500&display=swap'
+        'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather&family=Inconsolata:wght@500'
     )
 
     la.css(r'''

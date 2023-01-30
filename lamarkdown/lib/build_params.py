@@ -67,6 +67,7 @@ class BuildParams:
     obj_extensions:       List[Extension]            = field(default_factory=list)
     tree_hooks:           List[Callable]             = field(default_factory=list)
     html_hooks:           List[Callable]             = field(default_factory=list)
+    font_codepoints:      Set[int]                   = field(default_factory=set)
     css_vars:             Dict[str,str]              = field(default_factory=dict)
     css:                  List[ResourceSpec]         = field(default_factory=list)
     js:                   List[ResourceSpec]         = field(default_factory=list)
@@ -115,6 +116,7 @@ class BuildParams:
         self.obj_extensions = []
         self.tree_hooks = []
         self.html_hooks = []
+        self.font_codepoints = set()
         self.css_vars = {}
         self.css = []
         self.js = []
