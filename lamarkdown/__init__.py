@@ -8,7 +8,7 @@ variants, css styles, etc. Build modules just need to 'import lamarkdown'.
 flexibility.)
 '''
 
-from .lib.build_params import BuildParams, Variant
+from .lib.build_params import BuildParams, EmbedRule, ResourceHashRule, Variant
 from .lib.resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from .lib import fenced_blocks
 
@@ -214,6 +214,7 @@ def js(content: str, **kwargs):
                                             content_factory = content_factory))
 
 def _url_resources(url_list: List[str],
+                   tag: str,
                    embed: Optional[bool] = None,
                    hash_type: Optional[str] = None,
                    mime_type: Optional[str] = None,
@@ -221,27 +222,55 @@ def _url_resources(url_list: List[str],
     p = _params()
     for url in url_list:
         (xpaths_required, url_factory) = _res_values(url, **kwargs)
-        yield UrlResourceSpec(xpaths_required = xpaths_required,
-                              url_factory = url_factory,
-                              cache = p.cache,
-                              embed = embed,
-                              hash_type = hash_type,
-                              base_path = p.resource_path or os.path.dirname(os.path.abspath(p.src_file)),
-                              mime_type = mime_type,
-                              embed_policy = lambda: p.embed_resources,
-                              hash_type_policy = lambda: p.resource_hash_type)
+        yield UrlResourceSpec(
+            xpaths_required = xpaths_required,
+            url_factory = url_factory,
+            cache = p.cache,
+            embed_fn = lambda:
+                embed if embed is not None else p.embed_rule(url, mime_type, tag),
+            hash_type_fn = lambda:
+                hash_type if hash_type is not None else p.resource_hash_rule(url, mime_type, tag),
+            resource_path = p.resource_path,
+            mime_type     = mime_type
+        )
 
 
 def css_files(*url_list: List[str], **kwargs):
-    _params().css.extend(_url_resources(url_list, mime_type = 'text/css', **kwargs))
+    _params().css.extend(_url_resources(url_list,
+                                        tag = 'style',
+                                        mime_type = 'text/css',
+                                        **kwargs))
 
 
 def js_files(*url_list: List[str], **kwargs):
-    _params().js.extend(_url_resources(url_list, mime_type = 'text/javascript', **kwargs))
+    _params().js.extend(_url_resources(url_list,
+                                       tag = 'script',
+                                       mime_type = 'application/javascript',
+                                       **kwargs))
 
 
-def embed_resources(embed: Optional[bool] = True):
-    _params().embed_resources = embed
+def embed(embed_spec: Union[bool,EmbedRule]):
+    p = _params()
+    if isinstance(embed_spec, bool):
+        p.embed_rule = lambda *_: embed_spec
+
+    elif callable(embed_spec):
+        p.embed_rule = embed_spec
+
+    else:
+        raise ValueError(f'"embed_spec" expected to be a bool, or a fn(str,str,str)->bool, but was {embed_spec.__class__} ({embed_spec}).')
+
+
+def resource_hash_type(hash_spec: Union[None,str,ResourceHashRule]):
+    p = _params()
+    if hash_spec in [None, 'sha256', 'sha384', 'sha512']:
+        p.resource_hash_rule = lambda *_: hash_spec
+
+    elif callable(hash_spec):
+        p.resource_hash_rule = hash_spec
+
+    else:
+        raise ValueError(f'"hash_spec" expected to be None, "sha256", "sha384", "sha512", or a fn(str,str,str)->str (returning one of these), but was {hash_spec.__class__} ({hash_spec}).')
 
 
 def __getattr__(name):

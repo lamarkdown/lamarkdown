@@ -11,6 +11,7 @@ from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
 from .progress import Progress
 from . import resources
+from . import resource_writers
 
 import lxml.html
 import markdown
@@ -154,16 +155,14 @@ def invoke_python_markdown(build_params: BuildParams):
     return content_html, meta
 
 
-def resources(spec_list: List[ResourceSpec],
-              xpaths_found: Set[str],
-              build_params: Progress,
-              filter_fn: Callable[[ResourceSpec],bool] = lambda _: True) -> List[Resource]:
+def resource_list(spec_list: List[ResourceSpec],
+                  xpaths_found: Set[str],
+                  build_params: Progress) -> List[Resource]:
     res_list = []
     for spec in spec_list:
-        if filter_fn(spec):
-            res = spec.make_resource(xpaths_found, build_params)
-            if res:
-                res.add_or_coalesce(res_list)
+        res = spec.make_resource(xpaths_found, build_params)
+        if res:
+            res_list.append(res)
     return res_list
 
 
@@ -199,12 +198,23 @@ def write_html(content_html: str,
         build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
         return
 
+    # Find all used codepoints
+    build_params.font_codepoints.update(
+        ord(ch)
+        for text in root_element.itertext()
+        for ch in text)
+    build_params.font_codepoints.update(range(0x00, 0x80)) # Add all ASCII chars too
+
     # Run tree hook functions
     for fn in build_params.tree_hooks:
         new_root = fn(root_element)
         if new_root is not None:
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
+
+    # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
+    # We're still only dealing with the output of Python Markdown here.)
+    resource_writers.embed_media(root_element, build_params)
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
@@ -256,31 +266,19 @@ def write_html(content_html: str,
         locale_parts = (locale.getlocale()[0] or 'en').split('_')
         lang_html = html.escape('-'.join(locale_parts[:-1] or locale_parts))
 
+    # Instantiate all CSS resources
+    css_list = resource_list(build_params.css, xpaths_found, build_params.progress)
 
-    # Split the CSS resources up into a list of links, to occur first, and a list of embedded
-    # content to be included after. It is assumed that the external resources should be loaded
-    # first.
-
-    css_link_list    = resources(build_params.css, xpaths_found, build_params.progress,
-                                 lambda spec: not isinstance(spec, ContentResourceSpec))
-    css_content_list = resources(build_params.css, xpaths_found, build_params.progress,
-                                 lambda spec: isinstance(spec, ContentResourceSpec))
-
-    # css_content_list should contain a single element, or possibly (rarely) be empty, because of
-    # the coalescing of content resources.
-    if len(css_content_list) > 1:
-        raise AssertionError
-
-
-    if len(css_content_list) == 1:
+    if any(isinstance(s, ContentResource) for s in css_list):
         # Figure out which CSS variables (custom properties) we need to define, based on whether
         # they're actually being used. We do this through simple regexes, rather than elaborate CSS
         # parsing, because it's far easier, and false positives (e.g., if a property is named
         # inside a string) don't do any real damage.
 
-        # (We check if css_content_list is non-empty, though, because if it is, then we assume no
-        # variables need be defined.)
-        vars_used = set(CSS_VAR_REGEX.findall(css_content_list[0].get_raw_content()))
+        vars_used = set()
+        for res in css_list:
+            if isinstance(res, ContentResource):
+                vars_used.update(CSS_VAR_REGEX.findall(res.content))
 
         vars_to_be_defined = {}
         while len(vars_used) > 0:
@@ -295,13 +293,15 @@ def write_html(content_html: str,
         if vars_to_be_defined:
             # If we found any variables we can define, create an extra ContentResource, to be
             # prepended to the existing embedded CSS.
-            ContentResource(
+            css_list.insert(0, ContentResource(
                 ':root {\n' + '\n'.join(
                     f'--{name}: {value};'
                     for name, value in sorted(vars_to_be_defined.items())
                 ) + '\n}'
-            ).prepend_or_coalesce(css_content_list)
+            ))
 
+    stylesheet_writer = resource_writers.StylesheetWriter(build_params)
+    script_writer = resource_writers.ScriptWriter(build_params)
 
     full_html_template = '''
         <!DOCTYPE html>
@@ -318,13 +318,14 @@ def write_html(content_html: str,
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css = ''.join(res.as_style() + '\n' for res in css_link_list + css_content_list),
+        css = stylesheet_writer.format(css_list),
         errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()
                          if not error.consumed),
         content_html = content_html,
-        js = ''.join(res.as_script() + '\n'
-                     for res in resources(build_params.js, xpaths_found, build_params.progress)),
+        js = script_writer.format(resource_list(build_params.js,
+                                                xpaths_found,
+                                                build_params.progress))
     )
 
     with open(build_params.output_file, 'w') as target:
