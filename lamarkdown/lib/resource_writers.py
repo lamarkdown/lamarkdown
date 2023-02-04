@@ -1,14 +1,34 @@
 from .build_params import BuildParams
 from .progress import Progress
-from .resources import UrlResource, ContentResource, read_url, make_data_url
+from .resources import UrlResource, ContentResource
+from . import resources
 
 import fontTools.ttLib
 import fontTools.subset
 
+from base64 import b64encode
 import html
 import io
+import mimetypes
 import re
-from typing import Iterable, List, Union
+from typing import Callable, Iterable, List, Tuple, Union
+
+Converter = Callable[[bytes,str],Tuple[bytes,str]]
+
+def make_data_url(url: str,
+                  mime_type: str,
+                  build_params: BuildParams,
+                  converter: Converter = None) -> str:
+
+    _, content_bytes, auto_mime_type = resources.read_url(url,
+                                                          build_params.resource_path,
+                                                          build_params.cache,
+                                                          build_params.progress)
+    mime_type = mime_type or auto_mime_type
+    if converter is not None:
+        content_bytes, mime_type = converter(content_bytes, mime_type)
+
+    return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
 
 
 RList = List[Union[UrlResource,ContentResource]]
@@ -32,7 +52,7 @@ class ResourceWriter:
             if isinstance(res, UrlResource):
                 if start_content_index is not None:
                     self._write_content(buffer, resource_list[start_content_index:(index + 1)])
-                    start_content_index = 0
+                    start_content_index = None
 
                 self._write_url(buffer, res)
 
@@ -47,6 +67,8 @@ class ResourceWriter:
             self._write_content(buffer, resource_list[start_content_index:])
 
     def _write_urls_first(self, buffer, resource_list: RList):
+        if len(resource_list) == 0: return ''
+
         content_resource_list = []
         for res in resource_list:
             if isinstance(res, UrlResource):
@@ -55,7 +77,9 @@ class ResourceWriter:
                 content_resource_list.append(res)
             else:
                 raise AssertionError
-        self._write_content(buffer, content_resource_list)
+
+        if len(content_resource_list) > 0:
+            self._write_content(buffer, content_resource_list)
 
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
         raise NotImplementedError
@@ -143,10 +167,10 @@ class StylesheetWriter(ResourceWriter):
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
-            _, content_bytes, _ = read_url(res.url,
-                                           self.build_params.resource_path,
-                                           self.build_params.cache,
-                                           self.build_params.progress)
+            _, content_bytes, _ = resources.read_url(res.url,
+                                                     self.build_params.resource_path,
+                                                     self.build_params.cache,
+                                                     self.build_params.progress)
 
             buffer.write(f'<style>\n{self._embed(content_bytes.decode())}\n</style>')
 
@@ -192,7 +216,7 @@ class StylesheetWriter(ResourceWriter):
                 # skip over them, since we don't want to go looking for URLs inside them.
                 comment_match = self.CSS_COMMENT_REGEX.match(css)
                 if comment_match:
-                    css = css[css.end():]
+                    css = css[comment_match.end():]
                     if len(css) == 0: break
 
                 str_match = self.CSS_STRING_REGEX.match(css)
@@ -215,25 +239,24 @@ class StylesheetWriter(ResourceWriter):
                     url = g.get('url') or g.get('str')
                     # CSS_URL_REGEX has both 'url' and 'str' groups. CSS_IMPORT_REGEX has only 'str'.
 
-                    if url.startswith('data:') or url.startswith('#'):
+                    # Translate escapes in original URL
+                    def escape_repl(m):
+                        ch = m.group("ch")
+                        return ch if ch else chr(int(m.group('hex'), base=16))
+                    url = self.CSS_STR_ESCAPE_REGEX.sub(escape_repl, url)
+
+                    if (
+                        url.startswith('data:') or url.startswith('#') or
+                        not self.build_params.embed_rule(url, mimetypes.guess_type(url)[0], 'style')
+                    ):
                         # Data URLs are already embedded, and so are fragment URLs (implicitly).
-                        buf.write(url)
+                        # Also, embed_rule could just say 'no'.
+                        buf.write(match.group())
 
                     else:
-                        # Translate escapes in original URL
-                        def escape_repl(m):
-                            ch = m.group("ch")
-                            return ch if ch else chr(int(m.group('hex'), base=16))
-                        url = self.CSS_STR_ESCAPE_REGEX.sub(escape_repl, url)
-
-                        # Grab the URL content and make a Data URL. (make_data_url() _shouldn't_ give us
-                        # back a URL with any characters that need escaping.)
-                        data_url = make_data_url(url,
-                                                 self.build_params.resource_path,
-                                                 None,
-                                                 self.build_params.cache,
-                                                 self.build_params.progress,
-                                                 self._convert)
+                        # Grab the URL content and make a Data URL. (make_data_url() _shouldn't_
+                        # give us back a URL with any characters that need escaping.)
+                        data_url = make_data_url(url, None, self.build_params, self._convert)
 
                         if match.group().startswith('@import'):
                             buf.write(f'@import "{data_url}"') # Don't terminate with ';', because we
@@ -297,25 +320,72 @@ class ScriptWriter(ResourceWriter):
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
         buffer.write('<script>\n')
         for resource in resource_sublist:
-            buffer.write(resource.content)
+            buffer.write(self._embed(resource.content))
+            buffer.write('\n')
         buffer.write('\n</script>')
 
-    def _write_url(self, buffer, resource: UrlResource):
-        src = html.escape(resource.url)
-        integrity = resource.integrity_attr()
-        buffer.write(f'<script src="{src}"{integrity}></script>')
+    def _write_url(self, buffer, res: UrlResource):
+        if res.to_embed:
+            _, content_bytes, _ = resources.read_url(res.url,
+                                                     self.build_params.resource_path,
+                                                     self.build_params.cache,
+                                                     self.build_params.progress)
+
+            buffer.write(f'<script>\n{self._embed(content_bytes.decode())}\n</script>')
+
+        else:
+            src = html.escape(res.url)
+            integrity = res.integrity_attr()
+            buffer.write(f'<script src="{src}"{integrity}></script>')
+
+    def _embed(self, js):
+        # TODO: to the extent that we can, we should find all external resources (particularly
+        # other .js files) mentioned in the script, and embed them somehow. We may need to defer to
+        # webpack, possibly https://github.com/django-webpack/django-webpack-loader.
+        return js
 
 
+# The following is the set of HTML elements that (potentially) specify a remote URL with their
+# src=... attribute.
+#
+# Notes:
+# <embed>'s usefulness may be doubtful, since it invokes external plugins, which are rare now, but
+#     it's still part of the standard.
+# <script> is unlikely to occur here, since we have a separate process for embedding scripts, but
+#     it's still legal.
+# <input>  can display a (remote) image using src=... (for type="image" controls)
+# <frame>  is omitted, because it is formally obsolete as of HTML 5.
+# <style>  is omitted, because it cannot take a src= attribute.
+# <link>   is omitted, because it can only legally occur inside <head>.
+#
+URL_ELEMENTS = {'audio', 'embed', 'iframe', 'img', 'input', 'script', 'source', 'track', 'video'}
 
-def embed_media(root_element,
-                resource_path: str,
-                cache,
-                progress: Progress):
 
-    media_elements = {'img', 'audio', 'video', 'track', 'source'}
+# The following is a subset of the above that specify the mime type with a type=... attribute.
+#
+# Notes:
+# <img>, <audio> and <video> (maybe surprisingly) don't have a type attribute. You can embed a
+#     <source> inside <picture>, <audio> or <video> to specify a mime type if needed.
+# <script> has a type attribute, but might sometimes be a mime type, but also has special values
+#     representing the script's role ('module', 'importmap', etc.). Given that a script is already
+#     a highly-specialised resource, we're not going to worry about its mime type.
+# <input> has a type attribute, but it specifies the class of UI control, not a mime type.
+#
+URL_MIMETYPE_ELEMENTS = {'embed', 'source'}
+
+
+def embed_media(root_element, build_params: BuildParams):
+
     for element in root_element.iter():
-        if element.tag in media_elements:
+        if element.tag in URL_ELEMENTS:
             src = element.get('src')
             if src is not None and not src.startswith('data:') and not src.startswith('#'):
-                mime_type = element.get('type')
-                element.set('src', make_data_url(src, resource_path, mime_type, cache, progress))
+
+                mime_type = None
+                if element.tag in URL_MIMETYPE_ELEMENTS:
+                    mime_type = element.get('type')
+
+                if build_params.embed_rule(src,
+                                           mime_type or mimetypes.guess_type(src)[0],
+                                           element.tag):
+                    element.set('src', make_data_url(src, mime_type, build_params))

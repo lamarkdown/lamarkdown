@@ -205,19 +205,16 @@ def write_html(content_html: str,
         for ch in text)
     build_params.font_codepoints.update(range(0x00, 0x80)) # Add all ASCII chars too
 
-    # Embed media resources, if needed
-    if build_params.embed_resources is not False:
-        resource_writers.embed_media(root_element,
-                                     build_params.resource_path,
-                                     build_params.cache,
-                                     build_params.progress)
-
     # Run tree hook functions
     for fn in build_params.tree_hooks:
         new_root = fn(root_element)
         if new_root is not None:
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
+
+    # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
+    # We're still only dealing with the output of Python Markdown here.)
+    resource_writers.embed_media(root_element, build_params)
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).

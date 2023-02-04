@@ -8,6 +8,7 @@ import markdown
 import lxml
 import cssutils
 
+import base64
 import os
 import tempfile
 from textwrap import dedent
@@ -20,10 +21,6 @@ class MdCompilerTestCase(unittest.TestCase):
         self.tmp_dir = self.tmp_dir_context.__enter__()
         self.html_file = os.path.join(self.tmp_dir, 'testdoc.html')
 
-        self.html_parser = lxml.html.HTMLParser(
-            recover = False,    # Don't accept broken HTML
-            no_network = True,  # Don't load remote resources
-        )
         self.css_parser = cssutils.CSSParser(
             parseComments = False,
             validate = True
@@ -34,10 +31,11 @@ class MdCompilerTestCase(unittest.TestCase):
         self.tmp_dir_context.__exit__(None, None, None)
 
 
-    def set_results(self, html_file):
+    def set_results(self, html_file, html_parser):
         # Parse with lxml to ensure that the output is well formed, and to allow it to be queried
         # with XPath expressions.
-        self.root = lxml.html.parse(html_file, self.html_parser)
+        # self.root = lxml.html.parse(html_file, self.html_parser)
+        self.root = lxml.html.parse(html_file, html_parser)
 
         # Now find and parse the CSS code, if any:
         self.css_sheets = [self.css_parser.parseString(t)
@@ -49,7 +47,11 @@ class MdCompilerTestCase(unittest.TestCase):
         self.body_html = lxml.html.tostring(self.root.find('body'), with_tail = False, encoding = 'unicode')
 
 
-    def run_md_compiler(self, markdown = '', build = None, build_defaults = True, is_live = False):
+    def run_md_compiler(self, markdown = '',
+                              build = None,
+                              build_defaults = True,
+                              is_live = False,
+                              recover = False):
         doc_file   = os.path.join(self.tmp_dir, 'testdoc.md')
         build_file = os.path.join(self.tmp_dir, 'testbuild.py')
         build_dir  = os.path.join(self.tmp_dir, 'build')
@@ -74,7 +76,14 @@ class MdCompilerTestCase(unittest.TestCase):
         )
 
         md_compiler.compile(bp)
-        self.set_results(self.html_file)
+
+        self.set_results(
+            self.html_file,
+            lxml.html.HTMLParser(
+                recover = recover,  # Accept (according to lxml/libxml) broken HTML?
+                no_network = True,  # Don't load remote resources
+            )
+        )
 
 
     def test_basic(self):
@@ -203,33 +212,162 @@ class MdCompilerTestCase(unittest.TestCase):
         for f in ['cssfile.css', 'jsfile.js']:
             with open(os.path.join(self.tmp_dir, f), 'w'): pass
 
-        self.run_md_compiler(
-            markdown = r'''
-                # Heading
+        for code in [
+            # Ensure that stylesheets and scripts are not embedded.
+            'la.embed(False)',
+            'la.embed(lambda url, mime_type, tag: not (url.endswith("css") or url.endswith("js")))',
+            'la.embed(lambda url, mime_type, tag: mime_type not in ["text/css", "application/javascript"])',
+            'la.embed(lambda url, mime_type, tag: tag not in ["style", "script"])'
+        ]:
+            self.run_md_compiler(
+                markdown = r'''
+                    # Heading
 
-                Paragraph1
+                    Paragraph1
+                    ''',
+                build = fr'''
+                    import lamarkdown as la
+                    {code}
+                    la.css_files("cssfile.css")
+                    la.js_files("jsfile.js")
+                    ''',
+                build_defaults = False
+            )
+
+            # Assert that the <link rel="stylesheet" href="..."> element exists.
+            assert_that(
+                self.root.xpath('count(/html/head/link[@rel="stylesheet"][@href="cssfile.css"])'),
+                is_(1))
+
+            # Assert that the <script src="..."> element exists, and that it comes after <p>.
+            assert_that(
+                self.root.xpath('count(/html/body/p/following-sibling::script[@src="jsfile.js"])'),
+                is_(1))
+
+
+    def test_css_js_files_embedded(self):
+
+        # Create mock .css and .js files. We're embedding them, so their contents do matter here.
+        with open(os.path.join(self.tmp_dir, 'cssfile.css'), 'w') as w:
+            w.write('p{color:blue}')
+
+        with open(os.path.join(self.tmp_dir, 'jsfile.js'), 'w') as w:
+            w.write('console.log(1)')
+
+        for code in [
+            # Ensure that stylesheets and scripts _are_ embedded.
+            '',
+            'la.embed(True)',
+            'la.embed(lambda url, mime_type, tag: url.endswith("css") or url.endswith("js"))',
+            'la.embed(lambda url, mime_type, tag: mime_type in ["text/css", "application/javascript"])',
+            'la.embed(lambda url, mime_type, tag: tag in ["style", "script"])'
+        ]:
+            self.run_md_compiler(
+                markdown = r'''
+                    # Heading
+
+                    Paragraph1
+                    ''',
+                build = fr'''
+                    import lamarkdown as la
+                    {code}
+                    la.css_files("cssfile.css")
+                    la.js_files("jsfile.js")
+                    ''',
+                build_defaults = False
+            )
+
+            # Assert that the <style>...</style> element exists, with the right content.
+            assert_that(
+                self.root.xpath('/html/head/style/text()'),
+                only_contains(equal_to_ignoring_whitespace('p{color:blue}')))
+
+            # Assert that the <script>...</script> element exists, with the right content.
+            assert_that(
+                self.root.xpath('/html/body/script/text()'),
+                only_contains(equal_to_ignoring_whitespace('console.log(1)')))
+
+
+    def test_element_embedding(self):
+
+        # A trivially-small .gif and .wav file. We need to know the file content, because we'll be
+        # checking for it (base64 encoded).
+
+        gif_bytes = b'GIF87a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+        wav_bytes = b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'
+
+        with open(os.path.join(self.tmp_dir, 'image.gif'), 'wb') as f:
+            f.write(gif_bytes)
+
+        with open(os.path.join(self.tmp_dir, 'audio.wav'), 'wb') as f:
+            f.write(wav_bytes)
+
+        for embed_spec in [
+            'True',
+            'lambda url,  _m, _t: url.endswith("gif") or url.endswith("wav")',
+            'lambda _u, mime, _t: mime in ["image/gif", "audio/x-wav"]',
+            'lambda _u, _m,  tag: tag in ["img", "audio"]'
+        ]:
+            self.run_md_compiler(
+                markdown = r'''
+                    # Heading
+
+                    ![Text](image.gif)
+                    <audio src="audio.wav" type="audio/x-wav" />
                 ''',
-            build = r'''
-                import lamarkdown as la
-                la.css_files("cssfile.css")
-                la.js_files("jsfile.js")
+                build = rf'''
+                    import lamarkdown as la
+                    la.embed({embed_spec})
                 ''',
-            build_defaults = False
-        )
 
-        # Assert that the <link rel="stylesheet" href="..."> element exists.
-        assert_that(
-            self.root.xpath('count(/html/head/link[@rel="stylesheet"][@href="cssfile.css"])'),
-            is_(1))
+                # lxml/libxml complains about <audio> (and other HTML 5 tags) being invalid. I'm not
+                # sure whether/how it can be pursuaded to accept them, other than by turning on
+                # 'recovery' of (supposedly) broken HTML.
+                recover = True
+            )
 
-        # Assert that the <script src="..."> element exists, and that it comes after <p>.
-        assert_that(
-            self.root.xpath('count(/html/body/p/following-sibling::script[@src="jsfile.js"])'),
-            is_(1))
+            assert_that(
+                self.root.xpath('//img/@src'),
+                only_contains(f'data:image/gif;base64,{base64.b64encode(gif_bytes).decode()}'))
+
+            assert_that(
+                self.root.xpath('//audio/@src'),
+                only_contains(f'data:audio/x-wav;base64,{base64.b64encode(wav_bytes).decode()}'))
 
 
-    #def test_css_js_files_embedded(self):
-        #......
+    def test_element_non_embedding(self):
+        for embed_spec in [
+            'False',
+            'lambda url,  _m, _t: not (url.endswith("gif") or url.endswith("wav"))',
+            'lambda _u, mime, _t: mime not in ["image/gif", "audio/x-wav"]',
+            'lambda _u, _m,  tag: tag not in ["img", "audio"]'
+        ]:
+            self.run_md_compiler(
+                markdown = r'''
+                    # Heading
+
+                    ![Text](image.gif)
+                    <audio src="audio.wav" type="audio/x-wav" />
+                ''',
+                build = rf'''
+                    import lamarkdown as la
+                    la.embed({embed_spec})
+                ''',
+
+                # lxml/libxml complains about <audio> (and other HTML 5 tags) being invalid. I'm not
+                # sure whether/how it can be pursuaded to accept them, other than by turning on
+                # 'recovery' of (supposedly) broken HTML.
+                recover = True
+            )
+
+            assert_that(
+                self.root.xpath('//img/@src'),
+                only_contains('image.gif'))
+
+            assert_that(
+                self.root.xpath('//audio/@src'),
+                only_contains('audio.wav'))
+
 
 
     def test_variants(self):
@@ -277,7 +415,10 @@ class MdCompilerTestCase(unittest.TestCase):
         )
 
         def for_(f):
-            self.set_results(os.path.join(self.tmp_dir, f + '.html'))
+            self.set_results(
+                os.path.join(self.tmp_dir, f + '.html'),
+                lxml.html.HTMLParser(recover = False, no_network = True)
+            )
 
         def exists():
             assert_that(
@@ -480,4 +621,3 @@ class MdCompilerTestCase(unittest.TestCase):
     #def get_build_dir():
     #def get_env():
     #def get_params():
-    #def embed_resources(embed: Optional[bool] = True):

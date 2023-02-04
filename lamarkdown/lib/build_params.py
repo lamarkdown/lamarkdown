@@ -43,6 +43,19 @@ class Environment(dict):
                 new_env[key] = value
         return new_env
 
+EmbedRule = Callable[[str,str,str],bool]
+ResourceHashRule = Callable[[str,str,str],Optional[str]]
+
+def default_embed_rule(url: str, mime_type: str, tag: str) -> bool:
+    return not (
+        tag in {'audio', 'video', 'iframe'} or
+        mime_type.startswith('audio/') or
+        mime_type.startswith('video/')
+    )
+
+def default_resource_hash_rule(url: str, mime_type: str, tag: str) -> str:
+    return None
+
 
 @dataclass
 class BuildParams:
@@ -72,8 +85,8 @@ class BuildParams:
     css:                  List[ResourceSpec]         = field(default_factory=list)
     js:                   List[ResourceSpec]         = field(default_factory=list)
     custom_resource_path: str                        = None
-    embed_resources:      Optional[bool]             = None
-    resource_hash_type:   Optional[str]              = None
+    embed_rule:           EmbedRule                  = default_embed_rule
+    resource_hash_rule:   ResourceHashRule           = default_resource_hash_rule
     env:                  Dict[str,Any]              = field(default_factory=Environment)
     output_namer:         Callable[[str],str]        = lambda t: t
     allow_exec:           bool                       = False
@@ -121,8 +134,8 @@ class BuildParams:
         self.css = []
         self.js = []
         self.custom_resource_path = None
-        self.embed_resources = None
-        self.resource_hash_type = None
+        self.embed_rule = default_embed_rule
+        self.resource_hash_rule = default_resource_hash_rule
         self.env = Environment()
         self.output_namer = lambda t: t
         self.live_update_deps = set()

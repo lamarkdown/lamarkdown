@@ -2,7 +2,6 @@ from .progress import Progress
 
 import diskcache
 
-from base64 import b64encode
 import email.utils
 import hashlib
 import mimetypes
@@ -22,6 +21,7 @@ def read_url(url: str,
              cache,
              progress: Progress,
              user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
+
     if URL_SCHEME_REGEX.match(url):
         cache_entry = cache.get(url)
 
@@ -97,17 +97,19 @@ def read_url(url: str,
             return (False, reader.read(), mime_type)
 
 
-def make_data_url(url: str,
-                  resource_path: str,
-                  mime_type: str,
-                  cache,
-                  progress: Progress,
-                  converter: Callable[[bytes,str],Tuple[bytes,str]] = lambda c,m: (c,m)) -> str:
-    _, content_bytes, auto_mime_type = read_url(url, resource_path, cache, progress)
-    mime_type = mime_type or auto_mime_type
-    content_bytes, mime_type = converter(content_bytes, mime_type)
-
-    return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
+# def make_data_url(url: str,
+#                   resource_path: str,
+#                   mime_type: str,
+#                   cache,
+#                   progress: Progress,
+#                   converter: Callable[[bytes,str],Tuple[bytes,str]] = lambda c,m: (c,m)) -> str:
+#     raise AssertionError
+#
+#     _, content_bytes, auto_mime_type = read_url(url, resource_path, cache, progress)
+#     mime_type = mime_type or auto_mime_type
+#     content_bytes, mime_type = converter(content_bytes, mime_type)
+#
+#     return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
 
 
 def _check(val, label):
@@ -164,22 +166,18 @@ class UrlResourceSpec(ResourceSpec):
     def __init__(self, xpaths_required: List[str],
                        url_factory: Callable[[Set[str]],Optional[str]],
                        cache: diskcache.Cache,
-                       embed: Optional[bool],
-                       hash_type: Optional[str],
+                       embed_fn: Callable[[],bool],
+                       hash_type_fn: Callable[[],Optional[str]],
                        resource_path: str,
-                       mime_type: str,
-                       embed_policy: Callable[[],Optional[bool]],     # = lambda _: None,
-                       hash_type_policy: Callable[[],Optional[str]]): # = lambda _: None):
+                       mime_type: str):
 
         super().__init__(xpaths_required)
         self.url_factory = url_factory
         self.cache = cache
-        self.embed = embed
-        self.hash_type = hash_type
+        self.embed_fn = embed_fn
+        self.hash_type_fn = hash_type_fn
         self.resource_path = resource_path
         self.mime_type = mime_type
-        self.embed_policy = embed_policy
-        self.hash_type_policy = hash_type_policy
 
 
     def make_resource(self, xpaths_found: Set[str],
@@ -188,21 +186,16 @@ class UrlResourceSpec(ResourceSpec):
         if url is None:
             return None
 
-        embed_policy = self.embed_policy()
-        embed = (
-            (embed_policy is True      and self.embed is not False) or
-            (embed_policy is not False and self.embed is True)
-        )
-
-        hash_type = self.hash_type or self.hash_type_policy()
-        if hash_type and hash_type not in ['sha256', 'sha384', 'sha512']:
-            progress.error(f'"{url}"', f'Unsupported hash type: {hash_type}')
-            hash_type = 'sha256'
-
+        embed = self.embed_fn()
         if embed:
             return UrlResource(url = url, to_embed = True)
 
-        elif hash_type:
+        hash_type = self.hash_type_fn()
+        if hash_type not in [None, 'sha256', 'sha384', 'sha512']:
+            progress.error(f'"{url}"', f'Unsupported hash type: {hash_type}')
+            hash_type = 'sha256'
+
+        if hash_type:
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both
             # use the same strings 'sha256', 'sha384' and 'sha512'.
             is_remote, content_bytes, _mime_type = read_url(url, self.resource_path, self.cache, progress)
