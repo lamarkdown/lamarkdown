@@ -4,12 +4,9 @@ import pymdownx
 import copy
 from lxml.etree import SubElement
 
-# default_import_fonts = dict(
-#     serif =
-# )
 
 def apply():
-    la.extensions(
+    la(
         'admonition', # 'Notes', 'warnings', etc.
         'meta',       # Allows for defining metadata in the markdown.
         'smarty',     # Auto-replacement of quotes, ellipses and dashes.
@@ -30,13 +27,13 @@ def apply():
         'la.markers',
     )
 
-    la.extension('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
+    la('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
     # Note:
     # * The user can choose NOT to have a table-of-contents just by omitting '[TOC]'
     # * The user can also re-configure the 'toc' extension simply by calling
     #   la.extension('toc', ...).
 
-    la.plots()
+    la.m.plots()
 
     for name, value in {
         'la-sans-font':         '"Open Sans", sans-serif',

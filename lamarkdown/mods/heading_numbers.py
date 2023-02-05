@@ -8,10 +8,10 @@ def apply(from_level: int = 2, to_level: int = 6, sep = ' ', method = 'static'):
         raise ValueError(f'from_level {from_level} must be <= to_level {to_level}, and both must be between 1 and 6 inclusive.')
 
     if method == 'static':
-        la.extension('lamarkdown.ext.heading_numbers',
-                     from_level = from_level,
-                     to_level = to_level,
-                     sep = sep)
+        la('la.heading_numbers',
+            from_level = from_level,
+            to_level = to_level,
+            sep = sep)
 
     elif method == 'css':
         la.css(f'body {{ counter-reset: {COUNTER_PREFIX}0; }}')

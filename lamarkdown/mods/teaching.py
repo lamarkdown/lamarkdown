@@ -1,7 +1,7 @@
 import lamarkdown as la
 
 def apply():
-    la.extensions('admonition')
+    la('admonition')
 
     la.css(
         r'''

@@ -6,9 +6,9 @@ import lamarkdown as la
 # CSS limitations).
 
 def apply(unix_prompt = '[user@pc]$', win_prompt = r'C:\>'):
-    
+
     # We rely on attr_list to mark the line/paragraph to be styled as command(s).
-    la.extension('attr_list')
+    la('attr_list')
 
     la.css_vars['la-prompt-color'] = '#808080';
     la.css_vars['la-unix-prompt-shape'] = '"' + unix_prompt.replace('\\', '\\\\') + '"'

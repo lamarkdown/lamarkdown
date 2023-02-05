@@ -14,6 +14,13 @@ import tempfile
 from textwrap import dedent
 
 
+# TODO: also test these API properties:
+# - css_vars
+# - build_dir
+# - env
+# - params
+
+
 class MdCompilerTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -388,7 +395,7 @@ class MdCompilerTestCase(unittest.TestCase):
                     la.base_name()
 
                 def variant_b():
-                    la.name("variant_b1")
+                    la.name = "variant_b1"
 
                 def variant_c():
                     la.target(lambda original: original + ".variant_c1.html")
@@ -536,7 +543,7 @@ class MdCompilerTestCase(unittest.TestCase):
                 ''',
             build = r'''
                 import lamarkdown as la
-                la.extensions('abbr', 'attr_list')
+                la('abbr', 'attr_list')
             ''',
             build_defaults = False
         )
@@ -565,9 +572,9 @@ class MdCompilerTestCase(unittest.TestCase):
                 ''',
             build = r'''
                 import lamarkdown as la
-                cfg = la.extension('smarty', smart_dashes = True, smart_quotes = False)
-                cfg["smart_angled_quotes"] = True
-                cfg["smart_ellipses"] = False
+                cfg = la('smarty', smart_dashes = True, smart_quotes = False)
+                cfg['smart_angled_quotes'] = True
+                cfg['smart_ellipses'] = False
             ''',
             build_defaults = False
         )
@@ -586,38 +593,61 @@ class MdCompilerTestCase(unittest.TestCase):
         )
 
 
+    # def test_extension_object(self):
+    #     for methodName in ['extension', 'extensions']:
+    #         self.run_md_compiler(
+    #             markdown = r'''
+    #                 # Heading
+    #
+    #                 Paragraph
+    #                 ''',
+    #             build = fr'''
+    #                 import lamarkdown as la
+    #                 import markdown
+    #
+    #                 class TestPostprocessor(markdown.postprocessors.Postprocessor):
+    #                     def run(self, text):
+    #                         return text + '<div>Extension</div>'
+    #
+    #                 class TestExtension(markdown.Extension):
+    #                     def extendMarkdown(self, md):
+    #                         md.postprocessors.register(TestPostprocessor(), 'test-proc', 25)
+    #
+    #                 la.{methodName}(TestExtension())
+    #             ''',
+    #             build_defaults = False
+    #         )
+    #
+    #         assert_that(
+    #             self.root.xpath('//div/text()')[0],
+    #             is_('Extension'))
+
     def test_extension_object(self):
-        for methodName in ['extension', 'extensions']:
-            self.run_md_compiler(
-                markdown = r'''
-                    # Heading
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading
 
-                    Paragraph
-                    ''',
-                build = fr'''
-                    import lamarkdown as la
-                    import markdown
-
-                    class TestPostprocessor(markdown.postprocessors.Postprocessor):
-                        def run(self, text):
-                            return text + '<div>Extension</div>'
-
-                    class TestExtension(markdown.Extension):
-                        def extendMarkdown(self, md):
-                            md.postprocessors.register(TestPostprocessor(), 'test-proc', 25)
-
-                    la.{methodName}(TestExtension())
+                Paragraph
                 ''',
-                build_defaults = False
-            )
+            build = fr'''
+                import lamarkdown as la
+                import markdown
 
-            assert_that(
-                self.root.xpath('//div/text()')[0],
-                is_('Extension'))
+                class TestPostprocessor(markdown.postprocessors.Postprocessor):
+                    def run(self, text):
+                        return text + '<div>Extension</div>'
+
+                class TestExtension(markdown.Extension):
+                    def extendMarkdown(self, md):
+                        md.postprocessors.register(TestPostprocessor(), 'test-proc', 25)
+
+                la(TestExtension())
+            ''',
+            build_defaults = False
+        )
+
+        assert_that(
+            self.root.xpath('//div/text()')[0],
+            is_('Extension'))
 
 
-    # API functions:
-    # ---
-    #def get_build_dir():
-    #def get_env():
-    #def get_params():

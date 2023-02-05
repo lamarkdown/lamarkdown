@@ -57,6 +57,16 @@ def default_resource_hash_rule(url: str, mime_type: str, tag: str) -> str:
     return None
 
 
+# test_default = BuildParams(
+#     src_file = 'test.md',
+#     target_file = 'test.html',
+#     build_files = [],
+#     build_dir = '.',
+#     build_defaults = True,
+#     cache = None,
+#     progress = None,
+
+
 @dataclass
 class BuildParams:
     current: ClassVar[Optional['BuildParams']] = None

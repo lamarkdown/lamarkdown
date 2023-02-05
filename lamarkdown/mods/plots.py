@@ -9,10 +9,10 @@ def apply():
 
     la.fenced_block(
         'matplotlib',
-        fenced_blocks.matplotlib_formatter(la.get_params()),
+        fenced_blocks.matplotlib_formatter(la.params),
         check_exec = True)
 
     la.fenced_block(
         'r-plot',
-        fenced_blocks.r_plot_formatter(la.get_params()),
+        fenced_blocks.r_plot_formatter(la.params),
         check_exec = True)
