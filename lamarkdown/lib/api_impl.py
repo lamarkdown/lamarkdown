@@ -4,7 +4,7 @@
 The functions here are to be used by build files and extensions.
 '''
 
-from .build_params import BuildParams, EmbedRule, ResourceHashRule, Variant
+from .build_params import BuildParams, Rule, Variant
 from .resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from . import fenced_blocks
 
@@ -14,7 +14,7 @@ from lxml.html import HtmlElement
 
 import importlib
 import os.path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import *
 
 
 class BuildParamsException(Exception): pass
@@ -66,14 +66,15 @@ def _url_resources(url_list: List[str],
     p = BuildParams.current
     for url in url_list:
         (xpaths_required, url_factory) = _res_values(url, **kwargs)
+
+        rule_args = {'url': url, 'tag': tag, **({'type': mime_type} if mime_type else {})}
         yield UrlResourceSpec(
             xpaths_required = xpaths_required,
             url_factory = url_factory,
             cache = p.cache,
-            embed_fn = lambda:
-                embed if embed is not None else p.embed_rule(url, mime_type, tag),
-            hash_type_fn = lambda:
-                hash_type if hash_type is not None else p.resource_hash_rule(url, mime_type, tag),
+            embed_fn     = lambda: embed if embed is not None else p.embed_rule(**rule_args),
+            hash_type_fn = lambda: hash_type if hash_type is not None else \
+                                   p.resource_hash_rule(**rule_args),
             resource_path = p.resource_path,
             mime_type     = mime_type
         )
@@ -196,9 +197,10 @@ class ApiImpl(type(__builtins__)):
                      name: str,
                      formatter: Callable,
                      validator: Callable = None,
-                     css_class: str = name,
+                     css_class: str = None,
                      cached: bool = True,
-                     check_exec: bool = False):
+                     check_exec: bool = False,
+                     set_attr: bool = True):
 
         _callable(formatter, 'formatter')
         if validator is not None:
@@ -210,9 +212,12 @@ class ApiImpl(type(__builtins__)):
         if check_exec:
             formatter = fenced_blocks.exec_formatter(params(), name, formatter)
 
+        if set_attr:
+            formatter = fenced_blocks.attr_formatter(formatter)
+
         self('pymdownx.superfences').setdefault('custom_fences', []).append({
             'name': name,
-            'class': css_class,
+            'class': css_class or name,
             'format': formatter,
             **({'validator': validator} if validator else {})
         })
@@ -329,11 +334,13 @@ class ApiImpl(type(__builtins__)):
                                            mime_type = 'application/javascript',
                                            **kwargs))
 
+    R = TypeVar('R')
+    RuleSpec = Union[R,Rule[R]]
 
-    def embed(self, embed_spec: Union[bool,EmbedRule]):
+    def embed(self, embed_spec: RuleSpec[bool]):
         p = params()
         if isinstance(embed_spec, bool):
-            p.embed_rule = lambda *_: embed_spec
+            p.embed_rule = lambda **k: embed_spec
 
         elif callable(embed_spec):
             p.embed_rule = embed_spec
@@ -342,10 +349,10 @@ class ApiImpl(type(__builtins__)):
             raise ValueError(f'"embed_spec" expected to be a bool, or a fn(str,str,str)->bool, but was {embed_spec.__class__} ({embed_spec}).')
 
 
-    def resource_hash_type(self, hash_spec: Union[None,str,ResourceHashRule]):
+    def resource_hash_type(self, hash_spec: Rule[Optional[str]]):
         p = params()
         if hash_spec in [None, 'sha256', 'sha384', 'sha512']:
-            p.resource_hash_rule = lambda *_: hash_spec
+            p.resource_hash_rule = lambda **k: hash_spec
 
         elif callable(hash_spec):
             p.resource_hash_rule = hash_spec
@@ -353,3 +360,14 @@ class ApiImpl(type(__builtins__)):
         else:
             raise ValueError(f'"hash_spec" expected to be None, "sha256", "sha384", "sha512", or a fn(str,str,str)->str (returning one of these), but was {hash_spec.__class__} ({hash_spec}).')
 
+
+    def scale(self, scale_spec: RuleSpec[float]):
+        p = params()
+        if isinstance(scale_spec, int) or isinstance(scale_spec, float):
+            p.scale_rule = lambda **k: float(scale_spec)
+
+        elif callable(scale_spec):
+            p.scale_rule = scale_spec
+
+        else:
+            raise ValueError(f'"scale_spec" expected to be a number, or a fn(str,str,str)->float, but was {scale_spec.__class__} ({scale_spec}).')

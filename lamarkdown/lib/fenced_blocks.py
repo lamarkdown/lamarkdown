@@ -4,10 +4,12 @@ import io
 import os.path
 import subprocess
 from typing import Callable, List
+from xml.etree import ElementTree
 
 def command_formatter(build_params: BuildParams,
                       command: List[str]):
     def formatter(source, language, css_class, options, md, **kwargs):
+
         try:
             build_params.progress.progress(command[0], f'Running {command[0]}...')
             proc = subprocess.run(
@@ -68,6 +70,41 @@ def exec_formatter(build_params: BuildParams,
             ).as_html_str()
 
         return base_formatter(source, language, css_class, options, md, **kwargs)
+
+    return formatter
+
+
+def attr_formatter(base_formatter: Callable):
+
+    def formatter(source, language, css_class, options, md,
+                  classes=[], id_value='', attrs={}, **kwargs):
+
+        html = base_formatter(source, language, css_class, options, md,
+                              classes=None, id_value=id_value, attrs=None, **kwargs)
+
+        if classes or id_value or attrs:
+
+            # Theoretically we don't need to parse the entire html, since we only want to modify
+            # the root element, but it's programmatically simpler.
+            root = ElementTree.fromstring(html)
+
+            new_classes = [*([css_class] if css_class else []),
+                           *classes]
+            if len(new_classes) > 0:
+                if 'class' in root.attrib:
+                    root.attrib['class'] += ' ' + ' '.join(new_classes)
+                else:
+                    root.attrib['class'] = ' '.join(new_classes)
+
+            if id_value:
+                root.set('id', id_value)
+            if attrs:
+                root.attrib.update(attrs)
+
+            return ElementTree.tostring(root, encoding = 'unicode')
+
+        else:
+            return html
 
     return formatter
 

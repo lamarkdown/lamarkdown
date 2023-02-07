@@ -12,6 +12,7 @@ from .resources import ResourceSpec, Resource, ContentResource, ContentResourceS
 from .progress import Progress
 from . import resources
 from . import resource_writers
+from . import image_scaling
 
 import lxml.html
 import markdown
@@ -211,6 +212,8 @@ def write_html(content_html: str,
         if new_root is not None:
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
+
+    image_scaling.scale_images(root_element, build_params)
 
     # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
     # We're still only dealing with the output of Python Markdown here.)

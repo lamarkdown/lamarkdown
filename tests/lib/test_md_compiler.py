@@ -219,12 +219,19 @@ class MdCompilerTestCase(unittest.TestCase):
         for f in ['cssfile.css', 'jsfile.js']:
             with open(os.path.join(self.tmp_dir, f), 'w'): pass
 
+        # for code in [
+        #     # Ensure that stylesheets and scripts are not embedded.
+        #     'la.embed(False)',
+        #     'la.embed(lambda url, mime_type, tag: not (url.endswith("css") or url.endswith("js")))',
+        #     'la.embed(lambda url, mime_type, tag: mime_type not in ["text/css", "application/javascript"])',
+        #     'la.embed(lambda url, mime_type, tag: tag not in ["style", "script"])'
+        # ]:
         for code in [
             # Ensure that stylesheets and scripts are not embedded.
             'la.embed(False)',
-            'la.embed(lambda url, mime_type, tag: not (url.endswith("css") or url.endswith("js")))',
-            'la.embed(lambda url, mime_type, tag: mime_type not in ["text/css", "application/javascript"])',
-            'la.embed(lambda url, mime_type, tag: tag not in ["style", "script"])'
+            'la.embed(lambda url = "",  **k: not (url.endswith("css") or url.endswith("js")))',
+            'la.embed(lambda type = "", **k: type not in ["text/css", "application/javascript"])',
+            'la.embed(lambda tag = "",  **k: tag not in ["style", "script"])'
         ]:
             self.run_md_compiler(
                 markdown = r'''
@@ -261,13 +268,21 @@ class MdCompilerTestCase(unittest.TestCase):
         with open(os.path.join(self.tmp_dir, 'jsfile.js'), 'w') as w:
             w.write('console.log(1)')
 
+        # for code in [
+        #     # Ensure that stylesheets and scripts _are_ embedded.
+        #     '',
+        #     'la.embed(True)',
+        #     'la.embed(lambda url, mime_type, tag: url.endswith("css") or url.endswith("js"))',
+        #     'la.embed(lambda url, mime_type, tag: mime_type in ["text/css", "application/javascript"])',
+        #     'la.embed(lambda url, mime_type, tag: tag in ["style", "script"])'
+        # ]:
         for code in [
             # Ensure that stylesheets and scripts _are_ embedded.
             '',
             'la.embed(True)',
-            'la.embed(lambda url, mime_type, tag: url.endswith("css") or url.endswith("js"))',
-            'la.embed(lambda url, mime_type, tag: mime_type in ["text/css", "application/javascript"])',
-            'la.embed(lambda url, mime_type, tag: tag in ["style", "script"])'
+            'la.embed(lambda url = "",  **k: url.endswith("css") or url.endswith("js"))',
+            'la.embed(lambda type = "", **k: type in ["text/css", "application/javascript"])',
+            'la.embed(lambda tag = "",  **k: tag in ["style", "script"])'
         ]:
             self.run_md_compiler(
                 markdown = r'''
@@ -309,11 +324,17 @@ class MdCompilerTestCase(unittest.TestCase):
         with open(os.path.join(self.tmp_dir, 'audio.wav'), 'wb') as f:
             f.write(wav_bytes)
 
+        # for embed_spec in [
+        #     'True',
+        #     'lambda url,  _m, _t: url.endswith("gif") or url.endswith("wav")',
+        #     'lambda _u, mime, _t: mime in ["image/gif", "audio/x-wav"]',
+        #     'lambda _u, _m,  tag: tag in ["img", "audio"]'
+        # ]:
         for embed_spec in [
             'True',
-            'lambda url,  _m, _t: url.endswith("gif") or url.endswith("wav")',
-            'lambda _u, mime, _t: mime in ["image/gif", "audio/x-wav"]',
-            'lambda _u, _m,  tag: tag in ["img", "audio"]'
+            'lambda url = "",  **k:  url.endswith("gif") or url.endswith("wav")',
+            'lambda type = "", **k: type in ["image/gif", "audio/x-wav"]',
+            'lambda tag = "",  **k: tag in ["img", "audio"]'
         ]:
             self.run_md_compiler(
                 markdown = r'''
@@ -345,9 +366,9 @@ class MdCompilerTestCase(unittest.TestCase):
     def test_element_non_embedding(self):
         for embed_spec in [
             'False',
-            'lambda url,  _m, _t: not (url.endswith("gif") or url.endswith("wav"))',
-            'lambda _u, mime, _t: mime not in ["image/gif", "audio/x-wav"]',
-            'lambda _u, _m,  tag: tag not in ["img", "audio"]'
+            'lambda url = "",  **k: not (url.endswith("gif") or url.endswith("wav"))',
+            'lambda type = "", **k: type not in ["image/gif", "audio/x-wav"]',
+            'lambda tag = "",  **k: tag not in ["img", "audio"]'
         ]:
             self.run_md_compiler(
                 markdown = r'''

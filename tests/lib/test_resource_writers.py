@@ -112,8 +112,10 @@ class ResourceWritersTestCase(unittest.TestCase):
 
         # Mock embedding rule that embeds everything, except elements having a special mime
         # type.
+        # type(mock_build_params).embed_rule = \
+        #     lambda self, url, mime_type, tag: mime_type != 'no/embed'
         type(mock_build_params).embed_rule = \
-            lambda self, url, mime_type, tag: mime_type != 'no/embed'
+            lambda self, type = '', **k: type != 'no/embed'
 
         # We should be able to embed src= URLs in all the following cases.
         # (<embed> and <source> also have type=... attributes for specifying the mime type.

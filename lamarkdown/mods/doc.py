@@ -25,6 +25,7 @@ def apply():
         'la.eval',
         'la.latex',
         'la.markers',
+        # 'la.scale'
     )
 
     la('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.

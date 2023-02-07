@@ -15,7 +15,7 @@ import lxml.etree
 from copy import deepcopy
 from dataclasses import dataclass, field
 import os.path
-from typing import Any, Callable, ClassVar, Dict, Iterable, List, Optional, Set
+from typing import *
 
 class ResourceError(Exception): pass
 
@@ -43,28 +43,31 @@ class Environment(dict):
                 new_env[key] = value
         return new_env
 
-EmbedRule = Callable[[str,str,str],bool]
-ResourceHashRule = Callable[[str,str,str],Optional[str]]
 
-def default_embed_rule(url: str, mime_type: str, tag: str) -> bool:
+R = TypeVar('R')
+class Rule(Protocol[R]):
+    def __call__(self, *, url: str,
+                          type: str,
+                          tag: str,
+                          attr: Dict[str,str]) -> R: ...
+
+# Note: all 'rule' callbacks should accept a '**kwargs' parameter. The actual keyword arguments
+# supplied include _some subset_ of: 'url', 'type' (mime type), 'tag' and 'attr', and possibly
+# others in the future.
+
+def default_embed_rule(type: str = '', tag: str = '', **kwargs) -> bool:
     return not (
-        tag in {'audio', 'video', 'iframe'} or
-        mime_type.startswith('audio/') or
-        mime_type.startswith('video/')
+        tag in ('audio', 'video', 'iframe') or
+        type.startswith('audio/') or
+        type.startswith('video/')
     )
 
-def default_resource_hash_rule(url: str, mime_type: str, tag: str) -> str:
+def default_resource_hash_rule(**kwargs) -> Optional[str]:
     return None
 
+def default_scale_rule(**kwargs) -> float:
+    return 1.0
 
-# test_default = BuildParams(
-#     src_file = 'test.md',
-#     target_file = 'test.html',
-#     build_files = [],
-#     build_dir = '.',
-#     build_defaults = True,
-#     cache = None,
-#     progress = None,
 
 
 @dataclass
@@ -95,8 +98,9 @@ class BuildParams:
     css:                  List[ResourceSpec]         = field(default_factory=list)
     js:                   List[ResourceSpec]         = field(default_factory=list)
     custom_resource_path: str                        = None
-    embed_rule:           EmbedRule                  = default_embed_rule
-    resource_hash_rule:   ResourceHashRule           = default_resource_hash_rule
+    embed_rule:           Rule[bool]                 = default_embed_rule
+    resource_hash_rule:   Rule[Optional[str]]        = default_resource_hash_rule
+    scale_rule:           Rule[float]                = default_scale_rule
     env:                  Dict[str,Any]              = field(default_factory=Environment)
     output_namer:         Callable[[str],str]        = lambda t: t
     allow_exec:           bool                       = False
@@ -144,8 +148,9 @@ class BuildParams:
         self.css = []
         self.js = []
         self.custom_resource_path = None
-        self.embed_rule = default_embed_rule
+        self.embed_rule         = default_embed_rule
         self.resource_hash_rule = default_resource_hash_rule
+        self.scale_rule         = default_scale_rule
         self.env = Environment()
         self.output_namer = lambda t: t
         self.live_update_deps = set()

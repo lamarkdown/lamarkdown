@@ -245,9 +245,14 @@ class StylesheetWriter(ResourceWriter):
                         return ch if ch else chr(int(m.group('hex'), base=16))
                     url = self.CSS_STR_ESCAPE_REGEX.sub(escape_repl, url)
 
+                    embed_type = mimetypes.guess_type(url)[0]
                     if (
                         url.startswith('data:') or url.startswith('#') or
-                        not self.build_params.embed_rule(url, mimetypes.guess_type(url)[0], 'style')
+                        not self.build_params.embed_rule(
+                            url = url,
+                            tag = 'style',
+                            **(dict(type = embed_type) if embed_type else {})
+                        )
                     ):
                         # Data URLs are already embedded, and so are fragment URLs (implicitly).
                         # Also, embed_rule could just say 'no'.
@@ -385,7 +390,9 @@ def embed_media(root_element, build_params: BuildParams):
                 if element.tag in URL_MIMETYPE_ELEMENTS:
                     mime_type = element.get('type')
 
-                if build_params.embed_rule(src,
-                                           mime_type or mimetypes.guess_type(src)[0],
-                                           element.tag):
+                embed_type = mime_type or mimetypes.guess_type(src)[0]
+                if build_params.embed_rule(url = src,
+                                           tag = element.tag,
+                                           attr = element.attrib,
+                                           **(dict(type = embed_type) if embed_type else {})):
                     element.set('src', make_data_url(src, mime_type, build_params))
