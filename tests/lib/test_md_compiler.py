@@ -219,13 +219,6 @@ class MdCompilerTestCase(unittest.TestCase):
         for f in ['cssfile.css', 'jsfile.js']:
             with open(os.path.join(self.tmp_dir, f), 'w'): pass
 
-        # for code in [
-        #     # Ensure that stylesheets and scripts are not embedded.
-        #     'la.embed(False)',
-        #     'la.embed(lambda url, mime_type, tag: not (url.endswith("css") or url.endswith("js")))',
-        #     'la.embed(lambda url, mime_type, tag: mime_type not in ["text/css", "application/javascript"])',
-        #     'la.embed(lambda url, mime_type, tag: tag not in ["style", "script"])'
-        # ]:
         for code in [
             # Ensure that stylesheets and scripts are not embedded.
             'la.embed(False)',
@@ -268,14 +261,6 @@ class MdCompilerTestCase(unittest.TestCase):
         with open(os.path.join(self.tmp_dir, 'jsfile.js'), 'w') as w:
             w.write('console.log(1)')
 
-        # for code in [
-        #     # Ensure that stylesheets and scripts _are_ embedded.
-        #     '',
-        #     'la.embed(True)',
-        #     'la.embed(lambda url, mime_type, tag: url.endswith("css") or url.endswith("js"))',
-        #     'la.embed(lambda url, mime_type, tag: mime_type in ["text/css", "application/javascript"])',
-        #     'la.embed(lambda url, mime_type, tag: tag in ["style", "script"])'
-        # ]:
         for code in [
             # Ensure that stylesheets and scripts _are_ embedded.
             '',
@@ -324,12 +309,6 @@ class MdCompilerTestCase(unittest.TestCase):
         with open(os.path.join(self.tmp_dir, 'audio.wav'), 'wb') as f:
             f.write(wav_bytes)
 
-        # for embed_spec in [
-        #     'True',
-        #     'lambda url,  _m, _t: url.endswith("gif") or url.endswith("wav")',
-        #     'lambda _u, mime, _t: mime in ["image/gif", "audio/x-wav"]',
-        #     'lambda _u, _m,  tag: tag in ["img", "audio"]'
-        # ]:
         for embed_spec in [
             'True',
             'lambda url = "",  **k:  url.endswith("gif") or url.endswith("wav")',
@@ -396,6 +375,38 @@ class MdCompilerTestCase(unittest.TestCase):
                 self.root.xpath('//audio/@src'),
                 only_contains('audio.wav'))
 
+
+    def test_svg_scaling(self):
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading
+                <svg id="a" width="10" height="15"><g></g></svg>
+                <svg id="b" width="10" height="15" size="3"><g></g></svg>
+                <svg id="c" width="10" height="15" scale="5"><g></g></svg>
+                <svg id="d" width="10" height="15" size="3" scale="5"><g></g></svg>
+            ''',
+            build = r'''
+                import lamarkdown as la
+                la.scale(lambda attr={}, **k: float(attr["size"]) if "size" in attr else 2)
+            ''',
+            recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
+        )
+
+        # <svg id="a">: scale by 2
+        assert_that(self.root.xpath('//svg[@id="a"]/@width'),  contains_exactly('20'))
+        assert_that(self.root.xpath('//svg[@id="a"]/@height'), contains_exactly('30'))
+
+        # <svg id="b">: scale by 3
+        assert_that(self.root.xpath('//svg[@id="b"]/@width'),  contains_exactly('30'))
+        assert_that(self.root.xpath('//svg[@id="b"]/@height'), contains_exactly('45'))
+
+        # <svg id="c">: scale by 2*5
+        assert_that(self.root.xpath('//svg[@id="c"]/@width'),  contains_exactly('100'))
+        assert_that(self.root.xpath('//svg[@id="c"]/@height'), contains_exactly('150'))
+
+        # <svg id="d">: scale by 3*5
+        assert_that(self.root.xpath('//svg[@id="d"]/@width'),  contains_exactly('150'))
+        assert_that(self.root.xpath('//svg[@id="d"]/@height'), contains_exactly('225'))
 
 
     def test_variants(self):
@@ -613,35 +624,6 @@ class MdCompilerTestCase(unittest.TestCase):
             )
         )
 
-
-    # def test_extension_object(self):
-    #     for methodName in ['extension', 'extensions']:
-    #         self.run_md_compiler(
-    #             markdown = r'''
-    #                 # Heading
-    #
-    #                 Paragraph
-    #                 ''',
-    #             build = fr'''
-    #                 import lamarkdown as la
-    #                 import markdown
-    #
-    #                 class TestPostprocessor(markdown.postprocessors.Postprocessor):
-    #                     def run(self, text):
-    #                         return text + '<div>Extension</div>'
-    #
-    #                 class TestExtension(markdown.Extension):
-    #                     def extendMarkdown(self, md):
-    #                         md.postprocessors.register(TestPostprocessor(), 'test-proc', 25)
-    #
-    #                 la.{methodName}(TestExtension())
-    #             ''',
-    #             build_defaults = False
-    #         )
-    #
-    #         assert_that(
-    #             self.root.xpath('//div/text()')[0],
-    #             is_('Extension'))
 
     def test_extension_object(self):
         self.run_md_compiler(

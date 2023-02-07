@@ -112,8 +112,6 @@ class ResourceWritersTestCase(unittest.TestCase):
 
         # Mock embedding rule that embeds everything, except elements having a special mime
         # type.
-        # type(mock_build_params).embed_rule = \
-        #     lambda self, url, mime_type, tag: mime_type != 'no/embed'
         type(mock_build_params).embed_rule = \
             lambda self, type = '', **k: type != 'no/embed'
 

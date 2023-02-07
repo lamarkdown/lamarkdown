@@ -3,11 +3,16 @@ from .build_params import BuildParams
 import io
 import os.path
 import subprocess
-from typing import Callable, List
+from typing import *
 from xml.etree import ElementTree
 
+class Formatter(Protocol):
+    def __call__(self, source: str, language: str, css_class: str, options: Dict, md,
+                       *, classes = [], id_value = '', attrs = {}, **kwargs): ...
+
+
 def command_formatter(build_params: BuildParams,
-                      command: List[str]):
+                      command: List[str]) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
 
         try:
@@ -38,10 +43,13 @@ def command_formatter(build_params: BuildParams,
 
 def caching_formatter(build_params: BuildParams,
                       name: str,
-                      base_formatter: Callable):
+                      base_formatter: Formatter) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
-            cache_key = (source, language, css_class, options)
+            # We don't include kwargs in the cache_key, because it's just metadata (id/class/attrs),
+            # and shouldn't affect the generation of the HTML.
+            cache_key = (source, language, css_class, tuple(sorted((options or {}).items())))
+
             result = build_params.cache.get(cache_key)
 
             if result is None:
@@ -54,6 +62,7 @@ def caching_formatter(build_params: BuildParams,
 
         except Exception as e: # Not expecting an exception, but any internal errors will be
                                # swallowed by pymdownx.superfences.
+            print(e)
             return build_params.progress.error_from_exception(name, e).as_html_str()
 
     return formatter
@@ -61,7 +70,7 @@ def caching_formatter(build_params: BuildParams,
 
 def exec_formatter(build_params: BuildParams,
                    name: str,
-                   base_formatter: Callable):
+                   base_formatter: Formatter) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
         if not build_params.allow_exec:
             return build_params.progress.error(
@@ -74,7 +83,7 @@ def exec_formatter(build_params: BuildParams,
     return formatter
 
 
-def attr_formatter(base_formatter: Callable):
+def attr_formatter(base_formatter: Formatter) -> Formatter:
 
     def formatter(source, language, css_class, options, md,
                   classes=[], id_value='', attrs={}, **kwargs):
@@ -109,7 +118,7 @@ def attr_formatter(base_formatter: Callable):
     return formatter
 
 
-def matplotlib_formatter(build_params):
+def matplotlib_formatter(build_params: BuildParams) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
             # Matplotlib _isn't_ a core dependency of Lamarkdown, so we (try to) import it locally.
@@ -130,7 +139,7 @@ def matplotlib_formatter(build_params):
     return formatter
 
 
-def r_plot_formatter(build_params: BuildParams):
+def r_plot_formatter(build_params: BuildParams) -> Formatter:
 
     base_formatter = command_formatter(build_params, ['R', '-q', '-s'])
 
