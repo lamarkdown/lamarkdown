@@ -36,7 +36,7 @@ def command_formatter(build_params: BuildParams,
             return proc.stdout
 
         except Exception as e:
-            return build_params.progress.error_from_exception(name, e).as_html_str()
+            return build_params.progress.error_from_exception(command[0], e).as_html_str()
 
     return formatter
 
@@ -91,7 +91,7 @@ def attr_formatter(base_formatter: Formatter) -> Formatter:
         html = base_formatter(source, language, css_class, options, md,
                               classes=None, id_value=id_value, attrs=None, **kwargs)
 
-        if classes or id_value or attrs:
+        if css_class or classes or id_value or attrs:
 
             # Theoretically we don't need to parse the entire html, since we only want to modify
             # the root element, but it's programmatically simpler.
@@ -106,9 +106,10 @@ def attr_formatter(base_formatter: Formatter) -> Formatter:
                     root.attrib['class'] = ' '.join(new_classes)
 
             if id_value:
-                root.set('id', id_value)
+                root.set('id', str(id_value))
             if attrs:
-                root.attrib.update(attrs)
+                for key, value in attrs.items():
+                    root.attrib[key] = str(value)
 
             return ElementTree.tostring(root, encoding = 'unicode')
 
@@ -124,16 +125,18 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
             # Matplotlib _isn't_ a core dependency of Lamarkdown, so we (try to) import it locally.
             build_params.progress.progress('matplotlib', f'Invoking matplotlib...')
             import matplotlib.pyplot as plot
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
+            print(e)
             build_params.progress.error('matplotlib', 'Module not found; you probably need to run "pip install matplotlib"').as_html_str()
         else:
             try:
-                exec(source)
+                exec(source, build_params.env)
                 buf = io.BytesIO()
                 plot.savefig(buf, format = 'svg')
                 plot.clf() # Clear the current figure (so we start from a clean slate next time)
                 return buf.getvalue().decode()
             except Exception as e:
+                print(e)
                 return build_params.progress.error_from_exception('matplotlib', e).as_html_str()
 
     return formatter
@@ -169,6 +172,7 @@ def r_plot_formatter(build_params: BuildParams) -> Formatter:
             )
 
         except Exception as e:
+            print(e)
             return build_params.progress.error_from_exception('r', e).as_html_str
 
     return formatter
