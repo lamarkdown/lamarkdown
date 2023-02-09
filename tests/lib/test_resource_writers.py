@@ -175,6 +175,10 @@ class ResourceWritersTestCase(unittest.TestCase):
             #             +-- fileD.css
             #             \-- fileD.txt
 
+            # fileA.css will refer to fileB.*, fileB.css to fileC.*, and fileC.css to fileD.*.
+            # The .css files will be embedded using data URLs; the .txt files will not, but their
+            # URLs (initially expressed relative to the previous file), must be relativized against
+            # the base directory.
 
             # NOTE: this test is sensitive to the exact spacing choices made by the production code.
             # Since there are multiple levels of base64 encoding, more/less whitespace results in
@@ -265,10 +269,35 @@ class ResourceWritersTestCase(unittest.TestCase):
                 self.assertEqual(expected, output)
 
 
-    def test_embed_recursion_loop(self):
-        pass
-        # TODO
+    def test_embed_cycle(self):
+        with tempfile.TemporaryDirectory() as dir:
+            os.chdir(dir)
 
+            # Two cycles: A->A, and B->[C->D->E->C]
+            for file, to in [
+                ('A', 'A'),
+                ('B', 'C'),
+                ('C', 'D'),
+                ('D', 'E'),
+                ('E', 'C'),
+            ]:
+                with open(f'file{file}.css', 'w') as w:
+                    w.write(f'@import "file{to}.css";')
+
+            mock_build_params = Mock()
+            mock_progress = Mock()
+            type(mock_build_params).progress = PropertyMock(return_value = mock_progress)
+            type(mock_build_params).embed_rule = PropertyMock(return_value = lambda *a,**k: True)
+            type(mock_build_params).resource_base_url = PropertyMock(return_value = '')
+
+            sw = resource_writers.StylesheetWriter(mock_build_params)
+
+            for url in ['fileA.css', 'fileB.css']:
+                resource = resources.UrlResource(url, to_embed = True)
+                _output = sw.format([resource])
+
+                mock_progress.error.assert_called_once()
+                mock_progress.reset_mock()
 
 
     @patch('lamarkdown.lib.resource_writers.make_data_url')

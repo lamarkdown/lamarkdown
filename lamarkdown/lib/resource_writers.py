@@ -173,7 +173,7 @@ class StylesheetWriter(ResourceWriter):
 
     def _push_url(self, url):
         if url in self.url_stack:
-            build_params.progress.error(
+            self.build_params.progress.error(
                 'style', 'Cycle in stylesheet "@import"s, involving "{url}".')
             return False
 
