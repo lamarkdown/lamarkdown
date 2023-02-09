@@ -6,7 +6,6 @@ from unittest.mock import Mock, PropertyMock
 
 import sys
 import tempfile
-# from xml.etree import ElementTree
 
 class FencedBlocksTestCase(unittest.TestCase):
 
@@ -110,7 +109,7 @@ class FencedBlocksTestCase(unittest.TestCase):
 
 
     def test_matplotlib_formatter(self):
-        # Matplotlib isn't actually a dependency, so mock the entire module
+        # Matplotlib isn't actually a dependency, so mock the entire module.
         sys.modules['matplotlib'] = Mock()
         sys.modules['matplotlib.pyplot'] = Mock()
         import matplotlib.pyplot as mock_plot
@@ -136,8 +135,7 @@ class FencedBlocksTestCase(unittest.TestCase):
 
 
     def test_r_plot_formatter(self):
-        # NOTE: the production function contains R code, so we must invoke R itself to do the
-        # test properly.
+        # NOTE: the production function contains R code, so we can't get out of invoking R itself.
         with tempfile.TemporaryDirectory() as dir:
             mock_build_params = Mock()
             type(mock_build_params).build_dir = PropertyMock(return_value = dir)

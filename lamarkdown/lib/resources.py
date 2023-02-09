@@ -5,24 +5,27 @@ import diskcache
 import email.utils
 import hashlib
 import mimetypes
-import os.path
 import re
 import time
-from typing import Callable, List, Optional, Set, Tuple, Union
+from typing import *
+import urllib.parse
 import urllib.request
 
 
 DEFAULT_USER_AGENT = None
 DEFAULT_CACHE_EXPIRY = 86400 # By default, cache resources for 24 hours
-URL_SCHEME_REGEX = re.compile('[a-z]+:')
+REMOTE_URL_SCHEME_REGEX = re.compile('(?!file:)[a-z]+:')
 
 def read_url(url: str,
-             resource_path: str,
              cache,
              progress: Progress,
              user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
 
-    if URL_SCHEME_REGEX.match(url):
+
+    if url.startswith('data:'):
+        raise NotImplementedError
+
+    elif REMOTE_URL_SCHEME_REGEX.match(url):
         cache_entry = cache.get(url)
 
         if cache_entry is None:
@@ -92,24 +95,15 @@ def read_url(url: str,
         return (True, content_bytes, mime_type)
 
     else:
-        with open(os.path.join(resource_path, url), 'rb') as reader:
-            mime_type, _ = mimetypes.guess_type(url)
+        mime_type, _ = mimetypes.guess_type(url)
+        if not url.startswith('file:'):
+            url = f'file:{url}'
+
+        # If relative, the url is relative to the document, and lamd.py does a chdir() accordingly.
+        with urllib.request.urlopen(url, 'rb') as reader:
+            # Using urllib (instead of open()) avoids needing to convert path separators from
+            # / to \ on Windows.
             return (False, reader.read(), mime_type)
-
-
-# def make_data_url(url: str,
-#                   resource_path: str,
-#                   mime_type: str,
-#                   cache,
-#                   progress: Progress,
-#                   converter: Callable[[bytes,str],Tuple[bytes,str]] = lambda c,m: (c,m)) -> str:
-#     raise AssertionError
-#
-#     _, content_bytes, auto_mime_type = read_url(url, resource_path, cache, progress)
-#     mime_type = mime_type or auto_mime_type
-#     content_bytes, mime_type = converter(content_bytes, mime_type)
-#
-#     return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
 
 
 def _check(val, label):
@@ -165,18 +159,18 @@ class UrlResourceSpec(ResourceSpec):
 
     def __init__(self, xpaths_required: List[str],
                        url_factory: Callable[[Set[str]],Optional[str]],
+                       base_url: str,
                        cache: diskcache.Cache,
                        embed_fn: Callable[[],bool],
                        hash_type_fn: Callable[[],Optional[str]],
-                       resource_path: str,
                        mime_type: str):
 
         super().__init__(xpaths_required)
         self.url_factory = url_factory
+        self.base_url = base_url
         self.cache = cache
         self.embed_fn = embed_fn
         self.hash_type_fn = hash_type_fn
-        self.resource_path = resource_path
         self.mime_type = mime_type
 
 
@@ -185,6 +179,8 @@ class UrlResourceSpec(ResourceSpec):
         url = self.url_factory(xpaths_found.intersection(self.xpaths_required))
         if url is None:
             return None
+
+        url = urllib.parse.urljoin(self.base_url, url)
 
         embed = self.embed_fn()
         if embed:
@@ -198,7 +194,8 @@ class UrlResourceSpec(ResourceSpec):
         if hash_type:
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both
             # use the same strings 'sha256', 'sha384' and 'sha512'.
-            is_remote, content_bytes, _mime_type = read_url(url, self.resource_path, self.cache, progress)
+            # is_remote, content_bytes, _mime_type = read_url(url, self.base_path, self.cache, progress)
+            is_remote, content_bytes, _, _ = read_url(url, self.cache, progress)
             hash = b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
 
             if not is_remote:

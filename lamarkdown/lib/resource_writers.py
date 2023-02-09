@@ -12,8 +12,9 @@ import io
 import mimetypes
 import re
 from typing import Callable, Iterable, List, Tuple, Union
+import urllib.parse
 
-Converter = Callable[[bytes,str],Tuple[bytes,str]]
+Converter = Callable[[str,bytes,str],Tuple[bytes,str]]
 
 def make_data_url(url: str,
                   mime_type: str,
@@ -21,12 +22,11 @@ def make_data_url(url: str,
                   converter: Converter = None) -> str:
 
     _, content_bytes, auto_mime_type = resources.read_url(url,
-                                                          build_params.resource_path,
                                                           build_params.cache,
                                                           build_params.progress)
     mime_type = mime_type or auto_mime_type
     if converter is not None:
-        content_bytes, mime_type = converter(content_bytes, mime_type)
+        content_bytes, mime_type = converter(url, content_bytes, mime_type)
 
     return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
 
@@ -117,6 +117,7 @@ class StylesheetWriter(ResourceWriter):
                 (
                     [^"'()\\\x00-\x20]
                     | \\\\
+                    | \\[0-9a-fA-F]{{1,6}} [ \t\n]?
                     | \\.
                 )*
             )
@@ -147,12 +148,16 @@ class StylesheetWriter(ResourceWriter):
     CSS_STR_ESCAPE_REGEX = re.compile(r'''(?xs)
         \\
         (
-            (?P<hex> [0-9a-zA-Z]{1,6})
-            [ ]?
+            (?P<hex> [0-9a-fA-F]{1,6})
+            [ \t\n]?
             |
             (?P<ch> .)
         )
     ''')
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.url_stack = []
 
 
     def write(self, buffer, resource_list: RList):
@@ -162,17 +167,31 @@ class StylesheetWriter(ResourceWriter):
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
         buffer.write('<style>\n')
         for res in resource_sublist:
-            buffer.write(self._embed(res.content))
+            buffer.write(self._embed(self.build_params.resource_base_url, res.content))
         buffer.write('\n</style>')
+
+
+    def _push_url(self, url):
+        if url in self.url_stack:
+            build_params.progress.error(
+                'style', 'Cycle in stylesheet "@import"s, involving "{url}".')
+            return False
+
+        self.url_stack.append(url)
+        return True
+
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
-            _, content_bytes, _ = resources.read_url(res.url,
-                                                     self.build_params.resource_path,
-                                                     self.build_params.cache,
-                                                     self.build_params.progress)
+            is_remote, content_bytes, _ = resources.read_url(res.url,
+                                                             self.build_params.cache,
+                                                             self.build_params.progress)
 
-            buffer.write(f'<style>\n{self._embed(content_bytes.decode())}\n</style>')
+            content = content_bytes.decode()
+            if self._push_url(res.url):
+                content = self._embed(self.build_params.resource_base_url, content)
+                self.url_stack.pop()
+            buffer.write(f'<style>\n{content}\n</style>')
 
         else:
             href = html.escape(res.url)
@@ -180,7 +199,7 @@ class StylesheetWriter(ResourceWriter):
             buffer.write(f'<link rel="stylesheet" href="{href}"{integrity} />')
 
 
-    def _embed(self, css):
+    def _embed(self, base_url: str, css: str):
         # Note 1
         # ------
         # CSS '@import's will be dealt with by encoding the imported stylesheet as a data URL (just as
@@ -211,7 +230,6 @@ class StylesheetWriter(ResourceWriter):
 
         with io.StringIO() as buf:
             while len(css) > 0:
-
                 # Look for comments and strings (outside of a URL/import context). We need to explicitly
                 # skip over them, since we don't want to go looking for URLs inside them.
                 comment_match = self.CSS_COMMENT_REGEX.match(css)
@@ -235,6 +253,7 @@ class StylesheetWriter(ResourceWriter):
                 # Look for url(), src() and @import.
                 match = self.CSS_URL_REGEX.match(css) or self.CSS_IMPORT_REGEX.match(css)
                 if match:
+
                     g = match.groupdict()
                     url = g.get('url') or g.get('str')
                     # CSS_URL_REGEX has both 'url' and 'str' groups. CSS_IMPORT_REGEX has only 'str'.
@@ -245,29 +264,33 @@ class StylesheetWriter(ResourceWriter):
                         return ch if ch else chr(int(m.group('hex'), base=16))
                     url = self.CSS_STR_ESCAPE_REGEX.sub(escape_repl, url)
 
-                    embed_type = mimetypes.guess_type(url)[0]
-                    if (
-                        url.startswith('data:') or url.startswith('#') or
-                        not self.build_params.embed_rule(
-                            url = url,
-                            tag = 'style',
-                            **(dict(type = embed_type) if embed_type else {})
-                        )
-                    ):
+                    if url.startswith('data:') or url.startswith('#'):
                         # Data URLs are already embedded, and so are fragment URLs (implicitly).
-                        # Also, embed_rule could just say 'no'.
                         buf.write(match.group())
 
                     else:
-                        # Grab the URL content and make a Data URL. (make_data_url() _shouldn't_
-                        # give us back a URL with any characters that need escaping.)
-                        data_url = make_data_url(url, None, self.build_params, self._convert)
+                        url = urllib.parse.urljoin(base_url, url)
+                        type = mimetypes.guess_type(url)[0]
+
+                        if self.build_params.embed_rule(url = url,
+                                                        tag = 'style',
+                                                        **(dict(type = type) if type else {})):
+                            # Grab the URL content and make a Data URL (checking for cycles).
+                            if self._push_url(url):
+                                url = make_data_url(url, None, self.build_params, self._convert)
+                                self.url_stack.pop()
+
+                        # Escape URL. Data URLs shouldn't need this, but no guarantees about
+                        # non-data URLs.
+                        url = (url.replace('\\', '\\\\')
+                                  .replace('"', '\\"')
+                                  .replace('\n', '\\\n'))
 
                         if match.group().startswith('@import'):
-                            buf.write(f'@import "{data_url}"') # Don't terminate with ';', because we
-                                                               # haven't taken ';' from the input yet.
+                            buf.write(f'@import "{url}"') # Don't terminate with ';', because we
+                                                          # haven't taken ';' from the input yet.
                         else:
-                            buf.write(f'url({data_url})')
+                            buf.write(f'url("{url}")')
 
                     css = css[match.end():]
 
@@ -279,11 +302,11 @@ class StylesheetWriter(ResourceWriter):
             return buf.getvalue()
 
 
-    def _convert(self, content_bytes: bytes, mime_type: str) -> (bytes, str):
+    def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> (bytes, str):
         if mime_type == 'text/css':
             # If we're sure the URL points to a stylesheet, then it may have its own external resources,
             # and we must embed those too.
-            content_bytes = self._embed(content_bytes.decode(errors = 'ignore')).encode()
+            content_bytes = self._embed(base_url, content_bytes.decode(errors = 'ignore')).encode()
 
         elif mime_type in ['font/ttf', 'font/otf']:
             # We'll take this opportunity to convert any embedded TTF resources into WOFF2 format,
@@ -325,25 +348,25 @@ class ScriptWriter(ResourceWriter):
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
         buffer.write('<script>\n')
         for resource in resource_sublist:
-            buffer.write(self._embed(resource.content))
+            buffer.write(self._embed(self.build_params.resource_base_url, resource.content))
             buffer.write('\n')
         buffer.write('\n</script>')
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
             _, content_bytes, _ = resources.read_url(res.url,
-                                                     self.build_params.resource_path,
                                                      self.build_params.cache,
                                                      self.build_params.progress)
 
-            buffer.write(f'<script>\n{self._embed(content_bytes.decode())}\n</script>')
+            content = self._embed(self.build_params.resource_base_url, content_bytes.decode())
+            buffer.write(f'<script>\n{content}\n</script>')
 
         else:
             src = html.escape(res.url)
             integrity = res.integrity_attr()
             buffer.write(f'<script src="{src}"{integrity}></script>')
 
-    def _embed(self, js):
+    def _embed(self, base_url: str, js: str):
         # TODO: to the extent that we can, we should find all external resources (particularly
         # other .js files) mentioned in the script, and embed them somehow. We may need to defer to
         # webpack, possibly https://github.com/django-webpack/django-webpack-loader.
@@ -354,8 +377,7 @@ class ScriptWriter(ResourceWriter):
 # src=... attribute.
 #
 # Notes:
-# <embed>'s usefulness may be doubtful, since it invokes external plugins, which are rare now, but
-#     it's still part of the standard.
+# <embed> invokes external plugins, which are rare now, but it's part of the standard.
 # <script> is unlikely to occur here, since we have a separate process for embedding scripts, but
 #     it's still legal.
 # <input>  can display a (remote) image using src=... (for type="image" controls)
@@ -379,12 +401,14 @@ URL_ELEMENTS = {'audio', 'embed', 'iframe', 'img', 'input', 'script', 'source', 
 URL_MIMETYPE_ELEMENTS = {'embed', 'source'}
 
 
-def embed_media(root_element, build_params: BuildParams):
+def embed_media(root_element, base_url: str, build_params: BuildParams):
 
     for element in root_element.iter():
         if element.tag in URL_ELEMENTS:
             src = element.get('src')
             if src is not None and not src.startswith('data:') and not src.startswith('#'):
+
+                src = urllib.parse.urljoin(base_url, src)
 
                 mime_type = None
                 if element.tag in URL_MIMETYPE_ELEMENTS:
@@ -396,3 +420,6 @@ def embed_media(root_element, build_params: BuildParams):
                                            attr = element.attrib,
                                            **(dict(type = embed_type) if embed_type else {})):
                     element.set('src', make_data_url(src, mime_type, build_params))
+
+                else:
+                    element.set('src', src)

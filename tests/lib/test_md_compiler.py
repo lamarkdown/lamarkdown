@@ -27,6 +27,7 @@ class MdCompilerTestCase(unittest.TestCase):
         self.tmp_dir_context = tempfile.TemporaryDirectory()
         self.tmp_dir = self.tmp_dir_context.__enter__()
         self.html_file = os.path.join(self.tmp_dir, 'testdoc.html')
+        os.chdir(self.tmp_dir)
 
         self.css_parser = cssutils.CSSParser(
             parseComments = False,

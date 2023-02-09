@@ -6,8 +6,12 @@ from unittest.mock import patch, Mock, PropertyMock
 
 import email.utils
 import io
+import os
+import tempfile
 from textwrap import dedent
 from xml.etree import ElementTree
+
+import subprocess
 
 class ResourcesTestCase(unittest.TestCase):
 
@@ -17,12 +21,23 @@ class ResourcesTestCase(unittest.TestCase):
         cache = Mock()
 
         # 1. Read a relative URL, which ought to become a local file read.
-        with patch('urllib.request.urlopen') as mock_urlopen,\
-             patch('builtins.open', lambda *a,**k: io.StringIO('mock_file_content')):
+        with tempfile.TemporaryDirectory() as dir:
+            os.chdir(dir)
+            with open('testfile.txt', 'w') as w:
+                w.write('test content')
 
-            result = resources.read_url('file.txt', 'dir', cache, progress)
-            mock_urlopen.assert_not_called()
-            self.assertEqual((False, 'mock_file_content', 'text/plain'), result)
+            os.mkdir('testdir')
+            with open(os.path.join('testdir', 'testfile2.md'), 'w') as w:
+                w.write('test content 2')
+
+            for url,                           expected in [
+                ('testfile.txt',              (False, b'test content', 'text/plain')),
+                ('file:testfile.txt',         (False, b'test content', 'text/plain')),
+                ('testdir/testfile2.md',      (False, b'test content 2', 'text/markdown')),
+                ('file:testdir/testfile2.md', (False, b'test content 2', 'text/markdown')),
+            ]:
+                output = resources.read_url(url, cache, progress)
+                self.assertEqual(expected, output)
 
 
         # 2. Read a cached remote URL.
@@ -33,7 +48,7 @@ class ResourcesTestCase(unittest.TestCase):
             cache.get.side_effect = \
                 lambda key: {cached_url: ('cached_content', 'text/mock')}.get(key)
 
-            result = resources.read_url(cached_url, None, cache, progress)
+            result = resources.read_url(cached_url, cache, progress)
             mock_urlopen.assert_not_called()
             mock_open   .assert_not_called()
             self.assertEqual((True, 'cached_content', 'text/mock'), result)
@@ -85,7 +100,7 @@ class ResourcesTestCase(unittest.TestCase):
 
                 mock_urlopen.return_value.__enter__.return_value = conn
 
-                result = resources.read_url(url, None, cache, progress)
+                result = resources.read_url(url, cache, progress)
                 self.assertEqual(exp_result, result)
 
                 # Caching

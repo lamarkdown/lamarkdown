@@ -1,13 +1,20 @@
 from ..util.mock_progress import MockProgress
-from lamarkdown.lib import resource_writers
+from lamarkdown.lib import resources, resource_writers
 
 import unittest
 from unittest.mock import patch, Mock, PropertyMock, ANY
 
+import base64
 import email.utils
 import io
+import os
+import tempfile
 from textwrap import dedent
 from xml.etree import ElementTree
+
+# TODO:
+# - handling of cycles in nested stylesheets
+
 
 class ResourceWritersTestCase(unittest.TestCase):
 
@@ -41,64 +48,227 @@ class ResourceWritersTestCase(unittest.TestCase):
 
     @patch('lamarkdown.lib.resource_writers.make_data_url')
     def test_stylesheet_embed(self, mock_make_data_url):
-        mock_url = 'data:mock'
 
-        inputs = [
-            '',
-            'url(http://example.com/image.jpg)',
-            'url("http://example.com/image.jpg")',
-            'src("http://example.com/image.jpg")',
-            'url(  "http://example.com/image.jpg"   )',
-            '@import"http://example.com/image.jpg";',
-            '@import  "http://example.com/image.jpg"   ;',
-            '@import url("http://example.com/image.jpg");',
-            r'''p{ x: "url(abc)"; /* url(def) */ y: url("ghi"); z: "url(jkl)"} /* url(mno) */''',
-            r'''p{ x: url(abc) url(def); /*y: "url(ghi)";*/ z: url(jkl)}''',
-        ]
-
-        expected_urls = [
-            [],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['http://example.com/image.jpg'],
-            ['ghi'],
-            ['abc', 'def', 'jkl'],
-        ]
-
-        expected_results = [
-            '',
-            f'url({mock_url})',
-            f'url({mock_url})',
-            f'url({mock_url})',
-            f'url({mock_url})',
-            f'@import "{mock_url}";',
-            f'@import "{mock_url}"   ;',
-            f'@import url({mock_url});',
-            rf'''p{{ x: "url(abc)";  y: url({mock_url}); z: "url(jkl)"}} ''',
-            rf'''p{{ x: url({mock_url}) url({mock_url});  z: url({mock_url})}}''',
-        ]
-                        # data_url = make_data_url(url, None, self.build_params, self._convert)
+        url = 'http://example.com/image.jpg'
+        data_url = 'data:mock'
 
         mock_build_params = Mock()
 
-        for css, exp_url_list, exp_result in zip(inputs, expected_urls, expected_results):
-            sw = resource_writers.StylesheetWriter(mock_build_params)
-            mock_make_data_url.return_value = mock_url
+        mock_make_data_url.return_value = data_url
 
-            result = sw._embed(css)
+        for input_css,                 base_url, embed,  exp_urls, expected_css in [
+            ('',                       '',       [],     [],       ''),
+
+            ('/* comment */',          '',       [],     [],       ''),
+            (f'"url({url})"',          '',       [url],  [],       f'"url({url})"'),
+            (f"'url({url})'",          '',       [url],  [],       f"'url({url})'"),
+            # TODO: also test for whitespace removal/compaction.
+
+            (f'url({url})',            '',       [url],  [url],    f'url("{data_url}")'),
+            (f'url("{url}")',          '',       [url],  [url],    f'url("{data_url}")'),
+            (f'src("{url}")',          '',       [url],  [url],    f'url("{data_url}")'),
+            (f'url(  "{url}"   )',     '',       [url],  [url],    f'url("{data_url}")'),
+            (f'@import"{url}";',       '',       [url],  [url],    f'@import "{data_url}";'),
+            (f'@import   "{url}"  ;',  '',       [url],  [url],    f'@import "{data_url}"  ;'),
+            (f'@import url("{url}");', '',       [url],  [url],    f'@import url("{data_url}");'),
+
+            (f'url({url})',            '',       [],     [],       f'url("{url}")'),
+            (f'@import"{url}";',       '',       [],     [],       f'@import "{url}";'),
+
+            (f'url({url})',            'a/b/c/', [],     [],       f'url("{url}")'),
+            (f'@import"{url}";',       'a/b/c',  [],     [],       f'@import "{url}";'),
+
+            (f'url({url})',            'a/b/c/', [url],  [url],    f'url("{data_url}")'),
+            (f'@import"{url}";',       'a/b/c',  [url],  [url],    f'@import "{data_url}";'),
+
+            (f'url(dir/file)',         'a/b/c/', [],     [],       f'url("a/b/c/dir/file")'),
+            (f'@import"dir/file";',    'a/b/c',  [],     [],       f'@import "a/b/dir/file";'),
+
+            (
+                r'''p{ x: "url(abc)"; /* url(def) */ y: url("ghi"); z: "url(jkl)"} /*url(mno) */''',
+                '',
+                ['ghi'],
+                ['ghi'],
+                rf'''p{{ x: "url(abc)";  y: url("{data_url}"); z: "url(jkl)"}} '''
+            ),
+
+            (
+                r'''p{ x: url(abc) url(def); /*y: "url(ghi)";*/ z: url(jkl)}''',
+                '',
+                ['abc', 'def', 'jkl'],
+                ['abc', 'def', 'jkl'],
+                rf'''p{{ x: url("{data_url}") url("{data_url}");  z: url("{data_url}")}}'''
+            ),
+
+            (
+                rf'''p{{ x: url(abc) url(def) url({url}) url({url}2) }}''',
+                'a/b/c',
+                ['a/b/def', url],
+                ['a/b/def', url],
+                rf'''p{{ x: url("a/b/abc") url("{data_url}") url("{data_url}") url("{url}2") }}'''
+            ),
+
+            # Special characters
+            ('''url(\\\\\\x\\y\\z\\\\)''',
+             '', ['\\xyz\\'], ['\\xyz\\'], fr'url("{data_url}")'),
+
+            ('''url(\\69 \\06d\\0061\t\\00067\\000065 )''',
+             '', ['image'], ['image'], fr'url("{data_url}")'),
+
+            ('''url("\\"\\69 \\06d\\0061\t\\00067\\000065 \\"")''',
+             '', ['"image"'], ['"image"'], fr'url("{data_url}")'),
+
+            ('''url('\\'\\69 \\06d\\0061\t\\00067\\000065 \\'')''',
+             '', ["'image'"], ["'image'"], fr'url("{data_url}")'),
+        ]:
+            embed_rule = lambda url='', **k: url in embed
+            type(mock_build_params).embed_rule = PropertyMock(return_value = embed_rule)
+
+            sw = resource_writers.StylesheetWriter(mock_build_params)
+            output_css = sw._embed(base_url, input_css)
+
+            msg = repr(dict(input_css=input_css, base_url=base_url,
+                            embed=embed, expected_css=expected_css))
 
             # Ensure that make_data_url() is called correctly.
-            self.assertEqual(len(exp_url_list), mock_make_data_url.call_count)
-            for url in exp_url_list:
+            self.assertEqual(len(exp_urls), mock_make_data_url.call_count, msg = msg)
+            for url in exp_urls:
                 mock_make_data_url.assert_any_call(url, ANY, mock_build_params, ANY)
-
-            # Check overall result.
-            self.assertEqual(exp_result, result)
             mock_make_data_url.reset_mock()
+
+            self.assertEqual(expected_css, output_css, msg = msg)
+
+
+    def test_nested_stylesheets(self):
+        """
+        More expansive/holistic test of resources.py and resource_writers.py, as they relate to
+        the embedding of stylesheets.
+        """
+
+        with tempfile.TemporaryDirectory() as dir:
+
+            os.chdir(dir)
+            os.mkdir('dir0')
+            os.mkdir(os.path.join('dir0', 'dir1'))
+            os.mkdir('dir2')
+            os.mkdir(os.path.join('dir2', 'dir3'))
+            os.mkdir(os.path.join('dir2', 'dir3', 'dir4'))
+
+            # Test file structure:
+            # |
+            # +-- dir0/
+            # |   |
+            # |   +-- fileA.css
+            # |   \-- dir1
+            # |       |
+            # |       +-- fileB.css
+            # |       \-- fileB.txt
+            # |
+            # \-- dir2/
+            #     |
+            #     +-- fileC.css
+            #     +-- fileC.txt
+            #     \-- dir3/
+            #         |
+            #         \-- dir4/
+            #             |
+            #             +-- fileD.css
+            #             \-- fileD.txt
+
+
+            # NOTE: this test is sensitive to the exact spacing choices made by the production code.
+            # Since there are multiple levels of base64 encoding, more/less whitespace results in
+            # different _non-whitespace_ characters too. So care is needed!
+
+            def nospace(s):
+                return s.replace(' ', '').replace('\n', '').replace('[_]', ' ')
+
+            orig_contentA = nospace('''
+                @import[_]"dir1/fileB.css";
+                @import[_]"dir1/fileB.txt";
+            ''')
+
+            orig_contentB = nospace('''
+                @import[_]"../../dir2/fileC.css";
+                @import[_]"../../dir2/fileC.txt";
+            ''')
+
+            orig_contentC = nospace('''
+                @import[_]"dir3/dir4/fileD.txt";
+                @import[_]"dir3/dir4/fileD.css";
+            ''')
+
+            orig_contentD = nospace('''
+                p { color: blue }
+            ''')
+
+            with open(os.path.join('dir0', 'fileA.css'), 'w') as w:
+                w.write(orig_contentA)
+
+            for file in ['fileB.css', 'fileB.txt']:
+                with open(os.path.join('dir0', 'dir1', file), 'w') as w:
+                    w.write(orig_contentB)
+
+            for file in ['fileC.css', 'fileC.txt']:
+                with open(os.path.join('dir2', file), 'w') as w:
+                    w.write(orig_contentC)
+
+            for file in ['fileD.css', 'fileD.txt']:
+                with open(os.path.join('dir2', 'dir3', 'dir4', file), 'w') as w:
+                    w.write(orig_contentD)
+
+
+            # Work out the expected result programmatically. It would be too fragile to hard-code
+            # a manual calculation here.
+
+            b64_contentD = base64.b64encode(orig_contentD.encode()).decode()
+            conv_contentC = nospace(f'''
+                @import[_]"dir2/dir3/dir4/fileD.txt";
+                @import[_]"data:text/css;base64,{b64_contentD}";
+            ''')
+            b64_contentC = base64.b64encode(conv_contentC.encode()).decode()
+            conv_contentB = nospace(f'''
+                @import[_]"data:text/css;base64,{b64_contentC}";
+                @import[_]"dir2/fileC.txt";
+            ''')
+            b64_contentB = base64.b64encode(conv_contentB.encode()).decode()
+            conv_contentA = nospace(f'''
+                @import[_]"data:text/css;base64,{b64_contentB}";
+                @import[_]"dir0/dir1/fileB.txt";
+            ''')
+            # b64_contentA = base64.b64encode(conv_contentA.encode()).decode()
+
+
+            mock_build_params = Mock()
+            type(mock_build_params).resource_base_url = PropertyMock(return_value = 'dir0/')
+            # Embed only .css files, not .txt files.
+            type(mock_build_params).embed_rule = PropertyMock(return_value =
+                                                              lambda url,**k: url.endswith('css'))
+
+            expected = f'<style>\n{conv_contentA}\n</style>'
+
+            for resource_spec in [
+                resources.ContentResourceSpec(
+                    xpaths_required = [],
+                    content_factory = lambda *a: orig_contentA),
+                resources.UrlResourceSpec(
+                    xpaths_required = [],
+                    url_factory     = lambda *a: 'fileA.css',
+                    base_url        = 'dir0/',
+                    cache           = Mock(),
+                    embed_fn        = lambda *a: True,
+                    hash_type_fn    = None,
+                    mime_type       = 'text/css')
+            ]:
+                resource = resource_spec.make_resource(set(), Mock())
+                output = resource_writers.StylesheetWriter(mock_build_params).format([resource])
+                self.assertEqual(expected, output)
+
+
+    def test_embed_recursion_loop(self):
+        pass
+        # TODO
+
 
 
     @patch('lamarkdown.lib.resource_writers.make_data_url')
@@ -162,7 +332,7 @@ class ResourceWritersTestCase(unittest.TestCase):
         ]
 
         # Production code
-        resource_writers.embed_media(root, mock_build_params)
+        resource_writers.embed_media(root, '', mock_build_params)
 
         # Verify that embeddable things have been embedded
         for tag, ext, mime_type, attr in remote_data:

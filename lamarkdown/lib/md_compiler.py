@@ -217,7 +217,7 @@ def write_html(content_html: str,
 
     # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
     # We're still only dealing with the output of Python Markdown here.)
-    resource_writers.embed_media(root_element, build_params)
+    resource_writers.embed_media(root_element, build_params.resource_base_url, build_params)
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
@@ -303,8 +303,9 @@ def write_html(content_html: str,
                 ) + '\n}'
             ))
 
-    stylesheet_writer = resource_writers.StylesheetWriter(build_params)
-    script_writer = resource_writers.ScriptWriter(build_params)
+    css = resource_writers.StylesheetWriter(build_params).format(css_list)
+    js = resource_writers.ScriptWriter(build_params).format(
+        resource_list(build_params.js, xpaths_found, build_params.progress))
 
     full_html_template = '''
         <!DOCTYPE html>
@@ -321,14 +322,12 @@ def write_html(content_html: str,
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = title_html,
-        css = stylesheet_writer.format(css_list),
+        css = css,
         errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()
                          if not error.consumed),
         content_html = content_html,
-        js = script_writer.format(resource_list(build_params.js,
-                                                xpaths_found,
-                                                build_params.progress))
+        js = js
     )
 
     with open(build_params.output_file, 'w') as target:

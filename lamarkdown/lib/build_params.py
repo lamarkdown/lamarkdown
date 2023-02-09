@@ -14,7 +14,6 @@ import lxml.etree
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-import os.path
 from typing import *
 
 class ResourceError(Exception): pass
@@ -97,7 +96,7 @@ class BuildParams:
     css_vars:             Dict[str,str]              = field(default_factory=dict)
     css:                  List[ResourceSpec]         = field(default_factory=list)
     js:                   List[ResourceSpec]         = field(default_factory=list)
-    custom_resource_path: str                        = None
+    resource_base_url:    str                        = ''
     embed_rule:           Rule[bool]                 = default_embed_rule
     resource_hash_rule:   Rule[Optional[str]]        = default_resource_hash_rule
     scale_rule:           Rule[float]                = default_scale_rule
@@ -122,10 +121,6 @@ class BuildParams:
         return self.output_namer(self.target_file)
 
     @property
-    def resource_path(self):
-        return self.custom_resource_path or os.path.dirname(os.path.abspath(self.src_file))
-
-    @property
     def resource_xpaths(self) -> Set[str]:
         '''
         The set of all XPath expressions specified by all CSS/JS resources.
@@ -133,7 +128,6 @@ class BuildParams:
         return {xpath for res_list in (self.css, self.js)
                       for res in res_list
                       for xpath in res.xpaths_required}
-
 
     def reset(self):
         self.name = ''
@@ -147,7 +141,7 @@ class BuildParams:
         self.css_vars = {}
         self.css = []
         self.js = []
-        self.custom_resource_path = None
+        self.resource_base_url = ''
         self.embed_rule         = default_embed_rule
         self.resource_hash_rule = default_resource_hash_rule
         self.scale_rule         = default_scale_rule
