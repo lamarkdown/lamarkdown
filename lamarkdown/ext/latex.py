@@ -96,13 +96,13 @@ class DataUriEmbedder(Embedder):
 
 
 class SvgElementEmbedder(Embedder):
-    def __init__(self):
-        self.svg_index = 0
+    # def __init__(self):
+    #     self.svg_index = 0
 
     def generate_html(self, svg_content: str) -> ElementTree.Element:
         svg_element = ElementTree.fromstring(svg_content)
         self._mangle(svg_element)
-        self.svg_index += 1
+        # self.svg_index += 1
         return svg_element
 
     def _mangle(self, elem: ElementTree.Element):
@@ -123,15 +123,15 @@ class SvgElementEmbedder(Embedder):
         if elem.tail:
             elem.tail = AtomicString(elem.tail)
 
-        # Third, prepend the SVG index to every "id" we can find (to keep them separate from other SVGs that might share the same namespace.
-        id = elem.attrib.get('id')
-        href = elem.attrib.get('href')
-
-        if id:
-            elem.attrib['id'] = f'i{self.svg_index}_{id}'
-
-        if href and href[0] == '#':
-            elem.attrib['href'] = f'#i{self.svg_index}_{href[1:]}'
+        # # Third, prepend the SVG index to every "id" we can find (to keep them separate from other SVGs that might share the same namespace.
+        # id = elem.attrib.get('id')
+        # href = elem.attrib.get('href')
+        #
+        # if id:
+        #     elem.attrib['id'] = f'i{self.svg_index}_{id}'
+        #
+        # if href and href[0] == '#':
+        #     elem.attrib['href'] = f'#i{self.svg_index}_{href[1:]}'
 
         for child in elem:
             self._mangle(child)

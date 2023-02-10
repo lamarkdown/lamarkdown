@@ -1,7 +1,9 @@
 from ..util.mock_progress import MockProgress
-from lamarkdown.lib import md_compiler, build_params
+from ..util.mock_cache import MockCache
+from lamarkdown.lib import md_compiler, build_params, resources
 
 import unittest
+from unittest.mock import patch
 from hamcrest import *
 
 import markdown
@@ -9,10 +11,11 @@ import lxml
 import cssutils
 
 import base64
+import collections
+import mimetypes
 import os
 import tempfile
 from textwrap import dedent
-
 
 # TODO: also test these API properties:
 # - css_vars
@@ -77,7 +80,7 @@ class MdCompilerTestCase(unittest.TestCase):
             build_files = [build_file] if build else [],
             build_dir = build_dir,
             build_defaults = build_defaults,
-            cache = {},
+            cache = MockCache(),
             progress = MockProgress(),
             is_live = is_live,
             allow_exec_cmdline = False
@@ -126,6 +129,32 @@ class MdCompilerTestCase(unittest.TestCase):
                 '''
             )
         )
+
+
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_basic_defaults(self, mock_read_url):
+        """
+        This innocuous-seeming code is more integration test than unit test. Since it includes the
+        build defaults (unlike the bare-bones test_basic()), it indirectly invokes quite a lot of
+        Lamarkdown.
+        """
+        mock_read_url.side_effect = lambda url,*a,**k: (False,
+                                                        b'mock content',
+                                                        mimetypes.guess_type(url))
+        self.run_md_compiler(
+            r'''
+            # Heading
+
+            Paragraph1
+            ''')
+
+        assert_that(
+            self.root.xpath('//h1/text()'),
+            contains_exactly('Heading'))
+
+        assert_that(
+            self.root.xpath('//p/text()'),
+            contains_exactly('Paragraph1'))
 
 
     def test_css(self):
@@ -408,6 +437,96 @@ class MdCompilerTestCase(unittest.TestCase):
         # <svg id="d">: scale by 3*5
         assert_that(self.root.xpath('//svg[@id="d"]/@width'),  contains_exactly('150'))
         assert_that(self.root.xpath('//svg[@id="d"]/@height'), contains_exactly('225'))
+
+
+    def test_disentangle_svgs_fn(self):
+        doc = r'''
+            <div id="alpha">
+                <p id="beta"></p>
+                <p id="gamma"></p>
+                <svg id="delta">
+                    <defs>
+                        <g id="gamma" />
+                        <g id="delta" />
+                        <g id="epsilon" />
+                        <g id="zeta" />
+                    </defs>
+                    <use href="#alpha" />
+                    <use href="#beta" />
+                    <use href="#gamma" />
+                    <use href="#delta" />
+                    <use href="#epsilon" />
+                    <use href="#zeta" />
+                </svg>
+                <svg id="epsilon">
+                    <defs>
+                        <g id="alpha" />
+                        <g id="gamma" />
+                        <g id="gamma_0" />
+                        <g id="gamma_1" />
+                    </defs>
+                    <use href="#alpha" />
+                    <use href="#gamma" />
+                    <use href="#gamma_0" />
+                    <use href="#gamma_1" />
+                    <use href="#zeta" />
+                </svg>
+            </div>
+        '''
+
+        root_element = lxml.html.fromstring(doc)
+        original_id_set = set(root_element.xpath('//@id'))
+
+        # Copy all id and href attributes to id0 and href0, so that the original matching elements
+        # can be matched up again after their id and href have changed.
+
+        for id_element in root_element.xpath('//svg//*[@id]'):
+            id_element.set('id0', id_element.get('id'))
+
+        for href_element in root_element.xpath('//svg//*[@href]'):
+            href = href_element.get('href')
+            href_element.set('href0', href)
+            # Sanity-check the test setup itself:
+            self.assertTrue(href.startswith('#'))
+            self.assertTrue(href[1:] in original_id_set)
+
+        md_compiler.disentangle_svgs(root_element)
+
+        new_ids = collections.Counter(root_element.xpath('//@id'))
+        assert_that(new_ids, has_entries({id: 1 for id in original_id_set}))
+
+        # Within each <svg> element, test for consistency in how href= and id= elements map to
+        # one another
+
+        for svg_element in root_element.xpath('//svg'):
+            id_map = {} # New->old ID mapping
+            for id_element in svg_element.xpath('.//*[@id]'):
+                id_map[id_element.get('id')] = id_element.get('id0')
+
+            for href_element in svg_element.xpath('.//*[@href]'):
+                new_href = href_element.get('href')[1:]
+                old_href = href_element.get('href0')[1:]
+                if new_href in id_map:
+                    self.assertEqual(old_href, id_map[new_href])
+                else:
+                    # If the reference isn't defined now (within the <svg> element), then it
+                    # shouldn't have been defined before either.
+                    self.assertNotIn(old_href, id_map.values())
+
+
+    def test_disentangle_svgs(self):
+        self.run_md_compiler(
+            markdown = r'''
+                # Heading
+                <svg><defs><g id="alpha" /><g id="beta" /></svg>
+                <svg><defs><g id="alpha" /><g id="beta" /></svg>
+            ''',
+            build_defaults = False,
+            recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
+        )
+
+        new_ids = collections.Counter(self.root.xpath('//@id'))
+        assert_that(new_ids, has_entries({id: 1 for id in new_ids}))
 
 
     def test_variants(self):

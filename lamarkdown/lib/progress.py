@@ -18,10 +18,12 @@ class Message:
         print(f'{self.LOCATION_COLOUR}{self.TAG}{self._location}:{RESET} {self.MSG_COLOUR}{self._msg}{RESET}')
 
         for details in self._details_list:
-            if details[-1] == '\n':
-                details = details[:-1]
-            print(textwrap.indent(details, '  | ', lambda line: True))
-            print('  ---')
+            if details:
+                assert isinstance(details, str)
+                if details[-1] == '\n':
+                    details = details[:-1]
+                print(textwrap.indent(details, '  | ', lambda line: True))
+                print('  ---')
 
 class ProgressMsg(Message):
     LOCATION_COLOUR = '\033[35m'

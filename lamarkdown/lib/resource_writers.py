@@ -323,7 +323,9 @@ class StylesheetWriter(ResourceWriter):
             # Both of these things should save us some space. (WOFF2 isn't supported by IE, but
             # that's a sacrifice I'm willing to make.)
 
-            cache_key = ('ttf-to-woff2', content_bytes, self.build_params.font_codepoints)
+            cache_key = ('ttf-to-woff2',
+                         content_bytes,
+                         frozenset(self.build_params.font_codepoints))
             if cache_key in self.build_params.cache:
                 content_bytes = self.build_params.cache[cache_key]
 
