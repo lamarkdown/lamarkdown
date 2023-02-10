@@ -3,6 +3,7 @@ from lamarkdown.lib import resources, resource_writers
 
 import unittest
 from unittest.mock import patch, Mock, PropertyMock, ANY
+from hamcrest import *
 
 import base64
 import email.utils
@@ -139,6 +140,76 @@ class ResourceWritersTestCase(unittest.TestCase):
             self.assertEqual(expected_css, output_css, msg = msg)
 
 
+    def test_stylesheet_writer(self):
+        mock_build_params = Mock()
+        type(mock_build_params).embed_rule = PropertyMock(return_value = lambda **k: False)
+        type(mock_build_params).progress = PropertyMock(return_value = MockProgress())
+
+        content1 = resources.ContentResource('p { color: blue }')
+        content2 = resources.ContentResource('div { margin: 0 }')
+        url1 = resources.UrlResource('dir/style.css', to_embed = False)
+        url2 = resources.UrlResource('http://example.com/style.css', to_embed = False)
+
+        sw = resource_writers.StylesheetWriter(mock_build_params)
+
+        exp_content1 = f'<style>\n{content1.content}\n</style>'
+        exp_content2 = f'<style>\n{content2.content}\n</style>'
+        exp_content12 = f'<style>\n{content1.content}\n{content2.content}\n</style>'
+        exp_url1 = f'<link rel="stylesheet" href="{url1.url}" />'
+        exp_url2 = f'<link rel="stylesheet" href="{url2.url}" />'
+
+        # Note: <link>s are supposed to come before <style> in the output
+
+        for resource_list, expected in [
+            ([content1],                       exp_content1),
+            ([url1],                           exp_url1),
+            ([content1, content2],             exp_content12),
+            ([url1, url2],                     exp_url1 + exp_url2),
+            ([url1, content1],                 exp_url1 + exp_content1),
+            ([content1, url1],                 exp_url1 + exp_content1),
+            ([content1, url1, content2, url2], exp_url1 + exp_url2 + exp_content12),
+            ([url1, content1, content2, url2], exp_url1 + exp_url2 + exp_content12),
+        ]:
+            assert_that(
+                sw.format(resource_list),
+                equal_to_ignoring_whitespace(expected))
+
+
+    def test_script_writer(self):
+        mock_build_params = Mock()
+        type(mock_build_params).embed_rule = PropertyMock(return_value = lambda **k: False)
+        type(mock_build_params).progress = PropertyMock(return_value = MockProgress())
+
+        content1 = resources.ContentResource('console.log("hello")')
+        content2 = resources.ContentResource('console.log("world")')
+        url1 = resources.UrlResource('dir/script.js', to_embed = False)
+        url2 = resources.UrlResource('http://example.com/script.js', to_embed = False)
+
+        sw = resource_writers.ScriptWriter(mock_build_params)
+
+        exp_content1 = f'<script>\n{content1.content}\n</script>'
+        exp_content2 = f'<script>\n{content2.content}\n</script>'
+        exp_content12 = f'<script>\n{content1.content}\n{content2.content}\n</script>'
+        exp_url1 = f'<script src="{url1.url}"></script>'
+        exp_url2 = f'<script src="{url2.url}"></script>'
+
+        # Note: <link>s are supposed to come before <style> in the output
+
+        for resource_list, expected in [
+            ([content1],                       exp_content1),
+            ([url1],                           exp_url1),
+            ([content1, content2],             exp_content12),
+            ([url1, url2],                     exp_url1 + exp_url2),
+            ([url1, content1],                 exp_url1 + exp_content1),
+            ([content1, url1],                 exp_content1 + exp_url1),
+            ([content1, url1, content2, url2], exp_content1 + exp_url1 + exp_content2 + exp_url2),
+            ([url1, content1, content2, url2], exp_url1 + exp_content12 + exp_url2),
+        ]:
+            assert_that(
+                sw.format(resource_list),
+                equal_to_ignoring_whitespace(expected))
+
+
     def test_nested_stylesheets(self):
         """
         More expansive/holistic test of resources.py and resource_writers.py, as they relate to
@@ -148,29 +219,32 @@ class ResourceWritersTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as dir:
 
             os.chdir(dir)
-            os.mkdir('dir0')
-            os.mkdir(os.path.join('dir0', 'dir1'))
-            os.mkdir('dir2')
-            os.mkdir(os.path.join('dir2', 'dir3'))
-            os.mkdir(os.path.join('dir2', 'dir3', 'dir4'))
+            os.mkdir('dir1')
+            os.mkdir(os.path.join('dir1', 'dir2'))
+            os.mkdir(os.path.join('dir1', 'dir2', 'dir3'))
+            os.mkdir('dir4')
+            os.mkdir(os.path.join('dir4', 'dir5'))
+            os.mkdir(os.path.join('dir4', 'dir5', 'dir6'))
 
             # Test file structure:
             # |
-            # +-- dir0/
+            # +-- dir1/ [resource_base_url]
             # |   |
-            # |   +-- fileA.css
-            # |   \-- dir1
+            # |   \-- dir2/
             # |       |
-            # |       +-- fileB.css
-            # |       \-- fileB.txt
+            # |       +-- fileA.css
+            # |       \-- dir3
+            # |           |
+            # |           +-- fileB.css
+            # |           \-- fileB.txt
             # |
-            # \-- dir2/
+            # \-- dir4/
             #     |
             #     +-- fileC.css
             #     +-- fileC.txt
-            #     \-- dir3/
+            #     \-- dir5/
             #         |
-            #         \-- dir4/
+            #         \-- dir6/
             #             |
             #             +-- fileD.css
             #             \-- fileD.txt
@@ -188,37 +262,37 @@ class ResourceWritersTestCase(unittest.TestCase):
                 return s.replace(' ', '').replace('\n', '').replace('[_]', ' ')
 
             orig_contentA = nospace('''
-                @import[_]"dir1/fileB.css";
-                @import[_]"dir1/fileB.txt";
+                @import[_]"dir3/fileB.css";
+                @import[_]"dir3/fileB.txt";
             ''')
 
             orig_contentB = nospace('''
-                @import[_]"../../dir2/fileC.css";
-                @import[_]"../../dir2/fileC.txt";
+                @import[_]"../../../dir4/fileC.css";
+                @import[_]"../../../dir4/fileC.txt";
             ''')
 
             orig_contentC = nospace('''
-                @import[_]"dir3/dir4/fileD.txt";
-                @import[_]"dir3/dir4/fileD.css";
+                @import[_]"dir5/dir6/fileD.txt";
+                @import[_]"dir5/dir6/fileD.css";
             ''')
 
             orig_contentD = nospace('''
                 p { color: blue }
             ''')
 
-            with open(os.path.join('dir0', 'fileA.css'), 'w') as w:
+            with open(os.path.join('dir1', 'dir2', 'fileA.css'), 'w') as w:
                 w.write(orig_contentA)
 
             for file in ['fileB.css', 'fileB.txt']:
-                with open(os.path.join('dir0', 'dir1', file), 'w') as w:
+                with open(os.path.join('dir1', 'dir2', 'dir3', file), 'w') as w:
                     w.write(orig_contentB)
 
             for file in ['fileC.css', 'fileC.txt']:
-                with open(os.path.join('dir2', file), 'w') as w:
+                with open(os.path.join('dir4', file), 'w') as w:
                     w.write(orig_contentC)
 
             for file in ['fileD.css', 'fileD.txt']:
-                with open(os.path.join('dir2', 'dir3', 'dir4', file), 'w') as w:
+                with open(os.path.join('dir4', 'dir5', 'dir6', file), 'w') as w:
                     w.write(orig_contentD)
 
 
@@ -227,43 +301,53 @@ class ResourceWritersTestCase(unittest.TestCase):
 
             b64_contentD = base64.b64encode(orig_contentD.encode()).decode()
             conv_contentC = nospace(f'''
-                @import[_]"dir2/dir3/dir4/fileD.txt";
+                @import[_]"dir4/dir5/dir6/fileD.txt";
                 @import[_]"data:text/css;base64,{b64_contentD}";
             ''')
             b64_contentC = base64.b64encode(conv_contentC.encode()).decode()
             conv_contentB = nospace(f'''
                 @import[_]"data:text/css;base64,{b64_contentC}";
-                @import[_]"dir2/fileC.txt";
+                @import[_]"dir4/fileC.txt";
             ''')
             b64_contentB = base64.b64encode(conv_contentB.encode()).decode()
             conv_contentA = nospace(f'''
                 @import[_]"data:text/css;base64,{b64_contentB}";
-                @import[_]"dir0/dir1/fileB.txt";
+                @import[_]"dir1/dir2/dir3/fileB.txt";
             ''')
             # b64_contentA = base64.b64encode(conv_contentA.encode()).decode()
 
 
             mock_build_params = Mock()
-            type(mock_build_params).resource_base_url = PropertyMock(return_value = 'dir0/')
+            type(mock_build_params).progress = PropertyMock(return_value = MockProgress())
             # Embed only .css files, not .txt files.
             type(mock_build_params).embed_rule = PropertyMock(return_value =
                                                               lambda url,**k: url.endswith('css'))
 
             expected = f'<style>\n{conv_contentA}\n</style>'
 
-            for resource_spec in [
-                resources.ContentResourceSpec(
-                    xpaths_required = [],
-                    content_factory = lambda *a: orig_contentA),
-                resources.UrlResourceSpec(
-                    xpaths_required = [],
-                    url_factory     = lambda *a: 'fileA.css',
-                    base_url        = 'dir0/',
-                    cache           = Mock(),
-                    embed_fn        = lambda *a: True,
-                    hash_type_fn    = None,
-                    mime_type       = 'text/css')
+            for base_url, resource_spec in [
+                (
+                    'dir1/dir2/',
+                    resources.ContentResourceSpec(
+                        xpaths_required = [],
+                        content_factory = lambda *a: orig_contentA),
+                ),
+                (
+                    # With URL-based stylesheets, we can test an extra level of indirection. i.e.,
+                    # the resources in dir1/dir2/fileA.css are relative to the file's location,
+                    # 'dir2', not directly to the base path 'dir1'.
+                    'dir1/',
+                    resources.UrlResourceSpec(
+                        xpaths_required = [],
+                        url_factory     = lambda *a: 'dir2/fileA.css',
+                        base_url        = 'dir1/',
+                        cache           = Mock(),
+                        embed_fn        = lambda *a: True,
+                        hash_type_fn    = None,
+                        mime_type       = 'text/css')
+                )
             ]:
+                type(mock_build_params).resource_base_url = PropertyMock(return_value = base_url)
                 resource = resource_spec.make_resource(set(), Mock())
                 output = resource_writers.StylesheetWriter(mock_build_params).format([resource])
                 self.assertEqual(expected, output)

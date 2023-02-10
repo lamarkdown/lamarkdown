@@ -39,7 +39,11 @@ class ResourceWriter:
 
     def format(self, resource_list: RList):
         buffer = io.StringIO()
-        self.write(buffer, resource_list)
+        try:
+            self.write(buffer, resource_list)
+        except Exception as e:
+            err = self.build_params.progress.error_from_exception(self.__class__.__name__, e)
+            buffer.write(err.as_comment())
         return buffer.getvalue()
 
     def write(self, buffer, resource_list: RList):
@@ -51,7 +55,7 @@ class ResourceWriter:
         for res in resource_list:
             if isinstance(res, UrlResource):
                 if start_content_index is not None:
-                    self._write_content(buffer, resource_list[start_content_index:(index + 1)])
+                    self._write_content(buffer, resource_list[start_content_index:index])
                     start_content_index = None
 
                 self._write_url(buffer, res)
@@ -62,6 +66,8 @@ class ResourceWriter:
 
             else:
                 raise AssertionError
+
+            index += 1
 
         if start_content_index is not None:
             self._write_content(buffer, resource_list[start_content_index:])
@@ -76,7 +82,7 @@ class ResourceWriter:
             elif isinstance(res, ContentResource):
                 content_resource_list.append(res)
             else:
-                raise AssertionError
+                raise AssertionError(f'Resource is {res.__class__} ({res})')
 
         if len(content_resource_list) > 0:
             self._write_content(buffer, content_resource_list)
@@ -165,8 +171,9 @@ class StylesheetWriter(ResourceWriter):
 
 
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
-        buffer.write('<style>\n')
+        buffer.write('<style>')
         for res in resource_sublist:
+            buffer.write('\n')
             buffer.write(self._embed(self.build_params.resource_base_url, res.content))
         buffer.write('\n</style>')
 
@@ -189,7 +196,7 @@ class StylesheetWriter(ResourceWriter):
 
             content = content_bytes.decode()
             if self._push_url(res.url):
-                content = self._embed(self.build_params.resource_base_url, content)
+                content = self._embed(res.url, content)
                 self.url_stack.pop()
             buffer.write(f'<style>\n{content}\n</style>')
 
@@ -347,10 +354,13 @@ class ScriptWriter(ResourceWriter):
 
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):
         buffer.write('<script>\n')
-        for resource in resource_sublist:
-            buffer.write(self._embed(self.build_params.resource_base_url, resource.content))
-            buffer.write('\n')
-        buffer.write('\n</script>')
+        try:
+            for resource in resource_sublist:
+                assert isinstance(resource, ContentResource)
+                buffer.write(self._embed(self.build_params.resource_base_url, resource.content))
+                buffer.write('\n')
+        finally:
+            buffer.write('\n</script>')
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:

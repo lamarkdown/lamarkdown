@@ -86,6 +86,11 @@ class ErrorMsg(Message):
         self._consumed = True
         return ElementTree.tostring(self.as_dom_element(), encoding = 'unicode')
 
+    def as_comment(self) -> str:
+        # Do not mark as consumed, because the user may not see it; this is mainly to assist
+        # in unit test output.
+        return f'/* [!!] {self._location}: {self._msg}\n{self._details_list} */'
+
 
 
 class Progress:
