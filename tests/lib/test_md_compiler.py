@@ -372,7 +372,10 @@ class MdCompilerTestCase(unittest.TestCase):
                 only_contains(f'data:audio/x-wav;base64,{base64.b64encode(wav_bytes).decode()}'))
 
 
-    def test_element_non_embedding(self):
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_element_non_embedding(self, mock_read_url):
+        mock_read_url.return_value = (False, b'', None)
+
         for embed_spec in [
             'False',
             'lambda url = "",  **k: not (url.endswith("gif") or url.endswith("wav"))',
@@ -406,37 +409,45 @@ class MdCompilerTestCase(unittest.TestCase):
                 only_contains('audio.wav'))
 
 
-    def test_svg_scaling(self):
-        self.run_md_compiler(
-            markdown = r'''
-                # Heading
-                <svg id="a" width="10" height="15"><g></g></svg>
-                <svg id="b" width="10" height="15" size="3"><g></g></svg>
-                <svg id="c" width="10" height="15" scale="5"><g></g></svg>
-                <svg id="d" width="10" height="15" size="3" scale="5"><g></g></svg>
-            ''',
-            build = r'''
-                import lamarkdown as la
-                la.scale(lambda attr={}, **k: float(attr["size"]) if "size" in attr else 2)
-            ''',
-            recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
-        )
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_image_scaling(self, mock_read_url):
+        mock_read_url.return_value = (False, b'', 'image/png')
 
-        # <svg id="a">: scale by 2
-        assert_that(self.root.xpath('//svg[@id="a"]/@width'),  contains_exactly('20'))
-        assert_that(self.root.xpath('//svg[@id="a"]/@height'), contains_exactly('30'))
+        for tag,       suffix in [
+            ('svg',    '><g></g></svg>'),
+            ('img',    ' src="dummy.png">'),
+            ('source', ' src="dummy.png">')
+        ]:
+            self.run_md_compiler(
+                markdown = rf'''
+                    # Heading
+                    <{tag} id="a" width="10" height="15"{suffix}
+                    <{tag} id="b" width="10" height="15" size="3"{suffix}
+                    <{tag} id="c" width="10" height="15" scale="5"{suffix}
+                    <{tag} id="d" width="10" height="15" size="3" scale="5"{suffix}
+                ''',
+                build = r'''
+                    import lamarkdown as la
+                    la.scale(lambda attr={}, **k: float(attr["size"]) if "size" in attr else 2)
+                ''',
+                recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
+            )
 
-        # <svg id="b">: scale by 3
-        assert_that(self.root.xpath('//svg[@id="b"]/@width'),  contains_exactly('30'))
-        assert_that(self.root.xpath('//svg[@id="b"]/@height'), contains_exactly('45'))
+            # <{tag} id="a">: scale by 2
+            assert_that(self.root.xpath(f'//{tag}[@id="a"]/@width'),  contains_exactly('20'))
+            assert_that(self.root.xpath(f'//{tag}[@id="a"]/@height'), contains_exactly('30'))
 
-        # <svg id="c">: scale by 2*5
-        assert_that(self.root.xpath('//svg[@id="c"]/@width'),  contains_exactly('100'))
-        assert_that(self.root.xpath('//svg[@id="c"]/@height'), contains_exactly('150'))
+            # <{tag} id="b">: scale by 3
+            assert_that(self.root.xpath(f'//{tag}[@id="b"]/@width'),  contains_exactly('30'))
+            assert_that(self.root.xpath(f'//{tag}[@id="b"]/@height'), contains_exactly('45'))
 
-        # <svg id="d">: scale by 3*5
-        assert_that(self.root.xpath('//svg[@id="d"]/@width'),  contains_exactly('150'))
-        assert_that(self.root.xpath('//svg[@id="d"]/@height'), contains_exactly('225'))
+            # <{tag} id="c">: scale by 2*5
+            assert_that(self.root.xpath(f'//{tag}[@id="c"]/@width'),  contains_exactly('100'))
+            assert_that(self.root.xpath(f'//{tag}[@id="c"]/@height'), contains_exactly('150'))
+
+            # <{tag} id="d">: scale by 3*5
+            assert_that(self.root.xpath(f'//{tag}[@id="d"]/@width'),  contains_exactly('150'))
+            assert_that(self.root.xpath(f'//{tag}[@id="d"]/@height'), contains_exactly('225'))
 
 
     def test_disentangle_svgs_fn(self):

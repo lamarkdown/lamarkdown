@@ -2,23 +2,54 @@ from ..util.mock_progress import MockProgress
 from lamarkdown.lib import image_scaling
 
 import unittest
-from unittest.mock import Mock, PropertyMock
+from unittest.mock import Mock, PropertyMock, patch
+
+import PIL.Image
 
 import io
 import re
 from textwrap import dedent
 from xml.etree import ElementTree
 
+# TODO:
+# - test <img>/<source> with:
+#   - src= points to something invalid or is missing
+
 class ImageScalingTestCase(unittest.TestCase):
 
-    def test_rescale_svg(self):
+
+    NUMBER_REGEX = re.compile('[0-9]+(\.[0-9]+)?')
+
+    def normalise_number_str(self, match):
+        return str(float(match.group()))[:8]
+
+    def _compare_attrs(self, element, expected_attrs, msg):
+        self.assertNotIn('scale', element.attrib, msg = msg)
+        self.assertNotIn('abs-scale', element.attrib, msg = msg)
+        self.assertEqual(list(expected_attrs.keys()), list(element.attrib.keys()), msg = msg)
+
+        for key, expected_value in expected_attrs.items():
+
+            actual_value = element.get(key).replace('\n', ' ')
+            expected_value = expected_value.replace('\n', ' ')
+
+            # Reformat any numeric component of the attribute, so we don't get caught out by
+            # '5' vs '5.0', for instance.
+            expected_value = self.NUMBER_REGEX.sub(self.normalise_number_str, expected_value)
+            actual_value = self.NUMBER_REGEX.sub(self.normalise_number_str, actual_value)
+
+            self.assertEqual(expected_value, actual_value, msg = msg)
+
+
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_rescale_direct(self, mock_real_url):
 
         mock_build_params = Mock()
 
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
         type(mock_build_params).scale_rule = \
-            lambda self, attr = {}, **k: 2.5 if 'x' in attr else 1.0
+            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
 
         # Test input shorthands
         # ---------------------
@@ -26,19 +57,20 @@ class ImageScalingTestCase(unittest.TestCase):
         # Misc
         x = {'x': 'dummy'} # Arbitrary attribute that invokes the scale rule
         sc = {'scale': '0.1'}
+        abs_sc = {'abs-scale': ''}
 
         # Main test input shorthands
         w_10       = {'width': '10'}
         h_20       = {'height': '20pt'}
         s_w30      = {'style': 'width: 30px'}
-        s_h40      = {'style': 'height: 40em'}
-        s_w30_h40  = {'style': 'width: 30px; height: 40em'}
+        s_h40      = {'style': 'height: 40mm'}
+        s_w30_h40  = {'style': 'width: 30px; height: 40mm'}
 
         # Relative-unit test input shorthands
         w_RR       = {'width': '10vw'}
         h_RR       = {'height': '20vh'}
-        s_wRR      = {'style': 'width: 30vmax'}
-        s_hRR      = {'style': 'height: 40vmin'}
+        s_wRR      = {'style': 'width: 30em'}
+        s_hRR      = {'style': 'height: 40ex'}
         s_wRR_hRR  = {'style': 'width: 30%; height: 40%'}
 
 
@@ -49,22 +81,22 @@ class ImageScalingTestCase(unittest.TestCase):
         w_25       = {'width': '25'}
         h_50       = {'height': '50pt'}
         s_w75      = {'style': 'width: 75px'}
-        s_h100     = {'style': 'height: 100em'}
-        s_w75_h100 = {'style': 'width: 75px; height: 100em'}
+        s_h100     = {'style': 'height: 100mm'}
+        s_w75_h100 = {'style': 'width: 75px; height: 100mm'}
 
         # Results when scaled by 0.1 (as per the scale=... attribute)
         w_1        = {'width': '1'}
         h_2        = {'height': '2pt'}
         s_w3       = {'style': 'width: 3px'}
-        s_h4       = {'style': 'height: 4em'}
-        s_w3_h4    = {'style': 'width: 3px; height: 4em'}
+        s_h4       = {'style': 'height: 4mm'}
+        s_w3_h4    = {'style': 'width: 3px; height: 4mm'}
 
         # Results when scaled by 0.25 (combined)
         w_2p5      = {'width': '2.5'}
         h_5        = {'height': '5pt'}
         s_w7p5     = {'style': 'width: 7.5px'}
-        s_h10      = {'style': 'height: 10em'}
-        s_w7p5_h10 = {'style': 'width: 7.5px; height: 10em'}
+        s_h10      = {'style': 'height: 10mm'}
+        s_w7p5_h10 = {'style': 'width: 7.5px; height: 10mm'}
 
 
         # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
@@ -151,9 +183,26 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**x, **sc, **h_20, **s_w30_h40},         {**x, **h_5, **s_w7p5_h10}),
             ({**x, **sc, **w_10, **h_20, **s_w30_h40}, {**x, **w_2p5, **h_5, **s_w7p5_h10}),
 
+            # Test that abs-scale eliminates the effect of the scale_rule.
+            ({**x, **abs_sc, **sc},                              {**x}),
+            ({**x, **abs_sc, **sc, **w_10},                      {**x, **w_1}),
+            ({**x, **abs_sc, **sc, **h_20},                      {**x, **h_2}),
+            ({**x, **abs_sc, **sc, **w_10, **h_20},              {**x, **w_1, **h_2}),
+            ({**x, **abs_sc, **sc, **s_w30},                     {**x, **s_w3}),
+            ({**x, **abs_sc, **sc, **w_10, **s_w30},             {**x, **w_1, **s_w3}),
+            ({**x, **abs_sc, **sc, **h_20, **s_w30},             {**x, **h_2, **s_w3}),
+            ({**x, **abs_sc, **sc, **w_10, **h_20, **s_w30},     {**x, **w_1, **h_2, **s_w3}),
+            ({**x, **abs_sc, **sc, **s_h40},                     {**x, **s_h4}),
+            ({**x, **abs_sc, **sc, **w_10, **s_h40},             {**x, **w_1, **s_h4}),
+            ({**x, **abs_sc, **sc, **h_20, **s_h40},             {**x, **h_2, **s_h4}),
+            ({**x, **abs_sc, **sc, **w_10, **h_20, **s_h40},     {**x, **w_1, **h_2, **s_h4}),
+            ({**x, **abs_sc, **sc, **s_w30_h40},                 {**x, **s_w3_h4}),
+            ({**x, **abs_sc, **sc, **w_10, **s_w30_h40},         {**x, **w_1, **s_w3_h4}),
+            ({**x, **abs_sc, **sc, **h_20, **s_w30_h40},         {**x, **h_2, **s_w3_h4}),
+            ({**x, **abs_sc, **sc, **w_10, **h_20, **s_w30_h40}, {**x, **w_1, **h_2, **s_w3_h4}),
+
             # Test that scaling is prevented when at least one attribute/property is expressed in
             # relative units. ('RR' in our shorthand notation.)
-            ({**x},                              ...),
             ({**x, **w_RR},                      ...),
             ({**x, **h_RR},                      ...),
             ({**x, **w_10, **h_RR},              ...),
@@ -172,23 +221,308 @@ class ImageScalingTestCase(unittest.TestCase):
         ]:
             if exp_attr is ...: exp_attr = inp_attr
 
-            root = ElementTree.Element('div')
-            p = ElementTree.SubElement(root, 'p')
-            svg = ElementTree.SubElement(p, 'svg', attrib = inp_attr)
+            for tag in ['svg', 'img', 'source']:
 
-            image_scaling.scale_images(root, mock_build_params)
+                root = ElementTree.Element('div')
+                p = ElementTree.SubElement(root, 'p')
+                image = ElementTree.SubElement(p, tag, attrib = inp_attr)
 
-            msg = repr({'inputs': inp_attr, 'expected_result': exp_attr})
+                image_scaling.scale_images(root, mock_build_params)
 
-            self.assertTrue('scale' not in svg.attrib, msg = msg)
-            self.assertEqual(list(exp_attr.keys()), list(svg.attrib.keys()), msg = msg)
+                self._compare_attrs(image, exp_attr,
+                                    repr({'inputs': inp_attr, 'expected_result': exp_attr}))
+                mock_real_url.assert_not_called()
 
-            for key, exp_value in exp_attr.items():
 
-                # Strip spaces and new-lines
-                exp_value = WHITESPACE.sub('', exp_value)
-                actual_value = svg.get(key)
-                actual_value = WHITESPACE.sub('', actual_value)
-                actual_value = TRAILING_ZEROS.sub(TRAILING_ZERO_REPL, actual_value)
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_rescale_img_svg(self, mock_real_url):
 
-                self.assertEqual(exp_value, actual_value, msg = msg)
+        mock_build_params = Mock()
+
+        # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
+        # (or 1.0 if they don't).
+        type(mock_build_params).scale_rule = \
+            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
+
+        # Test input shorthands
+        # ---------------------
+
+        # Misc
+        x = {'x': 'dummy'} # Arbitrary attribute that invokes the scale rule
+        sc = {'scale': '0.1'}
+        abs_sc = {'abs-scale': ''}
+        src = {'src': 'mock url'}
+
+        # Main test input shorthands
+        w_10       = {'width': '10'}
+        h_20       = {'height': '20pt'}
+        s_w30      = {'style': 'width: 30px'}
+        s_h40      = {'style': 'height: 40mm'}
+        s_w30_h40  = {'style': 'width: 30px; height: 40mm'}
+
+        # Relative-unit test input shorthands
+        w_RR       = {'width': '10vw'}
+        h_RR       = {'height': '20vh'}
+        s_wRR      = {'style': 'width: 30vmax'}
+        s_hRR      = {'style': 'height: 40vmin'}
+        s_wRR_hRR  = {'style': 'width: 30%; height: 40%'}
+
+
+        # Expected result shorthands
+        # --------------------------
+
+        # Results when scaled by 2.5 (as per scale_rule())
+        w_25       = {'width':  str(10 * 2.5)}
+        h_50       = {'height': str(20 * 2.5 * 96/72)} # pt->px
+        w_75       = {'width':  str(30 * 2.5)}
+        h_100      = {'height': str(40 * 2.5 * 96/25.4)} # mm->px
+
+        # Results when scaled by 0.1 (as per the scale=... attribute)
+        w_1        = {'width':  str(10 * 0.1)}
+        h_2        = {'height': str(20 * 0.1 * 96/72)} # pt->px
+        w_3        = {'width':  str(30 * 0.1)}
+        h_4        = {'height': str(40 * 0.1 * 96/25.4)} # mm->px
+
+        # Results when scaled by 0.25 (combined)
+        w_2p5      = {'width':  str(10 * 0.25)}
+        h_5        = {'height': str(20 * 0.25 * 96/72)} # pt->px
+        w_7p5      = {'width':  str(30 * 0.25)}
+        h_10       = {'height': str(40 * 0.25 * 96/25.4)} # mm->px
+
+
+        # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
+        # actual result, so we can then do simple string comparisons rather than parsing the values.
+        WHITESPACE = re.compile('\s+')
+        TRAILING_ZEROS = re.compile(r'(\.[0-9]*?)0+\b')
+        TRAILING_ZERO_REPL = r'\1'
+
+        for inp_parent_attr, inp_svg_attr, exp_attr in [
+            # Without the criteria that invokes the scaling rule (well, technically it's always
+            # invoked, but here it returns 1.0), and without a 'scale' attribute, no scaling should
+            # happen. ('...' refers to the test input.)
+            ({**src}, {},                            ...),
+            ({**src}, {**w_10},                      ...),
+            ({**src}, {**h_20},                      ...),
+            ({**src}, {**w_10, **h_20},              ...),
+            ({**src}, {**s_w30},                     ...),
+            ({**src}, {**w_10, **s_w30},             ...),
+            ({**src}, {**h_20, **s_w30},             ...),
+            ({**src}, {**w_10, **h_20, **s_w30},     ...),
+            ({**src}, {**s_h40},                     ...),
+            ({**src}, {**w_10, **s_h40},             ...),
+            ({**src}, {**h_20, **s_h40},             ...),
+            ({**src}, {**w_10, **h_20, **s_h40},     ...),
+            ({**src}, {**s_w30_h40},                 ...),
+            ({**src}, {**w_10, **s_w30_h40},         ...),
+            ({**src}, {**h_20, **s_w30_h40},         ...),
+            ({**src}, {**w_10, **h_20, **s_w30_h40}, ...),
+
+            # Given a criteria that invokes the scaling rule (for a scaling factor of 2.5), check
+            # that the scale is applied to all width/height combinations.
+            ({**src, **x}, {},                            {**src, **x}),
+            ({**src, **x}, {**w_10},                      {**src, **x, **w_25}),
+            ({**src, **x}, {**h_20},                      {**src, **x, **h_50}),
+            ({**src, **x}, {**w_10, **h_20},              {**src, **x, **w_25, **h_50}),
+            ({**src, **x}, {**s_w30},                     {**src, **x, **w_75}),
+            ({**src, **x}, {**w_10, **s_w30},             {**src, **x, **w_75}),
+            ({**src, **x}, {**h_20, **s_w30},             {**src, **x, **w_75, **h_50}),
+            ({**src, **x}, {**w_10, **h_20, **s_w30},     {**src, **x, **w_75, **h_50}),
+            ({**src, **x}, {**s_h40},                     {**src, **x, **h_100}),
+            ({**src, **x}, {**w_10, **s_h40},             {**src, **x, **w_25, **h_100}),
+            ({**src, **x}, {**h_20, **s_h40},             {**src, **x, **h_100}),
+            ({**src, **x}, {**w_10, **h_20, **s_h40},     {**src, **x, **w_25, **h_100}),
+            ({**src, **x}, {**s_w30_h40},                 {**src, **x, **w_75, **h_100}),
+            ({**src, **x}, {**w_10, **s_w30_h40},         {**src, **x, **w_75, **h_100}),
+            ({**src, **x}, {**h_20, **s_w30_h40},         {**src, **x, **w_75, **h_100}),
+            ({**src, **x}, {**w_10, **h_20, **s_w30_h40}, {**src, **x, **w_75, **h_100}),
+
+            # Given a scale=0.1 attribute, check that the scale is applied to all width/height
+            # combinations. (Also, the scale= attribute must be removed.)
+            ({**src, **sc}, {},                            {**src}),
+            ({**src, **sc}, {**w_10},                      {**src, **w_1}),
+            ({**src, **sc}, {**h_20},                      {**src, **h_2}),
+            ({**src, **sc}, {**w_10, **h_20},              {**src, **w_1, **h_2}),
+            ({**src, **sc}, {**s_w30},                     {**src, **w_3}),
+            ({**src, **sc}, {**w_10, **s_w30},             {**src, **w_3}),
+            ({**src, **sc}, {**h_20, **s_w30},             {**src, **w_3, **h_2}),
+            ({**src, **sc}, {**w_10, **h_20, **s_w30},     {**src, **w_3, **h_2}),
+            ({**src, **sc}, {**s_h40},                     {**src, **h_4}),
+            ({**src, **sc}, {**w_10, **s_h40},             {**src, **w_1, **h_4}),
+            ({**src, **sc}, {**h_20, **s_h40},             {**src, **h_4}),
+            ({**src, **sc}, {**w_10, **h_20, **s_h40},     {**src, **w_1, **h_4}),
+            ({**src, **sc}, {**s_w30_h40},                 {**src, **w_3, **h_4}),
+            ({**src, **sc}, {**w_10, **s_w30_h40},         {**src, **w_3, **h_4}),
+            ({**src, **sc}, {**h_20, **s_w30_h40},         {**src, **w_3, **h_4}),
+            ({**src, **sc}, {**w_10, **h_20, **s_w30_h40}, {**src, **w_3, **h_4}),
+
+            # Test both the global rule and the scale= attribute; combined scaling factor should be
+            # 2.5 * 0.1 = 0.25.
+            ({**src, **x, **sc}, {},                            {**src, **x}),
+            ({**src, **x, **sc}, {**w_10},                      {**src, **x, **w_2p5}),
+            ({**src, **x, **sc}, {**h_20},                      {**src, **x, **h_5}),
+            ({**src, **x, **sc}, {**w_10, **h_20},              {**src, **x, **w_2p5, **h_5}),
+            ({**src, **x, **sc}, {**s_w30},                     {**src, **x, **w_7p5}),
+            ({**src, **x, **sc}, {**w_10, **s_w30},             {**src, **x, **w_7p5}),
+            ({**src, **x, **sc}, {**h_20, **s_w30},             {**src, **x, **w_7p5, **h_5}),
+            ({**src, **x, **sc}, {**w_10, **h_20, **s_w30},     {**src, **x, **w_7p5, **h_5}),
+            ({**src, **x, **sc}, {**s_h40},                     {**src, **x, **h_10}),
+            ({**src, **x, **sc}, {**w_10, **s_h40},             {**src, **x, **w_2p5, **h_10}),
+            ({**src, **x, **sc}, {**h_20, **s_h40},             {**src, **x, **h_10}),
+            ({**src, **x, **sc}, {**w_10, **h_20, **s_h40},     {**src, **x, **w_2p5, **h_10}),
+            ({**src, **x, **sc}, {**s_w30_h40},                 {**src, **x, **w_7p5, **h_10}),
+            ({**src, **x, **sc}, {**w_10, **s_w30_h40},         {**src, **x, **w_7p5, **h_10}),
+            ({**src, **x, **sc}, {**h_20, **s_w30_h40},         {**src, **x, **w_7p5, **h_10}),
+            ({**src, **x, **sc}, {**w_10, **h_20, **s_w30_h40}, {**src, **x, **w_7p5, **h_10}),
+
+            # Test that abs-scale eliminates the effect of the scale_rule.
+            ({**src, **x, **abs_sc, **sc}, {},                            {**src, **x}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10},                      {**src, **x, **w_1}),
+            ({**src, **x, **abs_sc, **sc}, {**h_20},                      {**src, **x, **h_2}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **h_20},              {**src, **x, **w_1, **h_2}),
+            ({**src, **x, **abs_sc, **sc}, {**s_w30},                     {**src, **x, **w_3}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **s_w30},             {**src, **x, **w_3}),
+            ({**src, **x, **abs_sc, **sc}, {**h_20, **s_w30},             {**src, **x, **w_3, **h_2}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **h_20, **s_w30},     {**src, **x, **w_3, **h_2}),
+            ({**src, **x, **abs_sc, **sc}, {**s_h40},                     {**src, **x, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **s_h40},             {**src, **x, **w_1, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**h_20, **s_h40},             {**src, **x, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **h_20, **s_h40},     {**src, **x, **w_1, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**s_w30_h40},                 {**src, **x, **w_3, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **s_w30_h40},         {**src, **x, **w_3, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**h_20, **s_w30_h40},         {**src, **x, **w_3, **h_4}),
+            ({**src, **x, **abs_sc, **sc}, {**w_10, **h_20, **s_w30_h40}, {**src, **x, **w_3, **h_4}),
+
+            # Test that scaling is prevented when at least one attribute/property is expressed in
+            # relative units. ('RR' in our shorthand notation.)
+            ({**src, **x}, {**w_RR},                      ...),
+            ({**src, **x}, {**h_RR},                      ...),
+            ({**src, **x}, {**w_10, **h_RR},              ...),
+            ({**src, **x}, {**s_wRR},                     ...),
+            ({**src, **x}, {**w_10, **s_wRR},             ...),
+            ({**src, **x}, {**h_RR, **s_w30},             ...),
+            ({**src, **x}, {**w_10, **h_20, **s_wRR},     ...),
+            ({**src, **x}, {**s_hRR},                     ...),
+            ({**src, **x}, {**w_RR, **s_h40},             ...),
+            ({**src, **x}, {**h_20, **s_hRR},             ...),
+            ({**src, **x}, {**w_10, **h_RR, **s_h40},     ...),
+            ({**src, **x}, {**s_wRR_hRR},                 ...),
+            ({**src, **x}, {**w_RR, **s_w30_h40},         ...),
+            ({**src, **x}, {**h_20, **s_wRR_hRR},         ...),
+            ({**src, **x}, {**w_10, **h_20, **s_wRR_hRR}, ...),
+        ]:
+            if exp_attr is ...: exp_attr = inp_parent_attr
+
+            for tag in ['img', 'source']:
+
+                svg = ElementTree.Element('svg', attrib = inp_svg_attr)
+                mock_real_url.return_value = (False,
+                                              ElementTree.tostring(svg),
+                                              'image/svg+xml')
+
+                root = ElementTree.Element('div')
+                p = ElementTree.SubElement(root, 'p')
+                image = ElementTree.SubElement(p, tag, attrib = inp_parent_attr)
+
+                image_scaling.scale_images(root, mock_build_params)
+
+                self._compare_attrs(image, exp_attr,
+                                    repr({'parent attr': inp_parent_attr,
+                                          'child attr': inp_svg_attr,
+                                          'expected result': exp_attr}))
+
+
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_all_unit_conversions(self, mock_real_url):
+
+        scale = 2.5
+        mock_build_params = Mock()
+        type(mock_build_params).scale_rule = PropertyMock(return_value = lambda **k: scale)
+
+        for unit,  px_equiv in [
+            ('cm', 96/2.54),
+            ('mm', 96/25.4),
+            ('q',  96/25.4/4),
+            ('in', 96),
+            ('pc', 96/6),
+            ('pt', 96/72),
+            ('px', 1),
+            ('',   1),
+        ]:
+            for unit_str in [
+                unit,
+                unit.upper(),
+                *([] if len(unit) < 2 else [
+                    unit[0].upper() + unit[1],
+                    unit[0] + unit[1].upper()
+                ])
+            ]:
+                for attrib in [
+                    {'width': f'10{unit_str}', 'height': f'20{unit_str}'},
+                    {'style': f'width: 10{unit_str}; height: 20{unit_str}'},
+                ]:
+                    svg = ElementTree.Element('svg', attrib = attrib)
+                    mock_real_url.return_value = (False,
+                                                  ElementTree.tostring(svg),
+                                                  'image/svg+xml')
+                    root = ElementTree.Element('div')
+                    p = ElementTree.SubElement(root, 'p')
+                    image = ElementTree.SubElement(p, 'img', attrib = {'src': 'mock url'})
+
+                    image_scaling.scale_images(root, mock_build_params)
+
+                    expected_attrib = {'src': 'mock url',
+                                       'width': str(10 * 2.5 * px_equiv),
+                                       'height': str(20 * 2.5 * px_equiv)}
+
+                    self._compare_attrs(image, expected_attrib,
+                                        repr({'unit': unit_str, 'px_equiv': px_equiv, 'attrib': attrib}))
+
+
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_rescale_img_raster(self, mock_real_url):
+
+        mock_build_params = Mock()
+
+        # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
+        # (or 1.0 if they don't).
+        type(mock_build_params).scale_rule = \
+            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
+
+        # Test input shorthands
+        x = {'x': 'dummy'} # Arbitrary attribute that invokes the scale rule
+        sc = {'scale': '0.1'}
+        abs_sc = {'abs-scale': ''}
+        src = {'src': 'mock url'}
+
+        for width, height, format, mime_type in [
+            (10,   20,     'PNG',  'image/png'),
+            (20,   10,     'JPEG', 'image/jpeg'),
+            ( 1,    1,     'PNG',  'image/png'),
+            (20,   20,     'JPEG', 'image/jpeg'),
+        ]:
+            image_buf = io.BytesIO()
+            PIL.Image.new(mode = "RGB", size = (width, height)).save(image_buf, format = format)
+            mock_real_url.return_value = (False, image_buf.getvalue(), mime_type)
+
+            for inp_attr,                      exp_attr in [
+                ({**src},                      {**src}),
+                ({**src, **x},                 {**src, **x, 'width': str(width * 2.5),
+                                                            'height': str(height * 2.5)}),
+                ({**src, **sc},                {**src,      'width': str(width * 0.1),
+                                                            'height': str(height * 0.1)}),
+                ({**src, **x, **sc},           {**src, **x, 'width': str(width * 0.25),
+                                                            'height': str(height * 0.25)}),
+                ({**src, **abs_sc, **x, **sc}, {**src, **x, 'width': str(width * 0.1),
+                                                            'height': str(height * 0.1)}),
+            ]:
+                for tag in ['img', 'source']:
+
+                    root = ElementTree.Element('div')
+                    p = ElementTree.SubElement(root, 'p')
+                    image = ElementTree.SubElement(p, tag, attrib = inp_attr)
+
+                    image_scaling.scale_images(root, mock_build_params)
+
+                    self._compare_attrs(image, exp_attr,
+                                        repr({'input attr': inp_attr, 'expected result': exp_attr}))
+

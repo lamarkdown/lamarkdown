@@ -51,6 +51,7 @@ pybtex = "^0.24.0"
 fonttools = "^4.38.0"
 brotli = "^1.0.9"
 cssutils = "^2.4.2"
+pillow = "^9.4.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"

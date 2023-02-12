@@ -14,18 +14,14 @@ import urllib.request
 
 DEFAULT_USER_AGENT = None
 DEFAULT_CACHE_EXPIRY = 86400 # By default, cache resources for 24 hours
-REMOTE_URL_SCHEME_REGEX = re.compile('(?!file:)[a-z]+:')
+REMOTE_URL_SCHEME_REGEX = re.compile('(?!(file|data):)[a-z]+:')
 
 def read_url(url: str,
              cache,
              progress: Progress,
              user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
 
-
-    if url.startswith('data:'):
-        raise NotImplementedError
-
-    elif REMOTE_URL_SCHEME_REGEX.match(url):
+    if REMOTE_URL_SCHEME_REGEX.match(url):
         cache_entry = cache.get(url)
 
         if cache_entry is None:
@@ -94,15 +90,17 @@ def read_url(url: str,
 
         return (True, content_bytes, mime_type)
 
-    else:
-        mime_type, _ = mimetypes.guess_type(url)
-        if not url.startswith('file:'):
+    else: # For local files and data URLs
+        if not (url.startswith('file:') or url.startswith('data:')):
             url = f'file:{url}'
 
-        # If relative, the url is relative to the document, and lamd.py does a chdir() accordingly.
         with urllib.request.urlopen(url, 'rb') as reader:
             # Using urllib (instead of open()) avoids needing to convert path separators from
             # / to \ on Windows.
+
+            mime_type = reader.headers.get('content-type') # Might be None
+            if mime_type is None:
+                mime_type, _ = mimetypes.guess_type(url)
             return (False, reader.read(), mime_type)
 
 
