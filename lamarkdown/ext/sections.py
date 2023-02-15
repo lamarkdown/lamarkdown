@@ -51,35 +51,35 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
         super().__init__(md)
 
-    def run(self, root):      
+    def run(self, root):
         sections_found = False
         first = True
         new_root = ElementTree.Element('div')
         section = ElementTree.Element('section')
         section.text = '\n'
         section.tail = '\n'
-        
+
         for element in root:
-            if element.tag == 'div' and element.attrib[_SEPARATOR_ATTR] == _SEPARATOR_ATTR_VALUE:
+            if element.tag == 'div' and element.attrib.get(_SEPARATOR_ATTR) == _SEPARATOR_ATTR_VALUE:
                 sections_found = True
                 if not first:
                     # Allow for a 'separator' right at the start, which serves purely to specify
                     # attributes, and doesn't create a blank first section.
                     new_root.append(section)
-        
+
                 section = ElementTree.Element('section')
                 section.text = '\n'
                 section.tail = '\n'
                 section.attrib = {k: v for k, v in element.attrib.items() if k != _SEPARATOR_ATTR}
-        
+
             else:
                 section.append(copy.deepcopy(element))
-        
+
             first = False
-        
+
         new_root.append(section)
         return new_root if sections_found else root
-        
+
 
 
 class SectionsExtension(markdown.Extension):

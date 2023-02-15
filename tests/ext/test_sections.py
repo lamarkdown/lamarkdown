@@ -11,10 +11,10 @@ sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class SectionsTestCase(unittest.TestCase):
 
-    def run_markdown(self, markdown_text, **kwargs):
+    def run_markdown(self, markdown_text, other_extensions = [], other_config = {}, **kwargs):
         md = markdown.Markdown(
-            extensions = ['la.sections'],
-            extension_configs = {'la.sections': kwargs}
+            extensions = ['la.sections', *other_extensions],
+            extension_configs = {'la.sections': kwargs, **other_config}
         )
         return md.convert(dedent(markdown_text).strip())
 
@@ -72,7 +72,7 @@ class SectionsTestCase(unittest.TestCase):
         )
 
 
-    def test_false_positives(self):
+    def test_false_positive_dividers(self):
         '''Section dividers are only recognised (for now) if they're separate blocks.'''
         html = self.run_markdown(
             r'''
@@ -86,6 +86,22 @@ class SectionsTestCase(unittest.TestCase):
             ---
             Paragraph4
             ''')
+
+        self.assertNotIn('<section>', html)
+
+
+    def test_false_positive_elements(self):
+        # Included as a result of a bug
+        html = self.run_markdown(
+            r'''
+            Paragraph1
+
+            !!! note
+                Text
+
+            Paragraph2
+            ''',
+            other_extensions = ['admonition'])
 
         self.assertNotIn('<section>', html)
 
