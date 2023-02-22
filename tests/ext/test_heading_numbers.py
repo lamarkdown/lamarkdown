@@ -48,18 +48,18 @@ class HeadingNumbersTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?x)
+            fr'''(?xs)
             \s* <h1>Top-Level[ ]Heading</h1>
-            \s* <h2><span[ ]class="hnumber">1</span>[ ]Section[ ]1</h2>
-            \s* <h3><span[ ]class="hnumber">1.1</span>[ ]Section[ ]1.1</h3>
-            \s* <h3><span[ ]class="hnumber">1.2</span>[ ]Section[ ]1.2</h3>
-            \s* <h3><span[ ]class="hnumber">1.3</span>[ ]Section[ ]1.3</h3>
-            \s* <h2><span[ ]class="hnumber">2</span>[ ]Section[ ]2</h2>
-            \s* <h3><span[ ]class="hnumber">2.1</span>[ ]Section[ ]2.1</h3>
-            \s* <h4><span[ ]class="hnumber">2.1.1</span>[ ]Section[ ]2.1.1</h4>
-            \s* <h5><span[ ]class="hnumber">2.1.1.1</span>[ ]Section[ ]2.1.1.1</h5>
-            \s* <h6><span[ ]class="hnumber">2.1.1.1.1</span>[ ]Section[ ]2.1.1.1.1</h6>
-            \s* <h3><span[ ]class="hnumber">2.2</span>[ ]Section[ ]2.2</h3>
+            \s* <h2><span[ ]class="la-heading-number">1</span>[ ]Section[ ]1</h2>
+            \s* <h3><span[ ]class="la-heading-number">1.1</span>[ ]Section[ ]1.1</h3>
+            \s* <h3><span[ ]class="la-heading-number">1.2</span>[ ]Section[ ]1.2</h3>
+            \s* <h3><span[ ]class="la-heading-number">1.3</span>[ ]Section[ ]1.3</h3>
+            \s* <h2><span[ ]class="la-heading-number">2</span>[ ]Section[ ]2</h2>
+            \s* <h3><span[ ]class="la-heading-number">2.1</span>[ ]Section[ ]2.1</h3>
+            \s* <h4><span[ ]class="la-heading-number">2.1.1</span>[ ]Section[ ]2.1.1</h4>
+            \s* <h5><span[ ]class="la-heading-number">2.1.1.1</span>[ ]Section[ ]2.1.1.1</h5>
+            \s* <h6><span[ ]class="la-heading-number">2.1.1.1.1</span>[ ]Section[ ]2.1.1.1.1</h6>
+            \s* <h3><span[ ]class="la-heading-number">2.2</span>[ ]Section[ ]2.2</h3>
             \s*
             '''
         )

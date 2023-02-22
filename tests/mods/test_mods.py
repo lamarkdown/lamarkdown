@@ -60,7 +60,7 @@ class BuildModTestCase(unittest.TestCase):
 
         # TODO: For some modules, there is clearly more we could do (e.g., heading_numbers and plots).
 
-        for mod in ['cmd', 'code', 'doc', 'heading_numbers', 'page_numbers', 'plots', 'teaching']:
+        for mod in ['code', 'doc', 'page_numbers', 'plots', 'teaching']:
             self.run_md_compiler(
                 markdown = 'Text',
                 build = fr'''

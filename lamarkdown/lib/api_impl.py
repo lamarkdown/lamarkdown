@@ -305,7 +305,7 @@ class ApiImpl(type(__builtins__)):
                                                    content_factory = content_factory))
 
 
-    def css(self, content, **kwargs):
+    def css(self, content: ResourceSpec, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().css.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                    content_factory = content_factory))
@@ -315,7 +315,7 @@ class ApiImpl(type(__builtins__)):
         return params().css_vars
 
 
-    def js(self, content: str, **kwargs):
+    def js(self, content: ResourceSpec, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                   content_factory = content_factory))

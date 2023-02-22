@@ -5,7 +5,7 @@ import copy
 from lxml.etree import SubElement
 
 
-def apply():
+def apply(heading_numbers = True):
     la(
         'admonition', # 'Notes', 'warnings', etc.
         'meta',       # Allows for defining metadata in the markdown.
@@ -27,6 +27,9 @@ def apply():
         'la.markers',
         # 'la.scale'
     )
+
+    if heading_numbers:
+        la('la.heading_numbers')
 
     la('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
     # Note:
@@ -132,9 +135,9 @@ def apply():
         'margin-top: 1.5em;'
     )
 
-    la.css_rule('.hnumber', 'margin-right: 1em;')
+    la.css_rule('.la-heading-number', 'margin-right: 1em;')
 
-    la.css_rule('pre', 'line-height: 1.7em;')
+    la.css_rule('pre', 'line-height: 1.3;')
     la.css_rule('code', 'font-family: var(--la-monospace-font);')
 
     la.css_rule(

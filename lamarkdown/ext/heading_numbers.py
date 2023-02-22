@@ -1,8 +1,8 @@
 '''
 # Heading Numbers Extension
 
-The 'lamarkdown.ext.heading_numbers' extension inserts decimal "x.y.z"-style numbers before each
-heading element in the document. These can be restricted in a couple of ways:
+The 'la.heading_numbers' extension inserts decimal "x.y.z"-style numbers before each heading element
+in the document. These can be restricted in a couple of ways:
 
 * The 'from_level' and 'to_level' config options (1--6) define the range of heading tiers to be
   numbered.
@@ -44,7 +44,7 @@ class HeadingNumbersTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     numbers[i] = 0
 
                 # Add heading number element
-                hnumber = ElementTree.Element('span', attrib = {'class': 'hnumber'})
+                hnumber = ElementTree.Element('span', attrib = {'class': 'la-heading-number'})
                 hnumber.text = '.'.join(str(n) for n in numbers[:index + 1])
                 hnumber.tail = self.sep + element.text
                 element.text = ''
