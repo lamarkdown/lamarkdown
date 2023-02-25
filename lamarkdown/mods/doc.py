@@ -25,7 +25,6 @@ def apply(heading_numbers = True):
         'la.eval',
         'la.latex',
         'la.markers',
-        # 'la.scale'
     )
 
     if heading_numbers:
@@ -45,6 +44,8 @@ def apply(heading_numbers = True):
         'la-monospace-font':    '"Inconsolata", monospace',
         'la-main-font':         'var(--la-sans-font)',
         'la-header-font':       'var(--la-serif-font)',
+
+        'la-font-size':         '12pt',
 
         'la-main-color':        'black',
         'la-main-background':   'white',
@@ -116,6 +117,7 @@ def apply(heading_numbers = True):
 
         html, body {
             font-family: var(--la-main-font);
+            font-size: var(--la-font-size);
             line-height: 1.8em;
         }
 
