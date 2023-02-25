@@ -1,26 +1,43 @@
 '''
 # Latex Extension
 
-The 'latex' extension lets uses write Latex code inside a .md file, which will be compiled,
-converted to SVG, and embedded in the output HTML.
+The 'la.latex' extension lets you write Latex code inside a .md file. This works in two ways:
 
-The user must write the Latex code starting on a new line, and can either:
+(1) Inclusion of an entire Latex document or environment (e.g., to create a PGF/Tikz image).
 
-(a) Write a complete Latex document, which must begin with '\\documentclass' and end with
-    '\\end{document}';
+    Such code will be compiled with an external Latex command, converted to SVG, and embedded in the
+    output HTML. The Latex code must start on a new line, and can either:
 
-(b) Write a cut-down form, which must:
+    (a) Be a complete Latex document, which must begin with '\\documentclass' and end with
+        '\\end{document}';
 
-    * Begin with '\\usepackage', '\\usetikzlibrary' or '\\begin{<name>}';
-    * Contain '\\begin{<name>}' (if it didn't start with it); and
-    * End with '\\end{<name>}'.
+    (b) Be a cut-down form, which must:
 
-    The extension prepends an implied '\\documentclass'. If <name> is not 'document', then the
-    extension also adds in '\\begin{document}...\\end{document}'.
+        * Begin with '\\usepackage', '\\usetikzlibrary' or '\\begin{<name>}';
+        * Contain '\\begin{<name>}' (if it didn't start with it); and
+        * End with '\\end{<name>}'.
 
-There are various configuration options, allowing a choice of Latex compiler, PDF-to-SVG converter,
-method of embedding SVG, optional common Latex code to be inserted after '\\documentclass', etc.
+        The extension prepends an implied '\\documentclass'. If <name> is not 'document', then the
+        extension also adds in '\\begin{document}...\\end{document}'.
+
+    There are various configuration options, allowing a choice of Latex compiler, PDF-to-SVG
+    converter, method of embedding SVG, optional common Latex code to be inserted after
+    '\\documentclass', etc.
+
+
+(2) Using $...$ and $$...$$ for Latex math code, at any point within a paragraph (except inside
+    `...`).
+
+    By default (or if math="mathml"), latex2mathml is used to produce MathML code, which is
+    included directly in the output document.
+
+    If math="latex", then math code will instead be compiled and converted the same way as in (1),
+    just in math mode.
+
+    Processing of math code can also be turned off with math="ignore" (either to restore the literal
+    meaning of '$', or to use an alternate math code processor like pymdownx.arithmatex).
 '''
+
 
 from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
 
@@ -28,8 +45,11 @@ from markdown import *
 from markdown.extensions import *
 from markdown.extensions.attr_list import AttrListTreeprocessor
 from markdown.preprocessors import Preprocessor
+from markdown.inlinepatterns import InlineProcessor
 from markdown.postprocessors import Postprocessor
 from markdown.util import AtomicString
+
+import latex2mathml.converter
 
 import base64
 import copy
@@ -79,9 +99,26 @@ def check_run(command: Union[str,List[str]],
             proc.stdout)
 
 
-def get_blocks(blocks):
-    while blocks:
-        yield blocks.pop(0)
+def coerce_subtree(elem: ElementTree.Element):
+    if elem.tag.startswith('{'):
+        elem.tag = elem.tag.split('}', 1)[1]
+
+    key_set = set(elem.attrib.keys())
+    for key in key_set:
+        if key.startswith('{'):
+            elem.attrib[key.split('}', 1)[1]] = elem.attrib[key]
+            del elem.attrib[key]
+
+    # Second, wrap all text in AtomicString (to prevent other markdown processors getting to it)
+    if elem.text:
+        elem.text = AtomicString(elem.text)
+
+    if elem.tail:
+        elem.tail = AtomicString(elem.tail)
+
+    for child in elem:
+        coerce_subtree(child)
+
 
 
 class Embedder:
@@ -96,45 +133,11 @@ class DataUriEmbedder(Embedder):
 
 
 class SvgElementEmbedder(Embedder):
-    # def __init__(self):
-    #     self.svg_index = 0
-
     def generate_html(self, svg_content: str) -> ElementTree.Element:
         svg_element = ElementTree.fromstring(svg_content)
-        self._mangle(svg_element)
-        # self.svg_index += 1
+        coerce_subtree(svg_element)
         return svg_element
 
-    def _mangle(self, elem: ElementTree.Element):
-        # First, strip ElementTree namespaces
-        if elem.tag.startswith('{'):
-            elem.tag = elem.tag.split('}', 1)[1]
-
-        key_set = set(elem.attrib.keys())
-        for key in key_set:
-            if key.startswith('{'):
-                elem.attrib[key.split('}', 1)[1]] = elem.attrib[key]
-                del elem.attrib[key]
-
-        # Second, wrap all text in AtomicString (to prevent other markdown processors getting to it)
-        if elem.text:
-            elem.text = AtomicString(elem.text)
-
-        if elem.tail:
-            elem.tail = AtomicString(elem.tail)
-
-        # # Third, prepend the SVG index to every "id" we can find (to keep them separate from other SVGs that might share the same namespace.
-        # id = elem.attrib.get('id')
-        # href = elem.attrib.get('href')
-        #
-        # if id:
-        #     elem.attrib['id'] = f'i{self.svg_index}_{id}'
-        #
-        # if href and href[0] == '#':
-        #     elem.attrib['href'] = f'#i{self.svg_index}_{href[1:]}'
-
-        for child in elem:
-            self._mangle(child)
 
 
 STX = '\u0002'
@@ -144,12 +147,46 @@ LATEX_PLACEHOLDER_RE     = re.compile(f'{LATEX_PLACEHOLDER_PREFIX}(?P<id>[0-9]+)
 
 HTML_COMMENT_RE = re.compile(r'<!--.*?(-->|$)', flags = re.DOTALL)
 
+ATTR = r'''
+    \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
+    (?P<attr>
+        [^\}\n ][^\}\n]*    # No '}' or newlines, and at least one non-space char.
+    )?
+    [ ]*\}                  # Ends with '}' (with optional spaces)
+'''
+
+
+class LatexStash:
+    def __init__(self, input_repr):
+        assert isinstance(input_repr, tuple)
+
+        self._match_instance = 0
+        self._latex_docs = {}
+        self._latex_attrs = {}
+        self._input_repr = input_repr
+
+    @property
+    def latex_docs(self): return self._latex_docs
+
+    @property
+    def latex_attrs(self): return self._latex_attrs
+
+    @property
+    def input_repr(self): return self._input_repr
+
+    def stash(self, full_doc: str, attr: dict[str,str]):
+        self._match_instance += 1
+        self._latex_docs[self._match_instance] = full_doc
+        self._latex_attrs[self._match_instance] = attr
+        return f'{LATEX_PLACEHOLDER_PREFIX}{self._match_instance}{ETX}'
+
+
 
 class LatexPreprocessor(Preprocessor):
     """
-    The preprocessor is responsible for identifying and parsing Latex snippets found in the
-    document. Each one is temporarily replaced by a placeholder, with the actual Latex code held
-    separately in 'latex_docs', awaiting the postprocessor.
+    The preprocessor identifies and parses Latex block snippets found in the document. Each one is
+    temporarily replaced by a placeholder, with the actual Latex code held separately in the
+    'stash', awaiting the postprocessor.
 
     (Previously, in commit 18fc579db4b4793a50ed077e369aa14e276ee189 and earlier, lamarkdown used a
     one-stage process, where a BlockProcessor would identify, parse, compile and embed each Latex
@@ -164,17 +201,6 @@ class LatexPreprocessor(Preprocessor):
             [^%\n]*?            # (a) a single line with no comments, OR
             | .*? \n [^%\n]*?   # (b) anything, but ending with a non-commented newline.
         )                       # (Match non-greedily, or else we won't know where to end.)
-    '''
-
-    ATTR = r'''
-        (
-            \n[ \t]*                # Start on a new line
-            \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
-            (?P<attr>
-                [^\}\n ][^\}\n]*    # No '}' or newlines, and at least one non-space char.
-            )?
-            [ ]*\}                  # Ends with '}' (with optional spaces)
-        )?
     '''
 
     TEX_RE = re.compile(
@@ -209,12 +235,16 @@ class LatexPreprocessor(Preprocessor):
             )
         )
         [ \t]* (%[^\n]*)?   # Ends with whitespace, then an optional comment
-        {ATTR}
+        (
+            \n[ \t]*        # Start attributes (if any) on a new line
+            {ATTR}
+        )?
         ''',
         re.VERBOSE | re.DOTALL | re.MULTILINE)
 
 
-    def __init__(self, prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
+    def __init__(self, stash: LatexStash, prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
+        self.stash = stash
         self.prepend = prepend
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
@@ -222,8 +252,6 @@ class LatexPreprocessor(Preprocessor):
 
 
     def _format_latex(self, match_obj):
-        self.match_instance += 1
-
         full_doc = match_obj.group('doc')
         if full_doc:
             if self.prepend:
@@ -245,17 +273,10 @@ class LatexPreprocessor(Preprocessor):
                 + (main_part)
             )
 
-        self._latex_docs[self.match_instance] = full_doc
-        self._latex_attrs[self.match_instance] = match_obj.group('attr')
-
-        return f'{LATEX_PLACEHOLDER_PREFIX}{self.match_instance}{ETX}'
+        return self.stash.stash(full_doc, match_obj.group('attr'))
 
 
     def run(self, lines):
-        self.match_instance = 0
-        self._latex_docs = {}
-        self._latex_attrs = {}
-
         raw_text = '\n'.join(lines)
         search_text = raw_text
         if self.strip_html_comments:
@@ -297,14 +318,109 @@ class LatexPreprocessor(Preprocessor):
         # contract.
         return ''.join(return_text).split('\n')
 
-    @property
-    def latex_docs(self): return self._latex_docs
 
-    @property
-    def latex_attrs(self): return self._latex_attrs
 
-    @property
-    def input_repr(self): return (self.prepend, self.doc_class, self.doc_class_options, self.strip_html_comments)
+class EscapeInlineProcessor(InlineProcessor):
+    """
+    Handles escaping of the '$' sign used for math code. Latex(MathML)InlineProcessor must run
+    _before_ the standard EscapeInlineProcessor, because we can't have the latter messing with our
+    Latex code (which generally contains lots of backslashes). But that means we have to do our own
+    escaping.
+    """
+
+    def __init__(self, md):
+        super().__init__(r'(?<!\\)((\\\\)*)\\\$', md)
+
+    def handleMatch(self, match, data):
+        return '\\' * (len(match.group(1)) // 2) + '$', match.start(0), match.end(0)
+
+
+
+MATH_TEX_RE = rf'''(?xs)
+    (
+        \$\$
+        (?P<latex_block>
+            .*?
+        )
+        \$\$
+        |
+        \$
+        (?P<latex_inline>
+            [^\s]
+            (
+                .*?
+                [^\s]
+            )
+        )
+        \$
+    )
+    ({ATTR})?
+'''
+
+
+class LatexInlineProcessor(InlineProcessor):
+    """
+    This inline processor identifies and parses Latex math snippets. Each one is temporarily
+    replaced by a placeholder, with the actual Latex code held separately in the 'stash', awaiting
+    the postprocessor.
+    """
+
+    def __init__(self, md, stash, prepend: str, doc_class: str, doc_class_options: str):
+        super().__init__(MATH_TEX_RE, md)
+        self.stash = stash
+        self.prepend = prepend
+        self.doc_class = doc_class
+        self.doc_class_options = doc_class_options
+
+
+    def handleMatch(self, match, data):
+
+        latex_inline = match.group('latex_inline')
+        latex_block = match.group('latex_block')
+
+        display_cmd = r'\displaystyle{}' if latex_block else ''
+        full_doc = rf'''
+            \documentclass[{self.doc_class_options}]{{{self.doc_class}}}
+            \usepackage{{tikz}}
+            {self.prepend or ''}
+            \begin{{document}}
+                ${display_cmd}{latex_inline or latex_block}$
+            \end{{document}}
+        '''
+
+        element = ElementTree.Element('span', attrib = {'class': 'la-math'})
+        element.text = self.stash.stash(full_doc, match.group('attr'))
+
+        return element, match.start(0), match.end(0)
+
+
+class LatexMathMLInlineProcessor(InlineProcessor):
+    """
+    This inline processor also identifies and parses Latex math snippets. For each one, we invoke
+    latex2mathml to produce a <math>...</math> element representing the Latex math code.
+    """
+
+    def __init__(self, md):
+        super().__init__(MATH_TEX_RE, md)
+
+    def handleMatch(self, match, data):
+
+        latex_inline = match.group('latex_inline')
+        latex_block = match.group('latex_block')
+
+        display_attr = 'block' if latex_block else 'inline'
+
+        mathml_code = latex2mathml.converter.convert(latex_inline or latex_block,
+                                                     display = display_attr)
+        element = ElementTree.fromstring(mathml_code)
+        coerce_subtree(element)
+
+        attrs = match.group('attr')
+        if attrs:
+            AttrListTreeprocessor().assign_attrs(element, attrs)
+
+        return element, match.start(0), match.end(0)
+
 
 
 class LatexPostprocessor(Postprocessor):
@@ -315,7 +431,6 @@ class LatexPostprocessor(Postprocessor):
     HTML.
     """
 
-    #cache: Dict[str,ElementTree.Element] = {}
     CACHE_PREFIX = 'lamarkdown.latex'
 
     TEX_CMDLINES = {
@@ -334,10 +449,10 @@ class LatexPostprocessor(Postprocessor):
         'svg_element': SvgElementEmbedder
     }
 
-    def __init__(self, md, preproc: LatexPreprocessor, build_dir: str, cache, progress: Progress,
+    def __init__(self, md, stash: LatexStash, build_dir: str, cache, progress: Progress,
                  tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool):
         self.md = md
-        self.preproc = preproc
+        self.stash = stash
         self.build_dir = build_dir
         self.cache = cache
         self.progress = progress
@@ -378,7 +493,7 @@ class LatexPostprocessor(Postprocessor):
             latex = HTML_COMMENT_RE.sub('', latex)
 
         # Build a representation of all the input information sources.
-        cache_key = (self.CACHE_PREFIX, latex, self.preproc.input_repr,
+        cache_key = (self.CACHE_PREFIX, latex, self.stash.input_repr,
                       self.tex_cmdline, self.converter_cmdline, self.embedding)
 
         # If not in cache, compile it.
@@ -452,8 +567,8 @@ class LatexPostprocessor(Postprocessor):
     def run(self, text):
         html = {}
         # Build all the Latex!
-        for i, latex in self.preproc.latex_docs.items():
-            html[i] = self._build(latex, self.preproc.latex_attrs[i])
+        for i, latex in self.stash.latex_docs.items():
+            html[i] = self._build(latex, self.stash.latex_attrs[i])
 
         # Substitute the HTML back into the document
         return LATEX_PLACEHOLDER_RE.sub(
@@ -514,6 +629,10 @@ class LatexExtension(Extension):
             'strip_html_comments': [
                 True,
                 r'Considers "<!--...-->" to be a comment, and removes them before compiling with Latex. Latex would (in most cases) interpret these sequences as ordinary characters, whereas in markdown they would normally be (effectively) ignored. If you need to write a literal "<!--", you can do so by inserting "{}" between the characters. (This option does not affect normal Tex "%" comments.)'
+            ],
+            'math': [
+                'mathml',
+                r'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex math code. The options are "ignore", "latex" or "mathml" (the default). For "ignore", math code is left untouched by this extension. Use this to avoid conflicts if, for instance, you\'re using another extension (like pymdownx.arithmatex) to handle them. For "latex", math code is compiled in essentially the same way as \begin{}...\end{} blocks (but in math mode). For "mathml", math code is converted to MathML <math> elements, to be rendered by the browser.'
             ]
         }
         super().__init__(**kwargs)
@@ -529,16 +648,25 @@ class LatexExtension(Extension):
     def extendMarkdown(self, md):
         md.registerExtension(self)
 
-        self.preprocessor = LatexPreprocessor(
-            prepend             = self.getConfig('prepend'),
-            doc_class           = self.getConfig('doc_class'),
-            doc_class_options   = self.getConfig('doc_class_options'),
-            strip_html_comments = self.getConfig('strip_html_comments'),
+        prepend = self.getConfig('prepend')
+        doc_class = self.getConfig('doc_class')
+        doc_class_options = self.getConfig('doc_class_options')
+        strip_html_comments = self.getConfig('strip_html_comments')
+        math = self.getConfig('math')
+
+        stash = LatexStash((prepend, doc_class, doc_class_options, strip_html_comments, math))
+
+        preprocessor = LatexPreprocessor(
+            stash,
+            prepend             = prepend,
+            doc_class           = doc_class,
+            doc_class_options   = doc_class_options,
+            strip_html_comments = strip_html_comments,
         )
 
         self.postprocessor = LatexPostprocessor(
             md,
-            self.preprocessor,
+            stash,
             build_dir           = self.getConfig('build_dir'),
             cache               = self.getConfig('cache'),
             progress            = self.getConfig('progress'),
@@ -548,8 +676,28 @@ class LatexExtension(Extension):
             strip_html_comments = self.getConfig('strip_html_comments'),
         )
 
-        md.preprocessors.register(self.preprocessor, 'la-latex-pre', 15)
+        md.preprocessors.register(preprocessor, 'la-latex-pre', 15)
         md.postprocessors.register(self.postprocessor, 'la-latex-post', 25)
+
+
+        if math == 'mathml':
+            inlineProcessor = LatexMathMLInlineProcessor(md)
+
+        elif math == 'latex':
+            inlineProcessor = LatexInlineProcessor(
+                md,
+                stash,
+                prepend             = prepend,
+                doc_class           = doc_class,
+                doc_class_options   = doc_class_options,
+            )
+        else:
+            inlineProcessor = None
+
+        if inlineProcessor:
+            md.ESCAPED_CHARS.append('$')
+            md.inlinePatterns.register(EscapeInlineProcessor(md), 'la-latex-inline-escape', 186)
+            md.inlinePatterns.register(inlineProcessor, 'la-latex-inline', 185)
 
 
 

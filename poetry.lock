@@ -241,6 +241,18 @@ files = [
 ]
 
 [[package]]
+name = "latex2mathml"
+version = "3.75.1"
+description = "Pure Python library for LaTeX to MathML conversion"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "latex2mathml-3.75.1-py3-none-any.whl", hash = "sha256:1fdd1302e194b4f05d389c6210d80982cafa1be2778fb215e4b5ed65714091a1"},
+    {file = "latex2mathml-3.75.1.tar.gz", hash = "sha256:b424a14d399aaaea79910d740d6afa3c355094d3b8a26e7544361206e538d54a"},
+]
+
+[[package]]
 name = "latexcodec"
 version = "2.0.1"
 description = "A lexer and codec to work with LaTeX code in Python."
@@ -789,4 +801,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "6363a55330f952a341e5eda93cb022738996893b1fc85414819aae9df0839eed"
+content-hash = "d5ea2059271c36e3fb03f493d304568e3021bdff4b7f459f1e82c9439c979416"

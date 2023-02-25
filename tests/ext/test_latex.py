@@ -1,8 +1,11 @@
 from ..util.mock_progress import MockProgress
 import unittest
+from unittest.mock import patch
+from hamcrest import *
 
-import lamarkdown.ext 
+import lamarkdown.ext
 import markdown
+import lxml
 
 import base64
 import os.path
@@ -96,6 +99,8 @@ class LatexTestCase(unittest.TestCase):
 
 
     def assert_tex_regex(self, regex, file_index = ''):
+        # with open(f'{self.tex_file[:-4]}{file_index or ""}.tex', 'r') as reader:
+
         with open(f'{self.tex_file}{file_index or ""}', 'r') as reader:
             tex = reader.read()
 
@@ -577,5 +582,174 @@ class LatexTestCase(unittest.TestCase):
             3, html.count(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}'),
             'There should be 3 <img> elements, one for each Latex snippet')
 
+
+
+    def test_math_ignored(self):
+        html = self.run_markdown(
+            r'''
+            Text1 $math$ Text2
+
+            Text1 $$math$$ Text2
+            ''',
+            math = 'ignore')
+
+        # html_parser = lxml.html.HTMLParser(recover = True, no_network = True)
+        root = lxml.html.fromstring(html)
+
+        assert_that(
+            root.xpath('//math | //svg | //img'),
+            empty())
+
+        self.assertFalse(os.path.exists(self.tex_file))
+
+
+    def test_math_escaped(self):
+        for input_text,          expected_output in [
+            (r'\$math$',         r'$math$'),
+            (r'\\\$math$',       r'\$math$'),
+            (r'\\\\\\\\\$math$', r'\\\\$math$'),
+            (r'\$x\\\$y\\\\\$z', r'$x\$y\\$z'),
+        ]:
+            html = self.run_markdown(
+                f'Text1{input_text}Text2',
+                math = 'mathml')
+
+            root = lxml.html.fromstring(html)
+            assert_that(
+                root.xpath('//math | //svg | //img'),
+                empty())
+
+            assert_that(
+                html,
+                contains_string(f'Text1{expected_output}Text2'))
+
+            self.assertFalse(os.path.exists(self.tex_file))
+
+
+    def test_math_inline_latex(self):
+
+        for embedding, tag in [
+            ('data_uri', 'img'),
+            ('svg_element', 'svg'),
+        ]:
+            html1 = self.run_markdown(
+                r'''
+                Text1 $inline-math0$
+
+                $inline-math1$ Text2
+
+                Text1 $inline-math2$ Text2
+                ''',
+                math = 'latex',
+                embedding = embedding)
+
+            assert_that(
+                lxml.html.fromstring(html1).xpath(f'count(//{tag})'),
+                is_(3))
+
+            for index in [0, 1, 2]:
+                self.assert_tex_regex(
+                    fr'''(?x)
+                    ^\s* \\documentclass (\[\])? \{{standalone\}}
+                    \s* ( \\usepackage \{{tikz\}} )?
+                    \s* \\begin \{{document\}}
+                    \s* \$inline-math{index}\$
+                    \s* \\end \{{document\}}
+                    \s* $
+                    ''',
+                    file_index = index
+                )
+
+            html2 = self.run_markdown(
+                r'''
+                Text1 $ inline-math3$ Text2
+
+                Text1 $inline-math4 $ Text2
+
+                Text1 $
+                inline-math5$ Text2
+
+                Text1 $inline-math6
+                $ Text2
+                ''',
+                math = 'latex',
+                embedding = embedding)
+
+            assert_that(
+                lxml.html.fromstring(html2).xpath(f'//{tag}'),
+                empty())
+
+
+    def test_math_block_latex(self):
+
+        for embedding, tag in [
+            ('data_uri', 'img'),
+            ('svg_element', 'svg'),
+        ]:
+            html = self.run_markdown(
+                r'''
+                Text1 $$block-math0$$
+
+                $$block-math1$$ Text2
+
+                Text1 $$block-math2$$ Text2
+
+                Text1 $$ block-math3$$ Text2
+
+                Text1 $$block-math4 $$ Text2
+
+                Text1 $$
+                block-math5$$ Text2
+
+                Text1 $$block-math6
+                $$ Text2
+                ''',
+                math = 'latex',
+                embedding = embedding)
+
+            assert_that(
+                lxml.html.fromstring(html).xpath(f'count(//{tag})'),
+                is_(7))
+
+            for index in [0, 1, 2, 3, 4, 5, 6]:
+                self.assert_tex_regex(
+                    fr'''(?x)
+                    ^\s* \\documentclass (\[\])? \{{standalone\}}
+                    \s* ( \\usepackage \{{tikz\}} )?
+                    \s* \\begin \{{document\}}
+                    \s* \$\\displaystyle ({{}} | \s) \s* block-math{index} \s* \$
+                    \s* \\end \{{document\}}
+                    \s* $
+                    ''',
+                    file_index = index
+                )
+
+
+    @patch('latex2mathml.converter.convert',
+           lambda latex, display = 'inline': f'<math>{latex}-{display}</math>')
+    def test_math_mathml(self):
+
+        html = self.run_markdown(
+            r'''
+            Text1 $math0$
+
+            $math1$ Text2
+
+            Text1 $math2$ Text2
+
+            Text1 $$math3$$
+
+            $$math4$$ Text2
+
+            Text1 $$math5$$ Text2
+            ''',
+            math = 'mathml')
+
+        assert_that(
+            lxml.html.fromstring(html).xpath(f'//math/text()'),
+            contains_exactly('math0-inline', 'math1-inline', 'math2-inline',
+                             'math3-block', 'math4-block', 'math5-block'))
+
+        self.assertFalse(os.path.exists(self.tex_file))
 
 
