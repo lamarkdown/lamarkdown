@@ -626,6 +626,20 @@ class LatexTestCase(unittest.TestCase):
             self.assertFalse(os.path.exists(self.tex_file))
 
 
+    def test_math_corner_cases(self):
+        for inp in ['$x$', '$$x$$', '$x$$', '$$x$', ' $x$ ', ' $$x$$ ', 'x$y$z', 'x$$y$$z',
+                    'x$y$', '$x$y']:
+            assert_that(
+                lxml.html.fromstring(self.run_markdown(inp)).xpath('//math | //svg | //img'),
+                contains_exactly(not_none()))
+
+        for inp in ['$', '$$', ' $$ ', ' x$$y ', '$$$', '$$$$', '$$$$$',
+                    '$x', 'x$', '$$x', 'x$$', ' x$ ', ' $x ', '$xy']:
+            assert_that(
+                lxml.html.fromstring(self.run_markdown(inp)).xpath('//math | //svg | //img'),
+                empty())
+
+
     def test_math_inline_latex(self):
 
         for embedding, tag in [
@@ -650,12 +664,9 @@ class LatexTestCase(unittest.TestCase):
             for index in [0, 1, 2]:
                 self.assert_tex_regex(
                     fr'''(?x)
-                    ^\s* \\documentclass (\[\])? \{{standalone\}}
-                    \s* ( \\usepackage \{{tikz\}} )?
                     \s* \\begin \{{document\}}
                     \s* \$inline-math{index}\$
                     \s* \\end \{{document\}}
-                    \s* $
                     ''',
                     file_index = index
                 )
@@ -714,12 +725,9 @@ class LatexTestCase(unittest.TestCase):
             for index in [0, 1, 2, 3, 4, 5, 6]:
                 self.assert_tex_regex(
                     fr'''(?x)
-                    ^\s* \\documentclass (\[\])? \{{standalone\}}
-                    \s* ( \\usepackage \{{tikz\}} )?
                     \s* \\begin \{{document\}}
                     \s* \$\\displaystyle ({{}} | \s) \s* block-math{index} \s* \$
                     \s* \\end \{{document\}}
-                    \s* $
                     ''',
                     file_index = index
                 )

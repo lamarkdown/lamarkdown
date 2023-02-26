@@ -340,17 +340,17 @@ MATH_TEX_RE = rf'''(?xs)
     (
         \$\$
         (?P<latex_block>
-            .*?
+            [^$]+
         )
         \$\$
         |
         \$
         (?P<latex_inline>
-            [^\s]
+            [^\s$]
             (
-                .*?
-                [^\s]
-            )
+                [^$]*
+                [^\s$]
+            )?
         )
         \$
     )
@@ -382,6 +382,7 @@ class LatexInlineProcessor(InlineProcessor):
         full_doc = rf'''
             \documentclass[{self.doc_class_options}]{{{self.doc_class}}}
             \usepackage{{tikz}}
+            \usepackage{{amsmath}}
             {self.prepend or ''}
             \begin{{document}}
                 ${display_cmd}{latex_inline or latex_block}$
@@ -444,6 +445,16 @@ class LatexPostprocessor(Postprocessor):
         'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
     }
 
+    CONVERTER_CORRECTIONS = {
+        # pdf2svg leaves off the units on width/height, and the default is technically 'px', but
+        # the numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
+        'pdf2svg': lambda svg: re.sub('<svg[^>]*>',
+                                      lambda m: re.sub(r'((width|height)="[0-9]+(\.[0-9]+)?)"',
+                                                       r'\1pt"',
+                                                       m.group()),
+                                      svg)
+    }
+
     EMBEDDERS = {
         'data_uri': DataUriEmbedder,
         'svg_element': SvgElementEmbedder
@@ -465,6 +476,11 @@ class LatexPostprocessor(Postprocessor):
         self.converter_cmdline: Union[List[str],str] = (
             self.CONVERTER_CMDLINES.get(pdf_svg_converter) or
             pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
+        )
+
+        self.converter_correction = (
+            self.CONVERTER_CORRECTIONS.get(pdf_svg_converter) or
+            (lambda svg: svg)
         )
 
         self.embedding = embedding
@@ -541,6 +557,8 @@ class LatexPostprocessor(Postprocessor):
                             f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
                             svg_content
                         ).as_html_str()
+
+                svg_content = self.converter_correction(svg_content)
 
                 # If compilation was successful, cache the result.
                 self.cache[cache_key] = self.embedder.generate_html(svg_content)

@@ -23,8 +23,18 @@ def apply(heading_numbers = True):
         # in `pyproject.toml` (equivalent to 'entry points' in other build setups).
         'la.cite',
         'la.eval',
-        'la.latex',
         'la.markers',
+    )
+
+    def latex_preamble():
+        font_size = la.css_vars.get('la-font-size')
+        if font_size.endswith('pt'):
+            return f'\KOMAoptions{{fontsize={font_size}}}'
+        return ''
+
+
+    la('la.latex', doc_class_options = la.extendable('class=scrreprt', join=','),
+                   prepend = la.extendable(la.late(latex_preamble))
     )
 
     if heading_numbers:
@@ -141,6 +151,11 @@ def apply(heading_numbers = True):
 
     la.css_rule('pre', 'line-height: 1.3;')
     la.css_rule('code', 'font-family: var(--la-monospace-font);')
+
+    la.css(
+        'math > * { font-size: var(--la-font-size); }',
+        if_selectors = 'math'
+    )
 
     la.css_rule(
         '.admonition',

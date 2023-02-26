@@ -4,7 +4,7 @@
 The functions here are to be used by build files and extensions.
 '''
 
-from .build_params import BuildParams, Rule, Variant
+from .build_params import BuildParams, ExtendableValue, LateValue, Rule, Variant
 from .resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
 from . import fenced_blocks
 
@@ -142,12 +142,40 @@ class ApiImpl(type(__builtins__)):
                 ret_config = None
 
             else:
-                all_config = p.named_extensions.setdefault(e, {})
-                all_config.update(config)
+                all_config = p._named_extensions.setdefault(e, {})
+
+                for key, value in config.items():
+                    if key in all_config:
+                        old_value = all_config[key]
+                        if isinstance(old_value, ExtendableValue):
+                            # Extend existing value
+                            old_value.extend(value)
+
+                        elif isinstance(value, ExtendableValue):
+                            # New value is extendable; make existing value extendable and extend it.
+                            old_value = self.extendable(old_value, value.join)
+                            old_value.extend(value)
+                            all_config[key] = old_value
+
+                        else:
+                            # Replace one simple value with another
+                            all_config[key] = value
+
+                    else:
+                        all_config[key] = value
+
                 ret_config = all_config
 
         return ret_config if len(extensions) == 1 else None
 
+
+    def extendable(self, value, join = ''):
+        return ExtendableValue(value, join)
+
+
+    def late(self, fn):
+        _callable(fn)
+        return LateValue(fn)
 
     @init_property
     def params(self) -> BuildParams:
@@ -215,12 +243,13 @@ class ApiImpl(type(__builtins__)):
         if set_attr:
             formatter = fenced_blocks.attr_formatter(formatter)
 
-        self('pymdownx.superfences').setdefault('custom_fences', []).append({
+        self('pymdownx.superfences', custom_fences = self.extendable([{
             'name': name,
             'class': css_class or name,
             'format': formatter,
             **({'validator': validator} if validator else {})
-        })
+        }]))
+
 
 
     def command_formatter(self, command: List[str]):
@@ -302,13 +331,13 @@ class ApiImpl(type(__builtins__)):
             return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
 
         params().css.append(ContentResourceSpec(xpaths_required = list(xpath_to_sel.keys()),
-                                                   content_factory = content_factory))
+                                                content_factory = content_factory))
 
 
     def css(self, content: ResourceSpec, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().css.append(ContentResourceSpec(xpaths_required = xpaths_required,
-                                                   content_factory = content_factory))
+                                                content_factory = content_factory))
 
     @init_property
     def css_vars(self):
@@ -318,21 +347,21 @@ class ApiImpl(type(__builtins__)):
     def js(self, content: ResourceSpec, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
-                                                  content_factory = content_factory))
+                                               content_factory = content_factory))
 
 
     def css_files(self, *url_list: List[str], **kwargs):
         params().css.extend(_url_resources(url_list,
-                                            tag = 'style',
-                                            mime_type = 'text/css',
-                                            **kwargs))
+                                           tag = 'style',
+                                           mime_type = 'text/css',
+                                           **kwargs))
 
 
     def js_files(self, *url_list: List[str], **kwargs):
         params().js.extend(_url_resources(url_list,
-                                           tag = 'script',
-                                           mime_type = 'application/javascript',
-                                           **kwargs))
+                                          tag = 'script',
+                                          mime_type = 'application/javascript',
+                                          **kwargs))
 
     R = TypeVar('R')
     RuleSpec = Union[R,Rule[R]]
@@ -371,3 +400,4 @@ class ApiImpl(type(__builtins__)):
 
         else:
             raise ValueError(f'"scale_spec" expected to be a number, or a fn(str,str,str)->float, but was {scale_spec.__class__} ({scale_spec}).')
+

@@ -12,11 +12,64 @@ from markdown.extensions import Extension
 import diskcache
 import lxml.etree
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from typing import *
 
 class ResourceError(Exception): pass
+
+
+class LateValue:
+    def __init__(self, callback):
+        self._callback = callback
+
+    @property
+    def value(self):
+        return self._callback()
+
+
+class ExtendableValue:
+    def __init__(self, init_part, join = ''):
+        self._value_parts = []
+        self._join = join
+        self.extend(init_part)
+
+    def extend(self, new_part):
+        if isinstance(new_part, self.__class__):
+            # Extend with another extendable
+            self._value_parts.extend(new_part._value_parts)
+        else:
+            self._value_parts.append(new_part)
+
+    @property
+    def join(self):
+        return self._join
+
+    @property
+    def value(self):
+        val = self._value_parts[0]
+        if isinstance(val, LateValue):
+            val = val.value
+
+        val = copy(val)
+
+        for part in self._value_parts[1:]:
+            if isinstance(part, LateValue):
+                part = part.value
+
+            if isinstance(val, str):
+                val += self.join + part
+
+            elif isinstance(val, list):
+                val.extend(part)
+
+            elif isinstance(val, dict) or isinstance(val, set):
+                val.update(part)
+
+            else:
+                raise TypeError(f'Expected "expandable" value of type str, list, dict or set, but received {val.__class__}')
+
+        return val
 
 
 @dataclass
@@ -88,7 +141,7 @@ class BuildParams:
     name:                 str                        = ''
     variant_name_sep:     str                        = '_'
     variants:             List[Variant]              = field(default_factory=list)
-    named_extensions:     Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    _named_extensions:    Dict[str,Dict[str,Any]]    = field(default_factory=dict)
     obj_extensions:       List[Extension]            = field(default_factory=list)
     tree_hooks:           List[Callable]             = field(default_factory=list)
     html_hooks:           List[Callable]             = field(default_factory=list)
@@ -129,11 +182,28 @@ class BuildParams:
                       for res in res_list
                       for xpath in res.xpaths_required}
 
+    @property
+    def named_extensions(self):
+        configs = {}
+        for extension, config in self._named_extensions.items():
+            configs[extension] = {}
+            for key, value in config.items():
+                if isinstance(value, ExtendableValue) or isinstance(value, LateValue):
+                    try:
+                        # This might invoke callbacks, hence the error checking
+                        configs[extension][key] = value.value
+                    except Exception as e:
+                        self.progress.error_from_exception(f'{extension}:{key}', e)
+                else:
+                    configs[extension][key] = value
+        return configs
+
+
     def reset(self):
         self.name = ''
         self.variant_name_sep = '_'
         self.variants = []
-        self.named_extensions = {}
+        self._named_extensions = {}
         self.obj_extensions = []
         self.tree_hooks = []
         self.html_hooks = []
