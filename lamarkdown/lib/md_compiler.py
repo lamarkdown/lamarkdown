@@ -37,9 +37,9 @@ def set_default_build_params(build_parms: BuildParams):
     lamarkdown.m.doc()
 
 
-def compile(build_params: BuildParams):
+def compile(base_build_params: BuildParams):
 
-    build_params.reset()
+    build_params = deepcopy(base_build_params)
     build_params.set_current()
     progress = build_params.progress
 

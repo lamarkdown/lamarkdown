@@ -74,19 +74,52 @@ class MdCompilerTestCase(unittest.TestCase):
             with open(build_file, 'w') as writer:
                  writer.write(dedent(build))
 
+        build_files = [build_file] if build else []
+        cache = MockCache()
+        progress = MockProgress()
+
         bp = build_params.BuildParams(
-            src_file = doc_file,
-            target_file = self.html_file,
-            build_files = [build_file] if build else [],
-            build_dir = build_dir,
-            build_defaults = build_defaults,
-            cache = MockCache(),
-            progress = MockProgress(),
-            is_live = is_live,
-            allow_exec_cmdline = False
+            src_file            = doc_file,
+            target_file         = self.html_file,
+            build_files         = build_files,
+            build_dir           = build_dir,
+            build_defaults      = build_defaults,
+            cache               = cache,
+            progress            = progress,
+            is_live             = is_live,
+            allow_exec_cmdline  = False
         )
 
-        md_compiler.compile(bp)
+        self.build_params = md_compiler.compile(bp)
+
+        assert_that(
+            self.build_params,
+            has_items(is_not(same_instance(bp))),
+            'build_params'
+        )
+        assert_that(
+            self.build_params,
+            has_items(instance_of(build_params.BuildParams)),
+            'build_params'
+        )
+
+        for prop, value in {
+            'src_file':             doc_file,
+            'target_file':          self.html_file,
+            'build_files':          build_files,
+            'build_dir':            build_dir,
+            'build_defaults':       build_defaults,
+            'cache':                cache,
+            'progress':             progress,
+            'is_live':              is_live,
+            'allow_exec_cmdline':   False
+        }.items():
+            for i, bp in enumerate(self.build_params):
+                assert_that(
+                    bp.__dict__[prop],
+                    is_(value),
+                    f'build_params[{i}].{prop}'
+                )
 
         self.set_results(
             self.html_file,
@@ -129,6 +162,7 @@ class MdCompilerTestCase(unittest.TestCase):
                 '''
             )
         )
+
 
 
     @patch('lamarkdown.lib.resources.read_url')

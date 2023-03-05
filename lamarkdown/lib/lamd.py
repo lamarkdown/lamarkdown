@@ -86,7 +86,7 @@ def main():
     # (necessarily) whatever arbitrary directory we started in.
     os.chdir(src_dir)
 
-    build_params = BuildParams(
+    base_build_params = BuildParams(
         src_file = src_file,
         target_file = args.output or (base_name + '.html'),
         build_files =
@@ -107,21 +107,23 @@ def main():
     os.makedirs(build_dir, exist_ok = True)
 
     if args.clean:
-        build_params.cache.clear()
+        base_build_params.cache.clear()
 
-    all_build_params = md_compiler.compile(build_params)
+    complete_build_params = md_compiler.compile(base_build_params)
 
     if args.live:
         address = live.ANY_ADDRESS if args.address == 'any' else (args.address or live.LOOPBACK_ADDRESS)
         port_range = args.port or live.DEFAULT_PORT_RANGE
 
-        live.watch_live(
-            build_params,
-            all_build_params,
+        live.LiveUpdater(
+            base_build_params,
+            complete_build_params
+        ).run(
             address = address,
             port_range = port_range,
             launch_browser = args.no_browser is not True
         )
+
 
 if __name__ == "__main__":
     main()

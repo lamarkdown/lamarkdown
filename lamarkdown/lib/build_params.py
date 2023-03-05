@@ -95,6 +95,12 @@ class Environment(dict):
                 new_env[key] = value
         return new_env
 
+    def __repr__(self):
+        return '...' # To avoid cluttering error messages too much.
+
+    def repr(self):
+        return super().__repr__()
+
 
 R = TypeVar('R')
 class Rule(Protocol[R]):
@@ -119,6 +125,9 @@ def default_resource_hash_rule(**kwargs) -> Optional[str]:
 
 def default_scale_rule(**kwargs) -> float:
     return 1.0
+
+def default_output_namer(target):
+    return target
 
 
 
@@ -154,7 +163,7 @@ class BuildParams:
     resource_hash_rule:   Rule[Optional[str]]        = default_resource_hash_rule
     scale_rule:           Rule[float]                = default_scale_rule
     env:                  Dict[str,Any]              = field(default_factory=Environment)
-    output_namer:         Callable[[str],str]        = lambda t: t
+    output_namer:         Callable[[str],str]        = default_output_namer
     allow_exec:           bool                       = False
     live_update_deps:     Set[str]                   = field(default_factory=set)
 
@@ -199,24 +208,24 @@ class BuildParams:
         return configs
 
 
-    def reset(self):
-        self.name = ''
-        self.variant_name_sep = '_'
-        self.variants = []
-        self._named_extensions = {}
-        self.obj_extensions = []
-        self.tree_hooks = []
-        self.html_hooks = []
-        self.font_codepoints = set()
-        self.css_vars = {}
-        self.css = []
-        self.js = []
-        self.resource_base_url = ''
-        self.embed_rule         = default_embed_rule
-        self.resource_hash_rule = default_resource_hash_rule
-        self.scale_rule         = default_scale_rule
-        self.env = Environment()
-        self.output_namer = lambda t: t
-        self.live_update_deps = set()
-        self.allow_exec = self.allow_exec_cmdline
+    # def reset(self):
+    #     self.name = ''
+    #     self.variant_name_sep = '_'
+    #     self.variants = []
+    #     self._named_extensions = {}
+    #     self.obj_extensions = []
+    #     self.tree_hooks = []
+    #     self.html_hooks = []
+    #     self.font_codepoints = set()
+    #     self.css_vars = {}
+    #     self.css = []
+    #     self.js = []
+    #     self.resource_base_url = ''
+    #     self.embed_rule         = default_embed_rule
+    #     self.resource_hash_rule = default_resource_hash_rule
+    #     self.scale_rule         = default_scale_rule
+    #     self.env = Environment()
+    #     self.output_namer = default_output_namer
+    #     self.live_update_deps = set()
+    #     self.allow_exec = self.allow_exec_cmdline
 

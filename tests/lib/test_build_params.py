@@ -4,13 +4,17 @@ from lamarkdown.lib.api_impl import ApiImpl
 from lamarkdown.lib.build_params import BuildParams
 
 import unittest
+from unittest.mock import Mock
 from hamcrest import *
+
+import copy
+
 
 class BuildParamsTestCase(unittest.TestCase):
 
 
     def setUp(self):
-        BuildParams.current = BuildParams(
+        BuildParams.set_current(BuildParams(
             src_file = 'mock_src.md',
             target_file = 'mock_target.html',
             build_files = [],
@@ -20,11 +24,64 @@ class BuildParamsTestCase(unittest.TestCase):
             progress = MockProgress(),
             is_live = False,
             allow_exec_cmdline = False
-        )
+        ))
 
 
     def tearDown(self):
         BuildParams.current = None
+
+
+    # def test_reset(self):
+    #
+    #     p = BuildParams.current
+    #     orig_build_params = copy.copy(p)
+    #
+    #     keys = set(p.__dict__.keys()).difference({
+    #         'src_file', 'target_file', 'build_files', 'build_dir', 'build_defaults',
+    #         'cache', 'progress', 'is_live', 'allow_exec_cmdline'})
+    #
+    #     p.name = 'new name'
+    #     p.variant_name_sep = 'new sep'
+    #     p.variants = [Mock(), Mock()]
+    #     p._named_extensions = {'ext1': {'cfg1': 1}, 'ext2': {'cfg2': 2}}
+    #     p.obj_extensions = [Mock(), Mock()]
+    #     p.tree_hooks = [lambda t: 1, lambda t: 2]
+    #     p.html_hooks = [lambda h: 1, lambda h: 2]
+    #     p.font_codepoints = {1, 2, 3}
+    #     p.css_vars = {'var1': '1', 'var2': '2'}
+    #     p.css = [Mock(), Mock()]
+    #     p.js = [Mock(), Mock()]
+    #     p.resource_base_url = 'new resource base url'
+    #     p.embed_rule = lambda **k: False
+    #     p.resource_hash_rule = lambda **k: 'sha384'
+    #     p.scale_rule = lambda **k: 0.00001
+    #     p.env = {'obj1': 1, 'obj2': 2}
+    #     p.output_namer = lambda n: 'new renamed name'
+    #     p.allow_exec = True
+    #     p.live_update_deps = {'file1', 'file2'}
+    #
+    #     for key in keys:
+    #         assert_that(
+    #             p.__dict__[key],
+    #             is_not(orig_build_params.__dict__[key]),
+    #             f'BuildParams.{key}')
+    #
+    #     assert_that(
+    #         p,
+    #         is_not(orig_build_params))
+    #
+    #     p.reset()
+    #
+    #     for key in keys:
+    #         assert_that(
+    #             p.__dict__[key],
+    #             equal_to(orig_build_params.__dict__[key]),
+    #             f'BuildParams.{key}')
+    #
+    #     assert_that(
+    #         p,
+    #         equal_to(orig_build_params))
+
 
 
     def test_replacing_extension_configs(self):
