@@ -18,6 +18,7 @@ sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 class LatexTestCase(unittest.TestCase):
     def setUp(self):
+        self.progress = None
         self.tmp_dir_context = tempfile.TemporaryDirectory()
         self.tmp_dir = self.tmp_dir_context.__enter__()
 
@@ -84,16 +85,18 @@ class LatexTestCase(unittest.TestCase):
         self.tmp_dir_context.__exit__(None, None, None)
 
 
-    def run_markdown(self, markdown_text, **kwargs):
+    def run_markdown(self, markdown_text, expect_error: bool = False, **kwargs):
+        self.progress = MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.latex'],
             extension_configs = {'la.latex': {
                 'build_dir': self.tmp_dir,
-                'progress': MockProgress(),
+                'progress': self.progress,
                 'tex': f'python {self.mock_tex_command} in.tex out.pdf',
                 'pdf_svg_converter': f'python {self.mock_pdf2svg_command} in.pdf out.svg',
                 **kwargs
             }}
+
         )
         return md.convert(dedent(markdown_text).strip())
 
@@ -584,6 +587,37 @@ class LatexTestCase(unittest.TestCase):
 
 
 
+    def test_timeout(self):
+        r'''
+        Certain tex code (e.g., \def\x{\x}\x) can produce infinite loops, and the la.latex extension
+        should timeout after N seconds (3 by default) of no output.
+        '''
+
+        with open(self.mock_tex_command, 'w') as f:
+            # Use a different mock 'tex' compiler here. It waits for only 1 second, but we set the
+            # timeout to 0.5 seconds below. (Certainly no need for a real infinite loop!)
+            f.write(dedent('''
+                import sys
+                import time
+                time.sleep(1)
+                mock_pdf_file = sys.argv[2]
+                with open(mock_pdf_file, 'w') as f:
+                    f.write('mock')
+            '''))
+
+        html = self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            expect_error = True,
+            timeout = 0.5
+        )
+        self.assertTrue(self.progress.received_error,
+                        "Latex extension should have timed out, but didn't")
+
+
     def test_math_ignored(self):
         html = self.run_markdown(
             r'''
@@ -593,7 +627,6 @@ class LatexTestCase(unittest.TestCase):
             ''',
             math = 'ignore')
 
-        # html_parser = lxml.html.HTMLParser(recover = True, no_network = True)
         root = lxml.html.fromstring(html)
 
         assert_that(

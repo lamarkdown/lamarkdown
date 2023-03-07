@@ -55,12 +55,22 @@ import base64
 import copy
 import glob
 import hashlib
+import io
 import os
 import re
 import subprocess
+import threading
 import time
 from typing import Dict, List, Union
 from xml.etree import ElementTree
+
+
+# FIXME:
+# I wonder if tex compilation should be done at the point of detection, rather than in
+# postprocessing.
+#
+# It seems that the toc extension invokes the postprocessors for its own purposes, meaning that
+# we're wasting time redundantly calling external commands twice.
 
 
 class CommandException(Exception):
@@ -68,25 +78,72 @@ class CommandException(Exception):
         super().__init__(msg)
         self.output = output
 
-class SyntaxException(Exception): pass
 
 def check_run(command: Union[str,List[str]],
               expected_output_file: str,
+              timeout: float = None,
               **kwargs):
     start_time = time.time_ns()
     command_str = ' '.join(command) if isinstance(command, list) else command
 
-    proc = subprocess.run(command,
-                          shell = isinstance(command, str),
-                          stdin = subprocess.DEVNULL, # Supposed to be non-interactive!
-                          stdout = subprocess.PIPE,
-                          stderr = subprocess.STDOUT,
-                          encoding = 'utf-8',
-                          **kwargs)
-    if proc.returncode != 0:
-        raise CommandException(
-            f'"{command_str}" returned error code {proc.returncode}',
-            proc.stdout)
+    popen = subprocess.Popen(command,
+                             shell = isinstance(command, str),
+                             stdin = subprocess.DEVNULL, # Supposed to be non-interactive!
+                             stdout = subprocess.PIPE,
+                             stderr = subprocess.STDOUT,
+                             encoding = 'utf-8',
+                             **kwargs)
+
+    new_output = threading.Event()
+    output_buf = io.StringIO()
+    output_lock = threading.Lock()
+
+    def read_stdout():
+        # Reads stdout from the process in a separate thread, so the blocking doesn't interfere with
+        # our timeout monitoring.
+        for line in iter(popen.stdout.readline, ''):
+            new_output.set()
+            with output_lock:
+                output_buf.write(line)
+        popen.stdout.close()
+
+    threading.Thread(target = read_stdout).start()
+
+    if timeout is None:
+        popen.wait()
+
+    else:
+        # Monitor the running process, so we can cause it to timeout, but _only after_ it stops
+        # producing output.
+        last_output_time = time.time()
+        while True:
+            try:
+                new_output.clear()
+                popen.wait(timeout = 0.1)
+                # Process finished.
+                break
+
+            except subprocess.TimeoutExpired:
+                # Still going.
+                if new_output.is_set():
+                    # Output was seen; reset the timer.
+                    last_output_time = time.time()
+
+                elif (time.time() - last_output_time) >= timeout:
+                    # Timeout.
+                    popen.terminate()
+                    with output_lock:
+                        raise CommandException(
+                            f'"{command_str}" timed out, after {timeout} secs of no output',
+                            output_buf.getvalue())
+
+    assert popen.returncode is not None # The process should be stopped by now.
+
+    if popen.returncode != 0:
+        with output_lock:
+            raise CommandException(
+                f'"{command_str}" returned error code {popen.returncode}',
+                output_buf.getvalue())
 
     try:
         file_time = os.stat(expected_output_file).st_mtime_ns
@@ -94,9 +151,10 @@ def check_run(command: Union[str,List[str]],
         file_time = 0
 
     if file_time < start_time:
-        raise CommandException(
-            f'"{command_str}" did not create expected file "{expected_output_file}"',
-            proc.stdout)
+        with output_lock:
+            raise CommandException(
+                f'"{command_str}" did not create expected file "{expected_output_file}"',
+                output_buf.getvalue())
 
 
 def coerce_subtree(elem: ElementTree.Element):
@@ -435,8 +493,8 @@ class LatexPostprocessor(Postprocessor):
     CACHE_PREFIX = 'lamarkdown.latex'
 
     TEX_CMDLINES = {
-        'pdflatex': ['pdflatex', '-interaction', 'nonstopmode', 'job'],
-        'xelatex':  ['xelatex', '-interaction', 'nonstopmode', 'job'],
+        'pdflatex': ['pdflatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
+        'xelatex':  ['xelatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
     }
 
     CONVERTER_CMDLINES = {
@@ -461,7 +519,8 @@ class LatexPostprocessor(Postprocessor):
     }
 
     def __init__(self, md, stash: LatexStash, build_dir: str, cache, progress: Progress,
-                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool):
+                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool,
+                 timeout: int, verbose_errors: bool):
         self.md = md
         self.stash = stash
         self.build_dir = build_dir
@@ -487,6 +546,8 @@ class LatexPostprocessor(Postprocessor):
         self.embedder = self.EMBEDDERS[self.embedding]()
 
         self.strip_html_comments = strip_html_comments
+        self.timeout = timeout
+        self.verbose_errors = verbose_errors
 
 
     def _build(self, latex, attrs):
@@ -539,9 +600,25 @@ class LatexPostprocessor(Postprocessor):
                     self.tex_cmdline,
                     pdf_file,
                     cwd = file_build_dir,
-                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'}
+                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'},
+                    timeout = self.timeout
                 )
+            except CommandException as e:
+                output = e.output
+                if not self.verbose_errors:
+                    # Try to detect the start of a Latex error message (beginning with '!') and
+                    # omit output before that point.
 
+                    lines = output.splitlines()
+                    first_error_line = next(
+                        (i for i, line in enumerate(lines) if line.startswith('!')),
+                        None)
+                    if first_error_line:
+                        output = '\n'.join(lines[first_error_line:])
+
+                return self.progress.error('Latex', str(e), output, latex).as_html_str()
+
+            try:
                 self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
                 check_run(
                     self.converter_cmdline,
@@ -648,10 +725,18 @@ class LatexExtension(Extension):
                 True,
                 r'Considers "<!--...-->" to be a comment, and removes them before compiling with Latex. Latex would (in most cases) interpret these sequences as ordinary characters, whereas in markdown they would normally be (effectively) ignored. If you need to write a literal "<!--", you can do so by inserting "{}" between the characters. (This option does not affect normal Tex "%" comments.)'
             ],
+            'timeout': [
+                3,
+                r'Time (secs) before the tex command will be terminated, once it stops outputting messages.'
+            ],
+            'verbose_errors': [
+                False,
+                r'If True, then everything the Tex command writes to stdout will be included in any error messages. If False (the default), the extension will try to detect the start of any actual Tex error message, and only output that.'
+            ],
             'math': [
                 'mathml',
                 r'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex math code. The options are "ignore", "latex" or "mathml" (the default). For "ignore", math code is left untouched by this extension. Use this to avoid conflicts if, for instance, you\'re using another extension (like pymdownx.arithmatex) to handle them. For "latex", math code is compiled in essentially the same way as \begin{}...\end{} blocks (but in math mode). For "mathml", math code is converted to MathML <math> elements, to be rendered by the browser.'
-            ]
+            ],
         }
         super().__init__(**kwargs)
 
@@ -692,6 +777,8 @@ class LatexExtension(Extension):
             pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
             embedding           = self.getConfig('embedding'),
             strip_html_comments = self.getConfig('strip_html_comments'),
+            timeout             = self.getConfig('timeout'),
+            verbose_errors      = self.getConfig('verbose_errors'),
         )
 
         md.preprocessors.register(preprocessor, 'la-latex-pre', 15)
