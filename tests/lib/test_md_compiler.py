@@ -221,6 +221,15 @@ class MdCompilerTestCase(unittest.TestCase):
                 # "p" does.
 
                 la.css_rule(["li", "p", "span"], r"color: red")
+
+                # Testing that comments get stripped, but not strings containing comment syntax.
+
+                la.css("""
+                    /* a\nbc */ .xyz { /*d\nef*/
+                        /*mno*/ font-family: "/* pqr */" /*stu*/
+                    } /*v\nwx*/
+                    /*yz*/
+                """)
                 ''',
             build_defaults = False
         )
@@ -237,11 +246,19 @@ class MdCompilerTestCase(unittest.TestCase):
             p {
                 color: red;
             }
+            .xyz {
+                font-family: "/* pqr */";
+            }
             ''')
 
         assert_that(
             [s.cssText for s in self.css_sheets],
             contains_exactly(expected_css.cssText)
+        )
+
+        assert_that(
+            self.root.xpath('/html/head/style/text()')[0],
+            is_not(matches_regexp('[^"]/\*|\*/[^"]'))
         )
 
 
@@ -320,7 +337,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
         # Create mock .css and .js files. We're embedding them, so their contents do matter here.
         with open(os.path.join(self.tmp_dir, 'cssfile.css'), 'w') as w:
-            w.write('p{color:blue}')
+            w.write('/*abc\ndef*/p{/*abc\ndef*/color:blue}/*abc\ndef*/')
 
         with open(os.path.join(self.tmp_dir, 'jsfile.js'), 'w') as w:
             w.write('console.log(1)')

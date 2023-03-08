@@ -97,7 +97,7 @@ class ResourceWriter:
 
 class StylesheetWriter(ResourceWriter):
 
-    CSS_COMMENT_REGEX = re.compile(r'(?xs)/\*.*?\*/')
+    CSS_COMMENT_REGEX = re.compile(r'(?s)\s*/\*.*?\*/')
     CSS_NEWLINE_REGEX = re.compile(r'(\s*\n)+\s*')
 
     CSS_STRING_REGEX_BASE = r'''
@@ -209,61 +209,64 @@ class StylesheetWriter(ResourceWriter):
     def _embed(self, base_url: str, css: str):
         # Note 1
         # ------
-        # CSS '@import's will be dealt with by encoding the imported stylesheet as a data URL (just as
-        # for other external resources). This is not great from a space-efficiency POV, because it can
-        # lead to nested base64 encodings. Each layer of base64 encoding will increase the size by 1/3.
+        # CSS '@import's will be dealt with by encoding the imported stylesheet as a data URL (just
+        # as for other external resources). This is not great from a space-efficiency POV, because
+        # it can lead to nested base64 encodings. Each layer of base64 encoding will increase the
+        # size by 1/3.
         #
-        # It's _tempting_ to take '@import's and embed their content directly in the current stylesheet.
-        # Unfortunately, this is not _quite_ semantically identical to an @import, for reasons to do
-        # with rule ordering and namespaces (https://www.w3.org/TR/css-cascade-5/#at-import).
+        # It's _tempting_ to take '@import's and embed their content directly in the current
+        # stylesheet. Unfortunately, this is not _quite_ semantically identical to an @import, for
+        # reasons to do with rule ordering and namespaces
+        # (https://www.w3.org/TR/css-cascade-5/#at-import).
         #
-        # (The CSS 4 draft contains src() (https://www.w3.org/TR/css-values-4/#funcdef-src), which may
-        # provide another way to avoid nested base64 encoding. We could extract all the data URLs,
-        # assign them to CSS variables, and refer back to them with src(--var) (which we cannot do with
-        # url()). However, as of Jan 2023, CSS 4 remains a draft and presumably not well supported.)
+        # (The CSS 4 draft contains src() (https://www.w3.org/TR/css-values-4/#funcdef-src), which
+        # may provide another way to avoid nested base64 encoding. We could extract all the data
+        # URLs, assign them to CSS variables, and refer back to them with src(--var) (which we
+        # cannot do with url()). However, as of Jan 2023, CSS 4 remains a draft and presumably not
+        # well supported.)
 
         # Note 2
         # ------
-        # Using cssutils (https://pypi.org/project/cssutils/; https://cssutils.readthedocs.io) seemed
-        # like a good idea at first, but its API is relatively complex for the task we have, and lacks
-        # any mechanism for finding URLs (i.e., we'd still need string searching). Regexes are cruder,
-        # but simpler here, and there's nothing that ought to trip us up.
+        # Using cssutils (https://pypi.org/project/cssutils/; https://cssutils.readthedocs.io)
+        # seemed like a good idea at first, but its API is quite complex for the task we have, and
+        # yet lacks any mechanism for finding URLs (i.e., we'd still need string searching). Regexes
+        # are cruder, but simpler here, and there's nothing that ought to trip us up.
 
         # Note 3
         # ------
-        # Under CSS 4, it seems possible to make a URL using a complex expression involving variables,
-        # functions and string concatenation, by using src(). If so, we'll have to give up on embedding
-        # such resources (using regexes, anyway).
+        # Under CSS 4, it seems possible to make a URL using a complex expression involving
+        # variables, functions and string concatenation, by using src(). If so, we'll have to give
+        # up on embedding such resources (using regexes, anyway).
 
+        css = css.strip()
         with io.StringIO() as buf:
             while len(css) > 0:
-                # Look for comments and strings (outside of a URL/import context). We need to explicitly
-                # skip over them, since we don't want to go looking for URLs inside them.
+                # Look for comments and strings (outside of a URL/import context). We need to
+                # explicitly skip over them, since we don't want to go looking for URLs inside them.
                 comment_match = self.CSS_COMMENT_REGEX.match(css)
                 if comment_match:
                     css = css[comment_match.end():]
-                    if len(css) == 0: break
+                    continue
 
                 str_match = self.CSS_STRING_REGEX.match(css)
                 if str_match:
                     buf.write(str_match.group()) # Retain the actual string in the output
                     css = css[str_match.end():]
-                    if len(css) == 0: break
+                    continue
 
                 # Normalise
                 newline_match = self.CSS_NEWLINE_REGEX.match(css)
                 if newline_match:
                     buf.write('\n') # One newline only
                     css = css[newline_match.end():]
-                    if len(css) == 0: break
+                    continue
 
                 # Look for url(), src() and @import.
                 match = self.CSS_URL_REGEX.match(css) or self.CSS_IMPORT_REGEX.match(css)
                 if match:
-
                     g = match.groupdict()
                     url = g.get('url') or g.get('str')
-                    # CSS_URL_REGEX has both 'url' and 'str' groups. CSS_IMPORT_REGEX has only 'str'.
+                    # CSS_URL_REGEX has 'url' and 'str' groups. CSS_IMPORT_REGEX has only 'str'.
 
                     # Translate escapes in original URL
                     def escape_repl(m):
@@ -300,11 +303,11 @@ class StylesheetWriter(ResourceWriter):
                             buf.write(f'url("{url}")')
 
                     css = css[match.end():]
+                    continue
 
-                else:
-                    # Nothing else matched, so just skip over one character.
-                    buf.write(css[0])
-                    css = css[1:]
+                # Nothing else matched, so just skip over one character.
+                buf.write(css[0])
+                css = css[1:]
 
             return buf.getvalue()
 

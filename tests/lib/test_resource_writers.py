@@ -90,7 +90,7 @@ class ResourceWritersTestCase(unittest.TestCase):
                 '',
                 ['ghi'],
                 ['ghi'],
-                rf'''p{{ x: "url(abc)";  y: url("{data_url}"); z: "url(jkl)"}} '''
+                rf'''p{{ x: "url(abc)"; y: url("{data_url}"); z: "url(jkl)"}}'''
             ),
 
             (
@@ -98,7 +98,7 @@ class ResourceWritersTestCase(unittest.TestCase):
                 '',
                 ['abc', 'def', 'jkl'],
                 ['abc', 'def', 'jkl'],
-                rf'''p{{ x: url("{data_url}") url("{data_url}");  z: url("{data_url}")}}'''
+                rf'''p{{ x: url("{data_url}") url("{data_url}"); z: url("{data_url}")}}'''
             ),
 
             (
