@@ -1,6 +1,7 @@
 from ..util.mock_progress import MockProgress
+from ..util.mock_cache import MockCache
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch #, Mock, PropertyMock
 from hamcrest import *
 
 import lamarkdown.ext
@@ -85,18 +86,22 @@ class LatexTestCase(unittest.TestCase):
         self.tmp_dir_context.__exit__(None, None, None)
 
 
-    def run_markdown(self, markdown_text, expect_error: bool = False, **kwargs):
+    def run_markdown(self, markdown_text: str,
+                           extra_extensions: list = [],
+                           expect_error: bool = False,
+                           **kwargs):
         self.progress = MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
-            extensions = ['la.latex'],
-            extension_configs = {'la.latex': {
-                'build_dir': self.tmp_dir,
-                'progress': self.progress,
-                'tex': f'python {self.mock_tex_command} in.tex out.pdf',
-                'pdf_svg_converter': f'python {self.mock_pdf2svg_command} in.pdf out.svg',
-                **kwargs
-            }}
-
+            extensions = ['la.latex', *extra_extensions],
+            extension_configs = {
+                'la.latex': {
+                    'build_dir': self.tmp_dir,
+                    'progress': self.progress,
+                    'tex': f'python {self.mock_tex_command} in.tex out.pdf',
+                    'pdf_svg_converter': f'python {self.mock_pdf2svg_command} in.pdf out.svg',
+                    **kwargs
+                }
+            }
         )
         return md.convert(dedent(markdown_text).strip())
 
@@ -616,6 +621,31 @@ class LatexTestCase(unittest.TestCase):
         )
         self.assertTrue(self.progress.received_error,
                         "Latex extension should have timed out, but didn't")
+
+
+    def test_duplication(self):
+        '''
+        With the 'toc' extension (and possibly in other circumstances), Markdown postprocessors are
+        called multiple times. We want to ensure that the Tex command _isn't_, as this would be a
+        significant drag on performance.
+        '''
+
+        mock_cache = MockCache(store = False)
+
+        html = self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            extra_extensions = ['toc'],
+            cache = mock_cache
+        )
+
+        self.assertFalse(os.path.exists(f'{self.tex_file}1'),
+                         f'Second output file {self.tex_file}1 shouldn\'t be generated')
+        self.assertEqual(len(mock_cache.set_calls), 1, 'Number of times cache.set() was called')
+
 
 
     def test_math_ignored(self):

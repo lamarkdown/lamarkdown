@@ -65,13 +65,6 @@ from typing import Dict, List, Union
 from xml.etree import ElementTree
 
 
-# FIXME:
-# I wonder if tex compilation should be done at the point of detection, rather than in
-# postprocessing.
-#
-# It seems that the toc extension invokes the postprocessors for its own purposes, meaning that
-# we're wasting time redundantly calling external commands twice.
-
 
 class CommandException(Exception):
     def __init__(self, msg: str, output: str):
@@ -200,7 +193,7 @@ class SvgElementEmbedder(Embedder):
 
 STX = '\u0002'
 ETX = '\u0003'
-LATEX_PLACEHOLDER_PREFIX = f'{STX}lamdlatex-uoqwpkayei:'
+LATEX_PLACEHOLDER_PREFIX = f'{STX}la.latex-uoqwpkayei:'
 LATEX_PLACEHOLDER_RE     = re.compile(f'{LATEX_PLACEHOLDER_PREFIX}(?P<id>[0-9]+){ETX}')
 
 HTML_COMMENT_RE = re.compile(r'<!--.*?(-->|$)', flags = re.DOTALL)
@@ -214,37 +207,200 @@ ATTR = r'''
 '''
 
 
-class LatexStash:
-    def __init__(self, input_repr):
-        assert isinstance(input_repr, tuple)
+class LatexCompiler:
+    '''
+    Compiles Latex code identified by the preprocessor/inline processor, converts it to SVG,
+    caches the result, and makes the result available (by the html property).
+    '''
 
-        self._match_instance = 0
-        self._latex_docs = {}
-        self._latex_attrs = {}
-        self._input_repr = input_repr
+    CACHE_PREFIX = 'lamarkdown.latex'
+
+    TEX_CMDLINES = {
+        'pdflatex': ['pdflatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
+        'xelatex':  ['xelatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
+    }
+
+    CONVERTER_CMDLINES = {
+        'dvisvgm': ['dvisvgm', '--pdf', 'job.pdf'],
+        'pdf2svg': ['pdf2svg', 'job.pdf', 'job.svg'],
+        'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
+    }
+
+    CONVERTER_CORRECTIONS = {
+        # pdf2svg leaves off the units on width/height, and the default is technically 'px', but
+        # the numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
+        'pdf2svg': lambda svg: re.sub('<svg[^>]*>',
+                                      lambda m: re.sub(r'((width|height)="[0-9]+(\.[0-9]+)?)"',
+                                                       r'\1pt"',
+                                                       m.group()),
+                                      svg)
+    }
+
+    EMBEDDERS = {
+        'data_uri': DataUriEmbedder,
+        'svg_element': SvgElementEmbedder
+    }
+
+    def __init__(self, md, cache_factors: tuple, build_dir: str, cache, progress: Progress,
+                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool,
+                 timeout: int, verbose_errors: bool):
+
+        self._md = md
+        self._cache_factors = cache_factors
+
+        self._html = {}
+        self._instance = 0
+
+        self.md = md
+        self.build_dir = build_dir
+        self.cache = cache
+        self.progress = progress
+
+        self.tex_cmdline: Union[List[str],str] = (
+            self.TEX_CMDLINES.get(tex) or
+            tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
+        )
+
+        self.converter_cmdline: Union[List[str],str] = (
+            self.CONVERTER_CMDLINES.get(pdf_svg_converter) or
+            pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
+        )
+
+        self.converter_correction = (
+            self.CONVERTER_CORRECTIONS.get(pdf_svg_converter) or
+            (lambda svg: svg)
+        )
+
+        self.embedding = embedding
+        self.embedder = self.EMBEDDERS[self.embedding]()
+
+        self.strip_html_comments = strip_html_comments
+        self.timeout = timeout
+        self.verbose_errors = verbose_errors
+
+
+    def _generate_html(self, latex, attrs):
+        # Run Python Markdown's postprocessors.
+
+        # This is important, because Markdown's _pre_processors replace certain constructs,
+        # particularly HTML snippets, with special placeholders, which are again replaced by
+        # postprocessors once all the block processing and tree manipulation is done.
+        #
+        # This is exactly what LatexPreprocessor and LatexPostprocessor do themselves, but now
+        # we must invoke the _other_ postprocessors too.
+        for post_proc in self._md.postprocessors:
+            if not(isinstance(post_proc, LatexPostprocessor)):
+                latex = post_proc.run(latex)
+
+        # Having done this, we now (again) need to strip out HTML comments, because these (in
+        # certain circumstances) are given the preprocessor-postprocessor treatment by Python
+        # Markdown, and so might not have been removed by _our_ preprocessor.
+        if self.strip_html_comments:
+            latex = HTML_COMMENT_RE.sub('', latex)
+
+        # Build a representation of all the input information sources.
+        cache_key = (self.CACHE_PREFIX, latex, self._cache_factors)
+
+        # If not in cache, compile it.
+        if cache_key in self.cache:
+            self.progress.progress('Latex', 'Cache hit -- skipping compilation')
+
+            # We make a copy of the cached element, because different instances of it could
+            # conceivably be assigned different attributes below.
+            element = copy.copy(self.cache.get(cache_key))
+
+        else:
+            hasher = hashlib.sha1()
+            hasher.update(latex.encode('utf-8'))
+            file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
+            os.makedirs(file_build_dir, exist_ok=True)
+
+            tex_file = os.path.join(file_build_dir, 'job.tex')
+            pdf_file = os.path.join(file_build_dir, 'job.pdf')
+            svg_file = os.path.join(file_build_dir, 'job.svg')
+
+            try:
+                with open(tex_file, 'w') as f:
+                    f.write(latex)
+
+            except OSError as e:
+                return self.progress.error_from_exception('Latex', e).as_html_str()
+
+            try:
+                self.progress.progress(self.tex_cmdline[0], 'Compiling .tex to .pdf...')
+                check_run(
+                    self.tex_cmdline,
+                    pdf_file,
+                    cwd = file_build_dir,
+                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'},
+                    timeout = self.timeout
+                )
+            except CommandException as e:
+                output = e.output
+                if not self.verbose_errors:
+                    # Try to detect the start of a Latex error message (beginning with '!') and
+                    # omit output before that point.
+
+                    lines = output.splitlines()
+                    first_error_line = next(
+                        (i for i, line in enumerate(lines) if line.startswith('!')),
+                        None)
+                    if first_error_line:
+                        output = '\n'.join(lines[first_error_line:])
+
+                return self.progress.error('Latex', str(e), output, latex).as_html_str()
+
+            try:
+                self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
+                check_run(
+                    self.converter_cmdline,
+                    svg_file,
+                    cwd = file_build_dir
+                )
+
+                with open(svg_file) as reader:
+                    svg_content = reader.read()
+                    if "viewBox='0 0 0 0'" in svg_content:
+                        return self.progress.error(
+                            'Latex',
+                            f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
+                            svg_content
+                        ).as_html_str()
+
+                svg_content = self.converter_correction(svg_content)
+
+                element = self.embedder.generate_html(svg_content)
+                self.cache[cache_key] = copy.copy(element)
+
+            except CommandException as e:
+                return self.progress.error('Latex', str(e), e.output, latex).as_html_str()
+
+        if attrs:
+            # Hijack parts of the attr_list extension to handle the attribute list.
+            #
+            # (Warning: there is a risk here that a future version of Markdown will change
+            # the design of attr_list, such that this call doesn't work anymore. For now, it
+            # seems the easiest and most consistent way to go.)
+            AttrListTreeprocessor().assign_attrs(element, attrs)
+
+        return ElementTree.tostring(element, encoding = 'unicode')
+
+
+    def compile(self, full_doc: str, attr: dict[str,str]):
+        self._instance += 1
+        self._html[self._instance] = self._generate_html(full_doc, attr)
+        return f'{LATEX_PLACEHOLDER_PREFIX}{self._instance}{ETX}'
 
     @property
-    def latex_docs(self): return self._latex_docs
-
-    @property
-    def latex_attrs(self): return self._latex_attrs
-
-    @property
-    def input_repr(self): return self._input_repr
-
-    def stash(self, full_doc: str, attr: dict[str,str]):
-        self._match_instance += 1
-        self._latex_docs[self._match_instance] = full_doc
-        self._latex_attrs[self._match_instance] = attr
-        return f'{LATEX_PLACEHOLDER_PREFIX}{self._match_instance}{ETX}'
+    def html(self): return self._html
 
 
 
 class LatexPreprocessor(Preprocessor):
     """
     The preprocessor identifies and parses Latex block snippets found in the document. Each one is
-    temporarily replaced by a placeholder, with the actual Latex code held separately in the
-    'stash', awaiting the postprocessor.
+    passed to LatexCompiler, and marked in the document with a temporary placeholder, awaiting the
+    postprocessor.
 
     (Previously, in commit 18fc579db4b4793a50ed077e369aa14e276ee189 and earlier, lamarkdown used a
     one-stage process, where a BlockProcessor would identify, parse, compile and embed each Latex
@@ -301,8 +457,12 @@ class LatexPreprocessor(Preprocessor):
         re.VERBOSE | re.DOTALL | re.MULTILINE)
 
 
-    def __init__(self, stash: LatexStash, prepend: str, doc_class: str, doc_class_options: str, strip_html_comments: bool):
-        self.stash = stash
+    def __init__(self, compiler: LatexCompiler,
+                       prepend: str,
+                       doc_class: str,
+                       doc_class_options: str,
+                       strip_html_comments: bool):
+        self.compiler = compiler
         self.prepend = prepend
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
@@ -331,7 +491,7 @@ class LatexPreprocessor(Preprocessor):
                 + (main_part)
             )
 
-        return self.stash.stash(full_doc, match_obj.group('attr'))
+        return self.compiler.compile(full_doc, match_obj.group('attr'))
 
 
     def run(self, lines):
@@ -418,14 +578,19 @@ MATH_TEX_RE = rf'''(?xs)
 
 class LatexInlineProcessor(InlineProcessor):
     """
-    This inline processor identifies and parses Latex math snippets. Each one is temporarily
-    replaced by a placeholder, with the actual Latex code held separately in the 'stash', awaiting
-    the postprocessor.
+    This inline processor identifies and parses Latex math snippets. Each one is passed to
+    LatexCompiler, and marked in the document with a temporary placeholder, awaiting the
+    postprocessor.
     """
 
-    def __init__(self, md, stash, prepend: str, doc_class: str, doc_class_options: str):
+    def __init__(self,
+                 md,
+                 compiler: LatexCompiler,
+                 prepend: str,
+                 doc_class: str,
+                 doc_class_options: str):
         super().__init__(MATH_TEX_RE, md)
-        self.stash = stash
+        self.compiler = compiler
         self.prepend = prepend
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
@@ -448,7 +613,7 @@ class LatexInlineProcessor(InlineProcessor):
         '''
 
         element = ElementTree.Element('span', attrib = {'class': 'la-math'})
-        element.text = self.stash.stash(full_doc, match.group('attr'))
+        element.text = self.compiler.compile(full_doc, match.group('attr'))
 
         return element, match.start(0), match.end(0)
 
@@ -484,194 +649,17 @@ class LatexMathMLInlineProcessor(InlineProcessor):
 
 class LatexPostprocessor(Postprocessor):
     """
-    The post-processor is responsible for compiling the Latex code identified by the preprocessor,
-    converting it to SVG, caching the result, and embedding it the final HTML. It searches for the
-    placeholder strings inserted by the preprocessor to determine where to substitute the proper
-    HTML.
+    Searches for the placeholder strings inserted by the preprocessor/inline processor to determine
+    where to substitute the compiled HTML.
     """
 
-    CACHE_PREFIX = 'lamarkdown.latex'
-
-    TEX_CMDLINES = {
-        'pdflatex': ['pdflatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
-        'xelatex':  ['xelatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
-    }
-
-    CONVERTER_CMDLINES = {
-        'dvisvgm': ['dvisvgm', '--pdf', 'job.pdf'],
-        'pdf2svg': ['pdf2svg', 'job.pdf', 'job.svg'],
-        'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
-    }
-
-    CONVERTER_CORRECTIONS = {
-        # pdf2svg leaves off the units on width/height, and the default is technically 'px', but
-        # the numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
-        'pdf2svg': lambda svg: re.sub('<svg[^>]*>',
-                                      lambda m: re.sub(r'((width|height)="[0-9]+(\.[0-9]+)?)"',
-                                                       r'\1pt"',
-                                                       m.group()),
-                                      svg)
-    }
-
-    EMBEDDERS = {
-        'data_uri': DataUriEmbedder,
-        'svg_element': SvgElementEmbedder
-    }
-
-    def __init__(self, md, stash: LatexStash, build_dir: str, cache, progress: Progress,
-                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool,
-                 timeout: int, verbose_errors: bool):
-        self.md = md
-        self.stash = stash
-        self.build_dir = build_dir
-        self.cache = cache
-        self.progress = progress
-
-        self.tex_cmdline: Union[List[str],str] = (
-            self.TEX_CMDLINES.get(tex) or
-            tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
-        )
-
-        self.converter_cmdline: Union[List[str],str] = (
-            self.CONVERTER_CMDLINES.get(pdf_svg_converter) or
-            pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
-        )
-
-        self.converter_correction = (
-            self.CONVERTER_CORRECTIONS.get(pdf_svg_converter) or
-            (lambda svg: svg)
-        )
-
-        self.embedding = embedding
-        self.embedder = self.EMBEDDERS[self.embedding]()
-
-        self.strip_html_comments = strip_html_comments
-        self.timeout = timeout
-        self.verbose_errors = verbose_errors
-
-
-    def _build(self, latex, attrs):
-        # Run Python Markdown's postprocessors.
-
-        # This is important, because Markdown's _pre_processors replace certain constructs,
-        # particularly HTML snippets, with special placeholders, which are again replaced by
-        # postprocessors once all the block processing and tree manipulation is done.
-        #
-        # This is exactly what LatexPreprocessor and LatexPostprocessor do themselves, but now
-        # we must invoke the _other_ postprocessors too.
-        for post_proc in self.md.postprocessors:
-            if post_proc != self:
-                latex = post_proc.run(latex)
-
-        # Having done this, we now (again) need to strip out HTML comments, because these (in
-        # certain circumstances) are given the preprocessor-postprocessor treatment by Python
-        # Markdown, and so might not have been removed by _our_ preprocessor.
-        if self.strip_html_comments:
-            latex = HTML_COMMENT_RE.sub('', latex)
-
-        # Build a representation of all the input information sources.
-        cache_key = (self.CACHE_PREFIX, latex, self.stash.input_repr,
-                      self.tex_cmdline, self.converter_cmdline, self.embedding)
-
-        # If not in cache, compile it.
-        if cache_key in self.cache:
-            self.progress.progress('Latex', 'Cache hit -- skipping compilation')
-
-        else:
-            hasher = hashlib.sha1()
-            hasher.update(latex.encode('utf-8'))
-            file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
-            os.makedirs(file_build_dir, exist_ok=True)
-
-            tex_file = os.path.join(file_build_dir, 'job.tex')
-            pdf_file = os.path.join(file_build_dir, 'job.pdf')
-            svg_file = os.path.join(file_build_dir, 'job.svg')
-
-            try:
-                with open(tex_file, 'w') as f:
-                    f.write(latex)
-
-            except OSError as e:
-                return self.progress.error_from_exception('Latex', e).as_html_str()
-
-            try:
-                self.progress.progress(self.tex_cmdline[0], 'Compiling .tex to .pdf...')
-                check_run(
-                    self.tex_cmdline,
-                    pdf_file,
-                    cwd = file_build_dir,
-                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'},
-                    timeout = self.timeout
-                )
-            except CommandException as e:
-                output = e.output
-                if not self.verbose_errors:
-                    # Try to detect the start of a Latex error message (beginning with '!') and
-                    # omit output before that point.
-
-                    lines = output.splitlines()
-                    first_error_line = next(
-                        (i for i, line in enumerate(lines) if line.startswith('!')),
-                        None)
-                    if first_error_line:
-                        output = '\n'.join(lines[first_error_line:])
-
-                return self.progress.error('Latex', str(e), output, latex).as_html_str()
-
-            try:
-                self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
-                check_run(
-                    self.converter_cmdline,
-                    svg_file,
-                    cwd = file_build_dir
-                )
-
-                with open(svg_file) as reader:
-                    svg_content = reader.read()
-                    if "viewBox='0 0 0 0'" in svg_content:
-                        return self.progress.error(
-                            'Latex',
-                            f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
-                            svg_content
-                        ).as_html_str()
-
-                svg_content = self.converter_correction(svg_content)
-
-                # If compilation was successful, cache the result.
-                self.cache[cache_key] = self.embedder.generate_html(svg_content)
-
-            except CommandException as e:
-                return self.progress.error('Latex', str(e), e.output, latex).as_html_str()
-
-        # We make a copy of the cached element, because different instances of it could
-        # conceivably be assigned different attributes below.
-        element = copy.copy(self.cache.get(cache_key))
-
-        if attrs:
-            # Hijack parts of the attr_list extension to handle the attribute list.
-            #
-            # (Warning: there is a risk here that a future version of Markdown will change
-            # the design of attr_list, such that this call doesn't work anymore. For now, it
-            # seems the easiest and most consistent way to go.)
-            AttrListTreeprocessor().assign_attrs(element, attrs)
-
-        return ElementTree.tostring(element, encoding = 'unicode')
-
-
+    def __init__(self, compiler: LatexCompiler):
+        self.compiler = compiler
 
     def run(self, text):
-        html = {}
-        # Build all the Latex!
-        for i, latex in self.stash.latex_docs.items():
-            html[i] = self._build(latex, self.stash.latex_attrs[i])
-
-        # Substitute the HTML back into the document
         return LATEX_PLACEHOLDER_RE.sub(
-            lambda match: html[int(match.group('id'))],
+            lambda match: self.compiler.html[int(match.group('id'))],
             text)
-
-    def reset(self):
-        self.embedder = self.EMBEDDERS[self.embedding]()
 
 
 class LatexExtension(Extension):
@@ -741,49 +729,52 @@ class LatexExtension(Extension):
         super().__init__(**kwargs)
 
         embedding = self.getConfig('embedding')
-        if embedding not in LatexPostprocessor.EMBEDDERS:
+        if embedding not in LatexCompiler.EMBEDDERS:
             progress.error('latex', f'Invalid value "{embedding}" for config option "embedding"')
             self.setConfig('embedding', 'data_uri')
 
-    def reset(self):
-        self.postprocessor.reset()
 
     def extendMarkdown(self, md):
         md.registerExtension(self)
 
-        prepend = self.getConfig('prepend')
-        doc_class = self.getConfig('doc_class')
-        doc_class_options = self.getConfig('doc_class_options')
+        tex                 = self.getConfig('tex')
+        pdf_svg_converter   = self.getConfig('pdf_svg_converter')
+        prepend             = self.getConfig('prepend')
+        doc_class           = self.getConfig('doc_class')
+        doc_class_options   = self.getConfig('doc_class_options')
         strip_html_comments = self.getConfig('strip_html_comments')
-        math = self.getConfig('math')
+        timeout             = self.getConfig('timeout')
+        verbose_errors      = self.getConfig('verbose_errors')
+        math                = self.getConfig('math')
 
-        stash = LatexStash((prepend, doc_class, doc_class_options, strip_html_comments, math))
-
-        preprocessor = LatexPreprocessor(
-            stash,
-            prepend             = prepend,
-            doc_class           = doc_class,
-            doc_class_options   = doc_class_options,
-            strip_html_comments = strip_html_comments,
-        )
-
-        self.postprocessor = LatexPostprocessor(
+        compiler = LatexCompiler(
             md,
-            stash,
+            cache_factors       = (tex, pdf_svg_converter, prepend, doc_class, doc_class_options,
+                                   strip_html_comments, timeout, verbose_errors, math),
             build_dir           = self.getConfig('build_dir'),
             cache               = self.getConfig('cache'),
             progress            = self.getConfig('progress'),
-            tex                 = self.getConfig('tex'),
-            pdf_svg_converter   = self.getConfig('pdf_svg_converter'),
+            tex                 = tex,
+            pdf_svg_converter   = pdf_svg_converter,
             embedding           = self.getConfig('embedding'),
-            strip_html_comments = self.getConfig('strip_html_comments'),
-            timeout             = self.getConfig('timeout'),
-            verbose_errors      = self.getConfig('verbose_errors'),
+            strip_html_comments = strip_html_comments,
+            timeout             = timeout,
+            verbose_errors      = verbose_errors,
         )
 
-        md.preprocessors.register(preprocessor, 'la-latex-pre', 15)
-        md.postprocessors.register(self.postprocessor, 'la-latex-post', 25)
+        md.preprocessors.register(
+            LatexPreprocessor(
+                compiler,
+                prepend             = prepend,
+                doc_class           = doc_class,
+                doc_class_options   = doc_class_options,
+                strip_html_comments = strip_html_comments,
+            ),
+            'la-latex-pre', 15)
 
+        md.postprocessors.register(
+            LatexPostprocessor(compiler),
+            'la-latex-post', 25)
 
         if math == 'mathml':
             inlineProcessor = LatexMathMLInlineProcessor(md)
@@ -791,10 +782,10 @@ class LatexExtension(Extension):
         elif math == 'latex':
             inlineProcessor = LatexInlineProcessor(
                 md,
-                stash,
-                prepend             = prepend,
-                doc_class           = doc_class,
-                doc_class_options   = doc_class_options,
+                compiler,
+                prepend           = prepend,
+                doc_class         = doc_class,
+                doc_class_options = doc_class_options,
             )
         else:
             inlineProcessor = None
