@@ -140,6 +140,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
         self._base_variant = complete_build_params[0].name
 
         self._server = None
+        self._server_thread = None
 
         self._dependency_files = set()
         self._dependency_paths = set()
@@ -264,12 +265,15 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             port_range: range = DEFAULT_PORT_RANGE,
             launch_browser: bool  = True):
 
+        with self._compile_lock:
+            if self._server_thread is not None:
+                raise RuntimeError('Cannot run LiveUpdater() multiple times concurrently')
+            self._server_thread = threading.current_thread()
+
         self.read_and_instrument()
         self.watch_dependencies()
 
         try:
-            server_thread = threading.current_thread()
-
             # Iterate over a port range, and pick the first free port.
             port = None
             for try_port in port_range:
@@ -295,7 +299,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     def open_browser():
                         time.sleep(0.5)
                         webbrowser.open(f'http://localhost:{port}')
-                        server_thread.join()
+                        #self._server_thread.join()
 
                     threading.Thread(target = open_browser).start()
 
@@ -310,20 +314,29 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             pass
 
         finally:
-            if self._fs_observer is not None:
-                self._fs_observer.stop()
-                self._fs_observer.join()
-                self._fs_observer = None
-            if self._compile_thread is not None:
-                self._compile_thread.join()
+            with self._compile_lock:
+                compile_thread = self._compile_thread
+                fs_observer = self._fs_observer
+                if fs_observer is not None:
+                    fs_observer.stop()
+                    self._fs_observer = None
+                self._server_thread = None
+
+            if fs_observer is not None:
+                fs_observer.join()
+            if compile_thread is not None:
+                compile_thread.join()
 
 
     def shutdown(self):
-        if self._server is None:
-            raise ValueError('Server not currently running')
-        self._server.server_close()
-        self._server.shutdown()
-        self._server = None
+        with self._compile_lock:
+            if self._server is None:
+                raise ValueError('Live updater not currently running')
+            self._server.server_close()
+            self._server.shutdown()
+            self._server = None
+            server_thread = self._server_thread
+        server_thread.join()
 
 
     def clear_cache(self):
@@ -332,35 +345,34 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
 
     def recompile(self):
-        self._compile_lock.acquire()
-        self._fs_observer.stop()
-        self._fs_observer = None
-        self._compile_thread = threading.current_thread()
-
-        try:
-            # Note: we don't generally expect any exceptions here, but P > 0, and we must try to
-            # keep the interface working as much as we can.
+        with self._compile_lock:
+            self._fs_observer.stop()
+            self._fs_observer = None
+            self._compile_thread = threading.current_thread()
 
             try:
-                self._complete_build_params = md_compiler.compile(self._base_build_params)
-            except Exception as e:
-                self._base_build_params.progress.error_from_exception('Live updating', e)
+                # Note: we don't generally expect any exceptions here, but P > 0, and we must try to
+                # keep the interface working as much as we can.
 
-            self._base_variant = self._complete_build_params[0].name
-            self._update_n += 1
+                try:
+                    self._complete_build_params = md_compiler.compile(self._base_build_params)
+                except Exception as e:
+                    self._base_build_params.progress.error_from_exception('Live updating', e)
 
-            try:
-                self.read_and_instrument()
-                self.watch_dependencies()
-            except Exception as e:
-                self._base_build_params.progress.error_from_exception('Live updating', e)
+                self._base_variant = self._complete_build_params[0].name
+                self._update_n += 1
 
-            if self._update_event is not None:
-                self._update_event.set()
+                try:
+                    self.read_and_instrument()
+                    self.watch_dependencies()
+                except Exception as e:
+                    self._base_build_params.progress.error_from_exception('Live updating', e)
 
-        finally:
-            self._compile_thread = None
-            self._compile_lock.release()
+                if self._update_event is not None:
+                    self._update_event.set()
+
+            finally:
+                self._compile_thread = None
 
 
     def make_handler(self):
@@ -517,14 +529,11 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
 
             def do_GET(self):
-                if self.path == '/':
-                    # Try to show the default variant (named '') if there is one, or else just pick
-                    # whichever variant comes out first.
 
-                    if updater_self._base_variant:
-                        self.send_main_content(updater_self._base_variant)
-                    else:
-                        self.send_main_content(next(iter(updater_self._output_docs.keys())))
+                default_variant_name = updater_self._base_variant or next(iter(updater_self._output_docs.keys()))
+
+                if self.path == '/':
+                    self.send_main_content(default_variant_name)
                     return
 
                 if self.path == '/query':
@@ -548,16 +557,19 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                 re_match = VARIANT_FILE_QUERY_REGEX.fullmatch(self.path)
                 if re_match:
                     variant_name = re_match['variant']
-                    full_path = os.path.join(updater_self._output_docs[variant_name].path,
-                                             re_match['file'].replace('/', os.sep))
-                    if variant_name in updater_self._output_docs and os.path.isfile(full_path):
-                        self.send_file(full_path)
-                        return
+                    if variant_name in updater_self._output_docs:
+                        full_path = os.path.join(updater_self._output_docs[variant_name].path,
+                                                 re_match['file'].replace('/', os.sep))
+                        if os.path.isfile(full_path):
+                            self.send_file(full_path)
+                            return
 
                 re_match = BASE_FILE_QUERY_REGEX.fullmatch(self.path)
                 if re_match:
-                    full_path = os.path.join(updater_self._output_docs[''].path, re_match['file'].replace('/', os.sep))
-                    if '' in updater_self._output_docs and os.path.isfile(full_path):
+                    full_path = os.path.join(
+                        updater_self._output_docs[default_variant_name].path,
+                        re_match['file'].replace('/', os.sep))
+                    if os.path.isfile(full_path):
                         self.send_file(full_path)
                         return
 
