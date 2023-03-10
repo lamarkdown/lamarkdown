@@ -191,7 +191,7 @@ class PybtexTreeProcessor(Treeprocessor):
 
     def run(self, root):
         progress = self.ext.getConfig('progress')
-        
+
         # 'cited_keys' should have been populated by now. If it's still empty, it means there are
         # no citations, and we can cut short the Treeprocessor:
         if len(self.cited_keys) == 0:
@@ -203,9 +203,9 @@ class PybtexTreeProcessor(Treeprocessor):
         except pybtex.exceptions.PybtexError as e:
             progress.error('la.cite (pybtex)', str(e))
             return
-        
+
         progress.progress('la.cite', f'{len(self.cited_keys)} citation(s)')
-        
+
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels'
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.
         entries = {entry.key: entry for entry in formatted_biblio.entries}
@@ -298,9 +298,14 @@ class PybtexTreeProcessor(Treeprocessor):
                 dest_element = ElementTree.SubElement(xml_tree_dest,
                                                       src_child.tag,
                                                       dict(src_child.attrib))
-                dest_element.text = src_child.text
-                dest_element.tail = src_child.tail
+
+                dest_element.text = (src_child.text or '').replace('\n', ' ')
+                dest_element.tail = (src_child.tail or '').replace('\n', ' ')
                 copy_tree(dest_element, src_child)
+
+                # Note: replacing '\n' avoids the 'nl2br' extension (if loaded) putting <br> tags
+                # everywhere.
+
 
         copy_tree(biblio_root, biblio_tree.find('.//dl'))
         biblio_root.attrib['id'] = 'la-bibliography'
@@ -315,7 +320,7 @@ class PybtexTreeProcessor(Treeprocessor):
         # Otherwise, we won't wouldn't be able to use normal markdown syntax inside the reference
         # list, and this would prevent sensible handling of URLs.
         markdown.treeprocessors.InlineProcessor(self.md).run(biblio_root)
-        
+
 
 
 class CiteExtension(markdown.Extension):

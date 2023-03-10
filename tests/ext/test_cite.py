@@ -1,5 +1,7 @@
 from ..util.mock_progress import MockProgress
 import unittest
+from hamcrest import *
+import lxml.html
 
 import lamarkdown.ext
 import markdown
@@ -428,3 +430,16 @@ class CiteTestCase(unittest.TestCase):
             \s*
             ''')
 
+
+    def test_nl2br_interaction(self):
+        html = self.run_markdown(
+            r'''
+            [@refA]
+            ''',
+            more_extensions = ['nl2br'],
+            file = [],
+            references = self.REFERENCES)
+
+        assert_that(
+            lxml.html.fromstring(html).xpath('.//br'),
+            empty())
