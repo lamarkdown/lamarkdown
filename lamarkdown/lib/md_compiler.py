@@ -193,7 +193,7 @@ def write_html(content_html: str,
         if new_content_html is not None:
             content_html = new_content_html
 
-    buf = StringIO(content_html)
+    buf = StringIO(content_html or '<body></body>')
     try:
         root_element = lxml.html.parse(buf, _parser).find('body')
     except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
@@ -246,7 +246,7 @@ def write_html(content_html: str,
     else:
         # Then check the HTML heading tags
         for n in range(1, 7):
-            heading_elements = root_element.findall(f'.//h{n}')
+            heading_elements = root_element.xpath(f'.//h{n}')
             count = len(heading_elements)
             if count > 0:
                 if count == 1:
@@ -254,7 +254,7 @@ def write_html(content_html: str,
                     # whichever N is the lowest. e.g., if there's no <H1> elements but one
                     # <H2>, use the <H2>. But if there's two <H1> elements, we consider that
                     # to be ambiguous.
-                    title_html = html.escape(heading_elements[0].text)
+                    title_html = html.escape(heading_elements[0].text or '')
                 break
 
     # Detect the language
@@ -315,8 +315,7 @@ def write_html(content_html: str,
         <html lang="{lang_html:s}">
         <head>
         <meta charset="utf-8" />
-        <title>{title_html:s}</title>
-        {css:s}</head>
+        {title_html:s}{css:s}</head>
         <body>{errors:s}
         {content_html:s}
         {js:s}</body>
@@ -324,7 +323,7 @@ def write_html(content_html: str,
     '''
     full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
-        title_html = title_html,
+        title_html = f'<title>{title_html}</title>\n' if title_html else '',
         css = css,
         errors = ''.join('\n' + error.as_html_str()
                          for error in build_params.progress.get_errors()

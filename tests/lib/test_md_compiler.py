@@ -45,7 +45,6 @@ class MdCompilerTestCase(unittest.TestCase):
     def set_results(self, html_file, html_parser):
         # Parse with lxml to ensure that the output is well formed, and to allow it to be queried
         # with XPath expressions.
-        # self.root = lxml.html.parse(html_file, self.html_parser)
         self.root = lxml.html.parse(html_file, html_parser)
 
         # Now find and parse the CSS code, if any:
@@ -189,6 +188,60 @@ class MdCompilerTestCase(unittest.TestCase):
         assert_that(
             self.root.xpath('//p/text()'),
             contains_exactly('Paragraph1'))
+
+
+    def test_title(self):
+        build = r'''
+            import lamarkdown as la
+            la('meta')
+        '''
+
+        # Ways of unambiguously specifying a title
+        for md in [
+            'title: The Title\n# False Title',
+            '# The Title\n## False Title',
+            '## The Title\n### False Title',
+            '### The Title\n#### False Title',
+            '#### The Title\n##### False Title',
+            '##### The Title\n###### False Title',
+            '###### The Title',
+        ]:
+            self.run_md_compiler(md, build = build, build_defaults = False)
+            assert_that(
+                self.root.xpath('/html/head/title/text()'),
+                contains_exactly('The Title'))
+
+        # Cases resulting in a default title (due to omission or ambiguity)
+        for md in [
+            '',
+            'Some text',
+            '# Title 1\n# Title 2',
+            '## Title 1\n## Title 2',
+            '### Title 1\n### Title 2',
+            '#### Title 1\n#### Title 2',
+            '##### Title 1\n##### Title 2',
+            '###### Title 1\n###### Title 2',
+        ]:
+            self.run_md_compiler(md, build = build, build_defaults = False)
+            assert_that(
+                self.root.xpath('/html/head/title/text()'),
+                contains_exactly('testdoc'))
+
+        # Cases resulting in title suppression
+        for md in [
+            'title: \n# False Title',
+            '#\n## False Title',
+            '##\n### False Title',
+            '###\n#### False Title',
+            '####\n##### False Title',
+            '#####\n###### False Title',
+            '######'
+        ]:
+            self.run_md_compiler(md, build = build, build_defaults = False)
+            assert_that(
+                self.root.xpath('/html/head/title'),
+                empty())
+
 
 
     def test_css(self):
