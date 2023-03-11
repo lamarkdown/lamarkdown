@@ -141,7 +141,8 @@ class BuildParams:
     build_files: List[str]
     build_dir: str
     build_defaults: bool
-    cache: diskcache.Cache
+    build_cache: diskcache.Cache
+    fetch_cache: diskcache.Cache
     progress: Progress
     is_live: bool
     allow_exec_cmdline: bool

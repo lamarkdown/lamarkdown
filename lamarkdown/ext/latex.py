@@ -682,9 +682,18 @@ class LatexExtension(Extension):
         progress = p.progress if p else Progress()
 
         self.config = {
-            'build_dir': [p.build_dir if p else 'build',    'Location to write temporary files'],
-            'cache':     [p.cache     if p else {},         'A dictionary-like cache object to help avoid unnecessary rebuilds.'],
-            'progress':  [p.progress  if p else Progress(), 'An object accepting progress messages.'],
+            'build_dir': [
+                p.build_dir if p else 'build',
+                'Location to write temporary files'
+            ],
+            'cache': [
+                p.build_cache if p else {},
+                'A dictionary-like cache object to help avoid unnecessary rebuilds.'
+            ],
+            'progress':[
+                p.progress if p else Progress(),
+                'An object accepting progress messages.'
+            ],
             'tex': [
                 'xelatex',
                 'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'

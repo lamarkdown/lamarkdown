@@ -74,7 +74,8 @@ class MdCompilerTestCase(unittest.TestCase):
                  writer.write(dedent(build))
 
         build_files = [build_file] if build else []
-        cache = MockCache()
+        build_cache = MockCache()
+        fetch_cache = MockCache()
         progress = MockProgress()
 
         bp = build_params.BuildParams(
@@ -83,7 +84,8 @@ class MdCompilerTestCase(unittest.TestCase):
             build_files         = build_files,
             build_dir           = build_dir,
             build_defaults      = build_defaults,
-            cache               = cache,
+            build_cache         = build_cache,
+            fetch_cache         = fetch_cache,
             progress            = progress,
             is_live             = is_live,
             allow_exec_cmdline  = False
@@ -108,7 +110,8 @@ class MdCompilerTestCase(unittest.TestCase):
             'build_files':          build_files,
             'build_dir':            build_dir,
             'build_defaults':       build_defaults,
-            'cache':                cache,
+            'build_cache':          build_cache,
+            'fetch_cache':          fetch_cache,
             'progress':             progress,
             'is_live':              is_live,
             'allow_exec_cmdline':   False

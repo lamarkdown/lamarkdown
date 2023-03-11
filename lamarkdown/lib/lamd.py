@@ -6,6 +6,7 @@ from .build_params import BuildParams
 from .progress import Progress
 
 import diskcache
+import platformdirs
 
 import argparse
 import os.path
@@ -59,7 +60,7 @@ def main():
                         help='Suppresses the automatic default settings in case no build files exist. Has no effect if any build files are found and read.')
 
     parser.add_argument('--clean', action='store_true',
-                        help='Clear the cache before compiling the document.')
+                        help='Clear the build cache before compiling the document.')
 
     parser.add_argument('-l', '--live', action='store_true',
                         help='Keep running, recompile automatically when source changes are detected, and serve the resulting file from a local web server.')
@@ -81,6 +82,9 @@ def main():
     base_name = src_file.rsplit('.', 1)[0]
     build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
 
+    build_cache_dir = os.path.join(build_dir, 'cache')
+    fetch_cache_dir = platformdirs.user_cache_dir(appname = 'lamarkdown', version = VERSION)
+
     # Changing into the source directory (in case we're not in it) means that further file paths
     # referenced during the build process will be relative to the source file, and not
     # (necessarily) whatever arbitrary directory we started in.
@@ -98,7 +102,8 @@ def main():
             ],
         build_dir = build_dir,
         build_defaults = not args.no_build_defaults,
-        cache = diskcache.Cache(os.path.join(build_dir, 'cache')),
+        build_cache = diskcache.Cache(build_cache_dir),
+        fetch_cache = diskcache.Cache(fetch_cache_dir),
         progress = Progress(),
         is_live = args.live is True,
         allow_exec_cmdline = args.allow_exec is True,
@@ -107,7 +112,7 @@ def main():
     os.makedirs(build_dir, exist_ok = True)
 
     if args.clean:
-        base_build_params.cache.clear()
+        base_build_params.build_cache.clear()
 
     complete_build_params = md_compiler.compile(base_build_params)
 

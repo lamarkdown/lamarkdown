@@ -72,7 +72,7 @@ def _url_resources(url_list: List[str],
             xpaths_required = xpaths_required,
             url_factory  = url_factory,
             base_url     = p.resource_base_url,
-            cache = p.cache,
+            cache        = p.fetch_cache,
             embed_fn     = lambda: embed if embed is not None else p.embed_rule(**rule_args),
             hash_type_fn = lambda: hash_type if hash_type is not None else \
                                    p.resource_hash_rule(**rule_args),

@@ -80,14 +80,16 @@ class LiveTestCase(unittest.TestCase):
                 f.write('A')
 
 
-            cache = MockCache()
+            build_cache = MockCache()
+            fetch_cache = MockCache()
             base_build_params = build_params.BuildParams(
                 src_file = 'doc.md',
                 target_file = 'doc.html',
                 build_files = ['build_a.py', 'build_b.py'],
                 build_dir = 'build',
                 build_defaults = True,
-                cache = cache,
+                build_cache = build_cache,
+                fetch_cache = fetch_cache,
                 progress = MockProgress(),
                 is_live = True,
                 allow_exec_cmdline = False,
@@ -296,11 +298,13 @@ class LiveTestCase(unittest.TestCase):
                 # Clean builds
                 # ------------
 
-                cache['mock_key'] = 'mock_value'
+                build_cache['mock_key'] = 'mock_value'
+                fetch_cache['mock_key'] = 'mock_value'
                 browser.find_element(By.CSS_SELECTOR,
-                                          f'#{live.CONTROL_PANEL_CLEAN_BUTTON_ID}').click()
+                                     f'#{live.CONTROL_PANEL_CLEAN_BUTTON_ID}').click()
                 wait_for_update('Clean build')
-                assert_that(cache, is_not(has_key('mock_key')))
+                assert_that(build_cache, is_not(has_key('mock_key')))
+                assert_that(fetch_cache, has_key('mock_key'))
 
             finally:
                 browser.quit()
@@ -326,7 +330,8 @@ class LiveTestCase(unittest.TestCase):
                 build_files = [],
                 build_dir = 'build',
                 build_defaults = True,
-                cache = MockCache(),
+                build_cache = MockCache(),
+                fetch_cache = MockCache(),
                 progress = MockProgress(),
                 is_live = True,
                 allow_exec_cmdline = False,

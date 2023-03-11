@@ -50,11 +50,11 @@ def caching_formatter(build_params: BuildParams,
             # and shouldn't affect the generation of the HTML.
             cache_key = (source, language, css_class, tuple(sorted((options or {}).items())))
 
-            result = build_params.cache.get(cache_key)
+            result = build_params.build_cache.get(cache_key)
 
             if result is None:
                 result = base_formatter(source, language, css_class, options, md, **kwargs)
-                build_params.cache[cache_key] = result
+                build_params.build_cache[cache_key] = result
             else:
                 build_params.progress.progress(name, 'Cache hit -- skipping formatting')
 

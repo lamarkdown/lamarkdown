@@ -22,7 +22,7 @@ def make_data_url(url: str,
                   converter: Converter = None) -> str:
 
     _, content_bytes, auto_mime_type = resources.read_url(url,
-                                                          build_params.cache,
+                                                          build_params.fetch_cache,
                                                           build_params.progress)
     mime_type = mime_type or auto_mime_type
     if converter is not None:
@@ -191,7 +191,7 @@ class StylesheetWriter(ResourceWriter):
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
             is_remote, content_bytes, _ = resources.read_url(res.url,
-                                                             self.build_params.cache,
+                                                             self.build_params.fetch_cache,
                                                              self.build_params.progress)
 
             content = content_bytes.decode()
@@ -329,8 +329,8 @@ class StylesheetWriter(ResourceWriter):
             cache_key = ('ttf-to-woff2',
                          content_bytes,
                          frozenset(self.build_params.font_codepoints))
-            if cache_key in self.build_params.cache:
-                content_bytes = self.build_params.cache[cache_key]
+            if cache_key in self.build_params.build_cache:
+                content_bytes = self.build_params.build_cache[cache_key]
 
             else:
                 subsetter = fontTools.subset.Subsetter()
@@ -343,7 +343,7 @@ class StylesheetWriter(ResourceWriter):
                 buf = io.BytesIO()
                 font.save(buf)
                 content_bytes = buf.getvalue()
-                self.build_params.cache[cache_key] = content_bytes
+                self.build_params.build_cache[cache_key] = content_bytes
 
             mime_type = 'font/woff2'
 
@@ -370,7 +370,7 @@ class ScriptWriter(ResourceWriter):
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
             _, content_bytes, _ = resources.read_url(res.url,
-                                                     self.build_params.cache,
+                                                     self.build_params.fetch_cache,
                                                      self.build_params.progress)
 
             content = self._embed(self.build_params.resource_base_url, content_bytes.decode())

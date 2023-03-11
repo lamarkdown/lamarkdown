@@ -341,7 +341,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
     def clear_cache(self):
         self._base_build_params.progress.warning('Live updating', 'Clearing cache')
-        self._base_build_params.cache.clear()
+        self._base_build_params.build_cache.clear()
 
 
     def recompile(self):

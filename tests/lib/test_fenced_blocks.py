@@ -25,7 +25,7 @@ class FencedBlocksTestCase(unittest.TestCase):
         mock_formatter.return_value = '<div>Hello</div>'
 
         mock_build_params = Mock()
-        type(mock_build_params).cache = PropertyMock(return_value = {}) # Trivial 'cache'
+        type(mock_build_params).build_cache = PropertyMock(return_value = {}) # Trivial 'cache'
 
         fmt = fenced_blocks.caching_formatter(mock_build_params, 'mock', mock_formatter)
 

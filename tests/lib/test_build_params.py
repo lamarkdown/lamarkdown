@@ -20,7 +20,8 @@ class BuildParamsTestCase(unittest.TestCase):
             build_files = [],
             build_dir = 'mock_dir',
             build_defaults = False,
-            cache = MockCache(),
+            build_cache = MockCache(),
+            fetch_cache = MockCache(),
             progress = MockProgress(),
             is_live = False,
             allow_exec_cmdline = False

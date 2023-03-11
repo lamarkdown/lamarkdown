@@ -41,7 +41,8 @@ class BuildModTestCase(unittest.TestCase):
             build_files = [build_file] if build else [],
             build_dir = build_dir,
             build_defaults = build_defaults,
-            cache = {},
+            build_cache = {},
+            fetch_cache = {},
             progress = MockProgress(),
             is_live = is_live,
             allow_exec_cmdline = False
