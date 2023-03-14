@@ -16,6 +16,13 @@ import subprocess
 
 class ResourcesTestCase(unittest.TestCase):
 
+    def setUp(self):
+        self.orig_dir = os.getcwd()
+
+    def tearDown(self):
+        os.chdir(self.orig_dir)
+
+
     def test_read_url_local_file(self):
 
         progress = MockProgress(expect_error = False)

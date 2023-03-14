@@ -190,9 +190,9 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             self._fs_observer.unschedule_all()
 
         self._dependency_files = {
-            os.path.abspath(f) for f in [self._base_build_params.src_file,
-                                         *self._base_build_params.build_files,
-                                         *self._base_build_params.live_update_deps]
+            os.path.abspath(file)
+            for params in self._complete_build_params
+            for file in [params.src_file, *params.build_files, *params.live_update_deps]
         }
 
         self._dependency_paths = set()

@@ -30,6 +30,7 @@ class MdCompilerTestCase(unittest.TestCase):
         self.tmp_dir_context = tempfile.TemporaryDirectory()
         self.tmp_dir = self.tmp_dir_context.__enter__()
         self.html_file = os.path.join(self.tmp_dir, 'testdoc.html')
+        self.orig_dir = os.getcwd()
         os.chdir(self.tmp_dir)
 
         self.css_parser = cssutils.CSSParser(
@@ -40,6 +41,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.tmp_dir_context.__exit__(None, None, None)
+        os.chdir(self.orig_dir)
 
 
     def set_results(self, html_file, html_parser):

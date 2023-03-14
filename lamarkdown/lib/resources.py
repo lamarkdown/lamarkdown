@@ -8,6 +8,7 @@ import mimetypes
 import re
 import time
 from typing import *
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -91,17 +92,25 @@ def read_url(url: str,
         return (True, content_bytes, mime_type)
 
     else: # For local files and data URLs
+        orig_url = url
         if not (url.startswith('file:') or url.startswith('data:')):
             url = f'file:{url}'
 
-        with urllib.request.urlopen(url, 'rb') as reader:
-            # Using urllib (instead of open()) avoids needing to convert path separators from
-            # / to \ on Windows.
+        try:
+            with urllib.request.urlopen(url, 'rb') as reader:
+                # Using urllib (instead of open()) avoids needing to convert path separators from
+                # / to \ on Windows.
 
-            mime_type = reader.headers.get('content-type') # Might be None
-            if mime_type is None:
-                mime_type, _ = mimetypes.guess_type(url)
-            return (False, reader.read(), mime_type)
+                mime_type = reader.headers.get('content-type') # Might be None
+                if mime_type is None:
+                    mime_type, _ = mimetypes.guess_type(url)
+                return (False, reader.read(), mime_type)
+
+        except urllib.error.URLError as e:
+            thing = 'file' if url.startswith('file:') else 'URL'
+            progress.error(f'"{orig_url}"', f'Cannot read {thing}')
+            return (False, b'', None)
+
 
 
 def _check(val, label):

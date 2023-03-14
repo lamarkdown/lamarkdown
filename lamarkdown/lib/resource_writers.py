@@ -10,9 +10,11 @@ from base64 import b64encode
 import html
 import io
 import mimetypes
+import os
 import re
 from typing import Callable, Iterable, List, Tuple, Union
 import urllib.parse
+import urllib.request
 
 Converter = Callable[[str,bytes,str],Tuple[bytes,str]]
 
@@ -21,14 +23,28 @@ def make_data_url(url: str,
                   build_params: BuildParams,
                   converter: Converter = None) -> str:
 
-    _, content_bytes, auto_mime_type = resources.read_url(url,
-                                                          build_params.fetch_cache,
-                                                          build_params.progress)
-    mime_type = mime_type or auto_mime_type
-    if converter is not None:
-        content_bytes, mime_type = converter(url, content_bytes, mime_type)
+    try:
+        _, content_bytes, auto_mime_type = resources.read_url(url,
+                                                              build_params.fetch_cache,
+                                                              build_params.progress)
+    except Exception as e:
+        build_params.progress.error_from_exception(url, e)
+        return f'data:;base64,'
 
-    return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
+    else:
+        mime_type = mime_type or auto_mime_type
+        if converter is not None:
+            content_bytes, mime_type = converter(url, content_bytes, mime_type)
+
+        return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
+
+
+def add_local_dependency(url: str, build_params: BuildParams):
+    parsed_url = urllib.parse.urlparse(url)
+    if parsed_url.scheme in ['file', '']:
+        build_params.live_update_deps.add(
+            os.path.abspath(urllib.request.url2pathname(parsed_url.path)))
+
 
 
 RList = List[Union[UrlResource,ContentResource]]
@@ -190,6 +206,7 @@ class StylesheetWriter(ResourceWriter):
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
+            add_local_dependency(res.url, self.build_params)
             is_remote, content_bytes, _ = resources.read_url(res.url,
                                                              self.build_params.fetch_cache,
                                                              self.build_params.progress)
@@ -287,6 +304,7 @@ class StylesheetWriter(ResourceWriter):
                                                         **(dict(type = type) if type else {})):
                             # Grab the URL content and make a Data URL (checking for cycles).
                             if self._push_url(url):
+                                add_local_dependency(url, self.build_params)
                                 url = make_data_url(url, None, self.build_params, self._convert)
                                 self.url_stack.pop()
 
@@ -369,6 +387,7 @@ class ScriptWriter(ResourceWriter):
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
+            add_local_dependency(res.url, self.build_params)
             _, content_bytes, _ = resources.read_url(res.url,
                                                      self.build_params.fetch_cache,
                                                      self.build_params.progress)
@@ -434,6 +453,8 @@ def embed_media(root_element, base_url: str, build_params: BuildParams):
                                            tag = element.tag,
                                            attr = element.attrib,
                                            **(dict(type = embed_type) if embed_type else {})):
+
+                    add_local_dependency(src, build_params)
                     element.set('src', make_data_url(src, mime_type, build_params))
 
                 else:

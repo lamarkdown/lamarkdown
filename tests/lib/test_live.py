@@ -24,6 +24,13 @@ import urllib.request
 
 class LiveTestCase(unittest.TestCase):
 
+    def setUp(self):
+        self.orig_dir = os.getcwd()
+
+    def tearDown(self):
+        os.chdir(self.orig_dir)
+
+
     @patch('lamarkdown.lib.resources.read_url')
     def test_watch_live(self, mock_read_url):
         mock_read_url.return_value = (False, b'', None)

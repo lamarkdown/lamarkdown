@@ -23,9 +23,14 @@ def scale_images(root_element, build_params: BuildParams):
 
             elif element.tag in ['img', 'source']:
                 if 'src' in element.attrib:
-                    _, content, type = resources.read_url(element.get('src'),
-                                                          build_params.fetch_cache,
-                                                          progress)
+                    try:
+                        _, content, type = resources.read_url(element.get('src'),
+                                                              build_params.fetch_cache,
+                                                              progress)
+                    except Exception as e:
+                        progress.error_from_exception('scaling', e)
+                        continue
+
                 else:
                     progress.warning('scaling', f'<{element.tag}> element missing src attribue')
 

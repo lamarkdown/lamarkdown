@@ -19,6 +19,13 @@ from xml.etree import ElementTree
 
 class ResourceWritersTestCase(unittest.TestCase):
 
+    def setUp(self):
+        self.orig_dir = os.getcwd()
+
+    def tearDown(self):
+        os.chdir(self.orig_dir)
+
+
     @patch('lamarkdown.lib.resources.read_url')
     def test_make_data_url(self, mock_read_url):
 
@@ -395,8 +402,14 @@ class ResourceWritersTestCase(unittest.TestCase):
 
         # Mock embedding rule that embeds everything, except elements having a special mime
         # type.
-        type(mock_build_params).embed_rule = \
-            lambda self, type = '', **k: type != 'no/embed'
+        # type(mock_build_params).embed_rule = PropertyMock(
+        #     return_value = lambda self, type = '', **k: type != 'no/embed')
+        type(mock_build_params).embed_rule = PropertyMock(
+            return_value = lambda type = '', **k: type != 'no/embed')
+
+        live_update_deps = set()
+        type(mock_build_params).live_update_deps = PropertyMock(return_value = live_update_deps)
+
 
         # We should be able to embed src= URLs in all the following cases.
         # (<embed> and <source> also have type=... attributes for specifying the mime type.
@@ -454,8 +467,46 @@ class ResourceWritersTestCase(unittest.TestCase):
                 'mock/type' if mime_type == 'mock_type' else None,
                 mock_build_params)
 
+        # Since they're all remote, they shouldn't be candidates for live update dependencies
+        assert_that(live_update_deps, empty())
+
         self.assertEqual(len(remote_data), mock_make_data_url.call_count)
 
         # Verify non-embeddable things have not been embedded
         for element, src in non_modified_elements:
             self.assertEqual(src, element.get('src'))
+
+
+    @patch('lamarkdown.lib.resources.read_url')
+    def test_dependency_recognition(self, mock_read_url):
+        mock_read_url.return_value = (False, b'mock_content', 'mock/type')
+
+        mock_build_params = Mock()
+        live_update_deps = set()
+        type(mock_build_params).live_update_deps = PropertyMock(return_value = live_update_deps)
+        type(mock_build_params).embed_rule = PropertyMock(return_value = lambda **k: True)
+
+        for tag in ['audio', 'embed', 'iframe', 'img', 'script', 'source', 'track', 'video']:
+
+            filename = f'{tag}.ext'
+            element = ElementTree.Element(tag, src = filename)
+
+            resource_writers.embed_media(element, '', mock_build_params)
+            assert_that(live_update_deps, contains_exactly(os.path.abspath(filename)))
+
+            live_update_deps.clear()
+
+
+        for WriterCls in [resource_writers.StylesheetWriter, resource_writers.ScriptWriter]:
+            _ = WriterCls(mock_build_params).format([
+                resources.UrlResource(url = 'file1', to_embed = True),
+                resources.UrlResource(url = 'file2', to_embed = False),
+                resources.UrlResource(url = 'file3', to_embed = True),
+            ])
+
+            assert_that(
+                live_update_deps,
+                contains_inanyorder(os.path.abspath('file1'), os.path.abspath('file3')))
+
+            live_update_deps.clear()
+

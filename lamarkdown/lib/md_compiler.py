@@ -200,13 +200,6 @@ def write_html(content_html: str,
         build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
         return
 
-    # Find all used codepoints
-    build_params.font_codepoints.update(
-        ord(ch)
-        for text in root_element.itertext()
-        for ch in text)
-    build_params.font_codepoints.update(range(0x00, 0x80)) # Add all ASCII chars too
-
     # Run tree hook functions
     for fn in build_params.tree_hooks:
         new_root = fn(root_element)
@@ -221,6 +214,13 @@ def write_html(content_html: str,
     resource_writers.embed_media(root_element, build_params.resource_base_url, build_params)
 
     disentangle_svgs(root_element)
+
+    # Find all used codepoints
+    build_params.font_codepoints.update(
+        ord(ch)
+        for text in root_element.itertext()
+        for ch in text)
+    build_params.font_codepoints.update(range(0x00, 0x80)) # Add all ASCII chars too
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
