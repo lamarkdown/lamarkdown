@@ -61,7 +61,7 @@ import re
 import subprocess
 import threading
 import time
-from typing import Dict, List, Union
+from typing import Dict, List, Set, Union
 from xml.etree import ElementTree
 
 
@@ -215,9 +215,10 @@ class LatexCompiler:
 
     CACHE_PREFIX = 'lamarkdown.latex'
 
+    STD_TEX_CMDLINE = ['-halt-on-error', '-interaction', 'errorstopmode', '-recorder', 'job']
     TEX_CMDLINES = {
-        'pdflatex': ['pdflatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
-        'xelatex':  ['xelatex', '-halt-on-error', '-interaction', 'errorstopmode', 'job'],
+        'pdflatex': ['pdflatex', *STD_TEX_CMDLINE],
+        'xelatex':  ['xelatex', *STD_TEX_CMDLINE],
     }
 
     CONVERTER_CMDLINES = {
@@ -241,9 +242,11 @@ class LatexCompiler:
         'svg_element': SvgElementEmbedder
     }
 
+    home_dir = os.path.expanduser('~')
+
     def __init__(self, md, cache_factors: tuple, build_dir: str, cache, progress: Progress,
-                 tex: str, pdf_svg_converter: str, embedding: str, strip_html_comments: bool,
-                 timeout: int, verbose_errors: bool):
+                 live_update_deps: Set[str], tex: str, pdf_svg_converter: str, embedding: str,
+                 strip_html_comments: bool, timeout: int, verbose_errors: bool):
 
         self._md = md
         self._cache_factors = cache_factors
@@ -255,6 +258,7 @@ class LatexCompiler:
         self.build_dir = build_dir
         self.cache = cache
         self.progress = progress
+        self.live_update_deps = live_update_deps
 
         self.tex_cmdline: Union[List[str],str] = (
             self.TEX_CMDLINES.get(tex) or
@@ -302,20 +306,26 @@ class LatexCompiler:
         cache_key = (self.CACHE_PREFIX, latex, self._cache_factors)
 
         # If not in cache, compile it.
+        run_latex = True
         if cache_key in self.cache:
             self.progress.progress('Latex', 'Cache hit -- skipping compilation')
 
-            # We make a copy of the cached element, because different instances of it could
-            # conceivably be assigned different attributes below.
-            element = copy.copy(self.cache.get(cache_key))
+            element, dependencies = self.cache.get(cache_key)
+            if self.are_deps_unchanged(dependencies):
+                self.live_update_deps.update(dependencies)
+                # We make a copy of the cached element, because different instances of it could
+                # conceivably be assigned different attributes below.
+                element = copy.copy(element)
+                run_latex = False
 
-        else:
+        if run_latex:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
             file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
             os.makedirs(file_build_dir, exist_ok=True)
 
             tex_file = os.path.join(file_build_dir, 'job.tex')
+            fls_file = os.path.join(file_build_dir, 'job.fls')
             pdf_file = os.path.join(file_build_dir, 'job.pdf')
             svg_file = os.path.join(file_build_dir, 'job.svg')
 
@@ -332,7 +342,7 @@ class LatexCompiler:
                     self.tex_cmdline,
                     pdf_file,
                     cwd = file_build_dir,
-                    env = {**os.environ, "TEXINPUTS": f'.:{os.getcwd()}:'},
+                    env = {**os.environ, 'TEXINPUTS': f'.:{os.getcwd()}:'},
                     timeout = self.timeout
                 )
             except CommandException as e:
@@ -349,6 +359,13 @@ class LatexCompiler:
                         output = '\n'.join(lines[first_error_line:])
 
                 return self.progress.error('Latex', str(e), output, latex).as_html_str()
+
+            if os.path.exists(fls_file):
+                dependencies = self.find_live_update_deps(fls_file)
+                self.live_update_deps.update(dependencies.keys())
+            else:
+                dependencies = {}
+                self.progress.warning('latex', f'Tex command did not create an .fls file')
 
             try:
                 self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
@@ -370,7 +387,7 @@ class LatexCompiler:
                 svg_content = self.converter_correction(svg_content)
 
                 element = self.embedder.generate_html(svg_content)
-                self.cache[cache_key] = copy.copy(element)
+                self.cache[cache_key] = (copy.copy(element), dependencies)
 
             except CommandException as e:
                 return self.progress.error('Latex', str(e), e.output, latex).as_html_str()
@@ -384,6 +401,27 @@ class LatexCompiler:
             AttrListTreeprocessor().assign_attrs(element, attrs)
 
         return ElementTree.tostring(element, encoding = 'unicode')
+
+
+    def find_live_update_deps(self, fls_file):
+        cwd = os.getcwd()
+        with open(fls_file) as log:
+            input_files = {os.path.abspath(line[6:-1])
+                           for line in log
+                           if line.startswith('INPUT ')}
+
+            return {
+                f: os.stat(f).st_mtime if os.path.exists(f) else None
+                for f in input_files
+                if os.path.commonpath([self.home_dir, f]) == self.home_dir or
+                   os.path.commonpath([cwd, f]) == cwd
+            }
+
+    def are_deps_unchanged(self, dependencies):
+        for f, old_mtime in dependencies.items():
+            if old_mtime != (os.stat(f).st_mtime if os.path.exists(f) else None):
+                return False # Changed
+        return True # Unchanged
 
 
     def compile(self, full_doc: str, attr: dict[str,str]):
@@ -690,9 +728,13 @@ class LatexExtension(Extension):
                 p.build_cache if p else {},
                 'A dictionary-like cache object to help avoid unnecessary rebuilds.'
             ],
-            'progress':[
-                p.progress if p else Progress(),
+            'progress': [
+                progress,
                 'An object accepting progress messages.'
+            ],
+            'live_update_deps': [
+                p.live_update_deps if p else set(),
+                'A set into which the extension will record the names of any local, external files that the given Tex code depends on (not including the Tex installation itself).'
             ],
             'tex': [
                 'xelatex',
@@ -763,6 +805,7 @@ class LatexExtension(Extension):
             build_dir           = self.getConfig('build_dir'),
             cache               = self.getConfig('cache'),
             progress            = self.getConfig('progress'),
+            live_update_deps    = self.getConfig('live_update_deps'),
             tex                 = tex,
             pdf_svg_converter   = pdf_svg_converter,
             embedding           = self.getConfig('embedding'),

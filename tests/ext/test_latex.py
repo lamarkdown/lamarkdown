@@ -824,3 +824,67 @@ class LatexTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(self.tex_file))
 
 
+
+    def test_dependency_recognition(self):
+
+        home = os.path.expanduser('~')
+        cwd = os.getcwd()
+
+        with open(self.mock_tex_command, 'a') as writer:
+            # Augment the mock tex compiler, getting it to also output a .fls file (which the
+            # standard xetex/pdftex would do with the -recorder flag).
+
+            writer.write(dedent(rf'''
+                cwd = {repr(cwd)}
+            '''))
+
+            writer.write(dedent(r'''
+                from os.path import join, expanduser, abspath
+                from textwrap import dedent
+
+                home = expanduser('~')
+                outside_home = abspath(join(home, '..'))
+
+                with open(sys.argv[2][:-4] + '.fls', 'w') as fls:
+                    fls.write(dedent(f"""
+                        INPUT {join('.', 'local-pkg1.sty')}
+                        OUTPUT {join('.', 'local-pkg1a.sty')}
+                        INPUT {join('.', 'dir1', 'local-pkg2.sty')}
+                        OUTPUT {join('.', 'dir1', 'local-pkg2a.sty')}
+                        INPUT {join(cwd, 'local-pkg3.sty')}
+                        OUTPUT {join(cwd, 'local-pkg3a.sty')}
+                        INPUT {join(cwd, 'dir2', 'local-pkg4.sty')}
+                        OUTPUT {join(cwd, 'dir2', 'local-pkg4a.sty')}
+                        INPUT {join(home, 'local-pkg5.sty')}
+                        OUTPUT {join(home, 'local-pkg5a.sty')}
+                        INPUT {join(home, 'dir3', 'local-pkg6.sty')}
+                        OUTPUT {join(home, 'dir3', 'local-pkg6a.sty')}
+                        INPUT {join(outside_home, 'local-pkgX.sty')}
+                        OUTPUT {join(outside_home, 'local-pkgX.sty')}
+                        INPUT {join(outside_home, 'dirX', 'local-pkgX.sty')}
+                        OUTPUT {join(outside_home, 'dirX', 'local-pkgX.sty')}
+                    """))
+            '''))
+
+        live_update_deps = set()
+        _ = self.run_markdown(
+            r'''
+            \begin{document}
+            \end{document}
+            ''',
+            live_update_deps = live_update_deps
+        )
+
+        assert_that(
+            live_update_deps,
+            contains_inanyorder(
+                os.path.join(cwd, 'local-pkg1.sty'),
+                os.path.join(cwd, 'dir1', 'local-pkg2.sty'),
+                os.path.join(cwd, 'local-pkg3.sty'),
+                os.path.join(cwd, 'dir2', 'local-pkg4.sty'),
+                os.path.join(home, 'local-pkg5.sty'),
+                os.path.join(home, 'dir3', 'local-pkg6.sty'),
+            )
+        )
+        assert_that(len(live_update_deps), is_(6))
+
