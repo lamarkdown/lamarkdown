@@ -35,11 +35,14 @@ def int_range(s: str) -> range:
 
 
 def main():
+    fetch_cache_dir = platformdirs.user_cache_dir(appname = 'lamarkdown', version = VERSION)
+
     parser = argparse.ArgumentParser(
         prog        = 'lamd',
-        description = 'Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.')
+        description = 'Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.',
+        formatter_class = argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-v', '--version', action='version', version=f'Lamarkdown {VERSION}')
+    parser.add_argument('-v', '--version', action='version', version=f'Lamarkdown {VERSION}\n(fetch cache: {fetch_cache_dir})')
 
     parser.add_argument('input', metavar='INPUT.md', type=str,
                         help='Input markdown (.md) file')
@@ -81,9 +84,8 @@ def main():
     src_dir = os.path.dirname(src_file)
     base_name = src_file.rsplit('.', 1)[0]
     build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
-
     build_cache_dir = os.path.join(build_dir, 'cache')
-    fetch_cache_dir = platformdirs.user_cache_dir(appname = 'lamarkdown', version = VERSION)
+
 
     # Changing into the source directory (in case we're not in it) means that further file paths
     # referenced during the build process will be relative to the source file, and not
