@@ -46,7 +46,7 @@ class HeadingNumbersTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 # Add heading number element
                 hnumber = ElementTree.Element('span', attrib = {'class': 'la-heading-number'})
                 hnumber.text = '.'.join(str(n) for n in numbers[:index + 1])
-                hnumber.tail = self.sep + element.text
+                hnumber.tail = self.sep + (element.text or '')
                 element.text = ''
                 element.insert(0, hnumber)
 

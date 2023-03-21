@@ -33,9 +33,9 @@ class HeadingNumbersTestCase(unittest.TestCase):
 
             ### Section 1.3
 
-            ## Section 2
+            ## _Section_ 2
 
-            ### Section 2.1
+            ### **Section** 2.1
 
             #### Section 2.1.1
 
@@ -54,8 +54,8 @@ class HeadingNumbersTestCase(unittest.TestCase):
             \s* <h3><span[ ]class="la-heading-number">1.1</span>[ ]Section[ ]1.1</h3>
             \s* <h3><span[ ]class="la-heading-number">1.2</span>[ ]Section[ ]1.2</h3>
             \s* <h3><span[ ]class="la-heading-number">1.3</span>[ ]Section[ ]1.3</h3>
-            \s* <h2><span[ ]class="la-heading-number">2</span>[ ]Section[ ]2</h2>
-            \s* <h3><span[ ]class="la-heading-number">2.1</span>[ ]Section[ ]2.1</h3>
+            \s* <h2><span[ ]class="la-heading-number">2</span>[ ]<em>Section</em>[ ]2</h2>
+            \s* <h3><span[ ]class="la-heading-number">2.1</span>[ ]<strong>Section</strong>[ ]2.1</h3>
             \s* <h4><span[ ]class="la-heading-number">2.1.1</span>[ ]Section[ ]2.1.1</h4>
             \s* <h5><span[ ]class="la-heading-number">2.1.1.1</span>[ ]Section[ ]2.1.1.1</h5>
             \s* <h6><span[ ]class="la-heading-number">2.1.1.1.1</span>[ ]Section[ ]2.1.1.1.1</h6>
