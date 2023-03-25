@@ -32,6 +32,8 @@ of the form $`...` (or $``...``, etc). There are two approaches to doing this:
     is any question about whether to trust the author of the markdown file.
 '''
 
+from .util import replacement_patterns
+
 from lamarkdown.lib.progress import Progress, ErrorMsg
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
@@ -139,6 +141,9 @@ class EvalExtension(Extension):
         # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have
         # a higher priority than that (or not use backticks).
         md.inlinePatterns.register(proc, 'la-eval-inline', 200)
+
+        replacement_patterns.init(md)
+        md.ESCAPED_CHARS.append('$')
 
 
 def makeExtension(**kwargs):

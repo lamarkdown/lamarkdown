@@ -1,7 +1,7 @@
 from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
 import unittest
-from unittest.mock import patch #, Mock, PropertyMock
+from unittest.mock import patch
 from hamcrest import *
 
 import lamarkdown.ext

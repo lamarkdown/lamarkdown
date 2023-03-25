@@ -40,6 +40,7 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
 
 
 from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
+from .util import replacement_patterns
 
 from markdown import *
 from markdown.extensions import *
@@ -843,8 +844,11 @@ class LatexExtension(Extension):
             inlineProcessor = None
 
         if inlineProcessor:
+            replacement_patterns.init(md)
             md.ESCAPED_CHARS.append('$')
-            md.inlinePatterns.register(EscapeInlineProcessor(md), 'la-latex-inline-escape', 186)
+
+            # TODO: convert the inline processors into replacement processors
+            # md.inlinePatterns.register(EscapeInlineProcessor(md), 'la-latex-inline-escape', 186)
             md.inlinePatterns.register(inlineProcessor, 'la-latex-inline', 185)
 
 
