@@ -36,7 +36,6 @@ from .util import replacement_patterns
 
 from lamarkdown.lib.progress import Progress, ErrorMsg
 from markdown.extensions import Extension
-from markdown.inlinepatterns import InlineProcessor
 import re
 from xml.etree import ElementTree
 
@@ -49,15 +48,17 @@ DEFAULT_REPLACEMENTS = {
 }
 
 
-class EvalInlineProcessor(InlineProcessor):
-    def __init__(self, regex, md, progress, replace, allow_exec, env):
-        super().__init__(regex, md)
+EVAL_REGEX = rf'\$(?P<bt>`+)(?P<code>.*?)(?P=bt)'
+
+class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
+    def __init__(self, progress, replace, allow_exec, env):
+        super().__init__(EVAL_REGEX)
         self.progress = progress
         self.replace = replace
         self.allow_exec = allow_exec
         self.env = env
 
-    def handleMatch(self, match, data):
+    def handle_match(self, match):
         element = ElementTree.Element('span')
         code = match.group('code')
         code_stripped = code.strip()
@@ -77,7 +78,7 @@ class EvalInlineProcessor(InlineProcessor):
                 code
             ).as_dom_element()
 
-        return element, match.start(0), match.end(0)
+        return element
 
 
 class EvalExtension(Extension):
@@ -111,38 +112,18 @@ class EvalExtension(Extension):
                 dict(p.env) if p else {},
                 'Environment in which to evaluate expressions (if allow_exec==True).'
             ],
-            'start': [
-                '$',
-                'Character (or string) marking the start of an eval expression'
-            ],
-            'end': [
-                '',
-                'Character (or string) marking the end of an eval expression'
-            ],
-            'delimiter': [
-                '`',
-                'Character (or string) enclosing an eval expression (after the start and before the end strings)'
-            ],
         }
         super().__init__(**kwargs)
 
     def extendMarkdown(self, md):
-        start = re.escape(self.getConfig('start'))
-        end   = re.escape(self.getConfig('end'))
-        delim = re.escape(self.getConfig('delimiter'))
-
-        proc = EvalInlineProcessor(
-            f'{start}(?P<bt>{delim}+)(?P<code>.*?)(?P=bt){end}', md,
+        proc = EvalReplacementProcessor(
             progress = self.getConfig('progress'),
             replace = self.getConfig('replace'),
             allow_exec = self.getConfig('allow_exec'),
             env = self.getConfig('env'))
 
-        # Note: the built-in "BacktickInlineProcessor" has a priority of 190, and we need to have
-        # a higher priority than that (or not use backticks).
-        md.inlinePatterns.register(proc, 'la-eval-inline', 200)
-
         replacement_patterns.init(md)
+        md.replacement_patterns.register(proc, 'la-eval-replacement', 30)
         md.ESCAPED_CHARS.append('$')
 
 

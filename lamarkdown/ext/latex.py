@@ -46,7 +46,6 @@ from markdown import *
 from markdown.extensions import *
 from markdown.extensions.attr_list import AttrListTreeprocessor
 from markdown.preprocessors import Preprocessor
-from markdown.inlinepatterns import InlineProcessor
 from markdown.postprocessors import Postprocessor
 from markdown.util import AtomicString
 
@@ -210,7 +209,7 @@ ATTR = r'''
 
 class LatexCompiler:
     '''
-    Compiles Latex code identified by the preprocessor/inline processor, converts it to SVG,
+    Compiles Latex code identified by the preprocessor/replacement processor, converts it to SVG,
     caches the result, and makes the result available (by the html property).
     '''
 
@@ -576,23 +575,6 @@ class LatexPreprocessor(Preprocessor):
         return ''.join(return_text).split('\n')
 
 
-
-class EscapeInlineProcessor(InlineProcessor):
-    """
-    Handles escaping of the '$' sign used for math code. Latex(MathML)InlineProcessor must run
-    _before_ the standard EscapeInlineProcessor, because we can't have the latter messing with our
-    Latex code (which generally contains lots of backslashes). But that means we have to do our own
-    escaping.
-    """
-
-    def __init__(self, md):
-        super().__init__(r'(?<!\\)((\\\\)*)\\\$', md)
-
-    def handleMatch(self, match, data):
-        return '\\' * (len(match.group(1)) // 2) + '$', match.start(0), match.end(0)
-
-
-
 MATH_TEX_RE = rf'''(?xs)
     (
         \$\$
@@ -615,28 +597,26 @@ MATH_TEX_RE = rf'''(?xs)
 '''
 
 
-class LatexInlineProcessor(InlineProcessor):
+class LatexReplacementProcessor(replacement_patterns.ReplacementPattern):
     """
-    This inline processor identifies and parses Latex math snippets. Each one is passed to
+    This replacement processor identifies and parses Latex math snippets. Each one is passed to
     LatexCompiler, and marked in the document with a temporary placeholder, awaiting the
     postprocessor.
     """
 
     def __init__(self,
-                 md,
                  compiler: LatexCompiler,
                  prepend: str,
                  doc_class: str,
                  doc_class_options: str):
-        super().__init__(MATH_TEX_RE, md)
+        super().__init__(MATH_TEX_RE)
         self.compiler = compiler
         self.prepend = prepend
         self.doc_class = doc_class
         self.doc_class_options = doc_class_options
 
 
-    def handleMatch(self, match, data):
-
+    def handle_match(self, match):
         latex_inline = match.group('latex_inline')
         latex_block = match.group('latex_block')
 
@@ -654,19 +634,19 @@ class LatexInlineProcessor(InlineProcessor):
         element = ElementTree.Element('span', attrib = {'class': 'la-math'})
         element.text = self.compiler.compile(full_doc, match.group('attr'))
 
-        return element, match.start(0), match.end(0)
+        return element
 
 
-class LatexMathMLInlineProcessor(InlineProcessor):
+class LatexMathMLReplacementProcessor(replacement_patterns.ReplacementPattern):
     """
-    This inline processor also identifies and parses Latex math snippets. For each one, we invoke
-    latex2mathml to produce a <math>...</math> element representing the Latex math code.
+    This replacement processor also identifies and parses Latex math snippets. For each one, we
+    invoke latex2mathml to produce a <math>...</math> element representing the Latex math code.
     """
 
-    def __init__(self, md):
-        super().__init__(MATH_TEX_RE, md)
+    def __init__(self):
+        super().__init__(MATH_TEX_RE)
 
-    def handleMatch(self, match, data):
+    def handle_match(self, match):
 
         latex_inline = match.group('latex_inline')
         latex_block = match.group('latex_block')
@@ -682,14 +662,14 @@ class LatexMathMLInlineProcessor(InlineProcessor):
         if attrs:
             AttrListTreeprocessor().assign_attrs(element, attrs)
 
-        return element, match.start(0), match.end(0)
+        return element
 
 
 
 class LatexPostprocessor(Postprocessor):
     """
-    Searches for the placeholder strings inserted by the preprocessor/inline processor to determine
-    where to substitute the compiled HTML.
+    Searches for the placeholder strings inserted by the preprocessor/replacement processor to
+    determine where to substitute the compiled HTML.
     """
 
     def __init__(self, compiler: LatexCompiler):
@@ -830,26 +810,22 @@ class LatexExtension(Extension):
             'la-latex-post', 25)
 
         if math == 'mathml':
-            inlineProcessor = LatexMathMLInlineProcessor(md)
+            replacementProcessor = LatexMathMLReplacementProcessor()
 
         elif math == 'latex':
-            inlineProcessor = LatexInlineProcessor(
-                md,
+            replacementProcessor = LatexReplacementProcessor(
                 compiler,
                 prepend           = prepend,
                 doc_class         = doc_class,
                 doc_class_options = doc_class_options,
             )
         else:
-            inlineProcessor = None
+            replacementProcessor = None
 
-        if inlineProcessor:
+        if replacementProcessor:
             replacement_patterns.init(md)
+            md.replacement_patterns.register(replacementProcessor, 'la-latex-replacement', 20)
             md.ESCAPED_CHARS.append('$')
-
-            # TODO: convert the inline processors into replacement processors
-            # md.inlinePatterns.register(EscapeInlineProcessor(md), 'la-latex-inline-escape', 186)
-            md.inlinePatterns.register(inlineProcessor, 'la-latex-inline', 185)
 
 
 

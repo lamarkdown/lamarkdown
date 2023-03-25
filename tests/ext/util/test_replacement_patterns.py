@@ -3,34 +3,30 @@ from lamarkdown.ext.util import replacement_patterns
 import unittest
 from hamcrest import *
 import markdown
-# import lxml.html
 
-# from textwrap import dedent
 from xml.etree import ElementTree
 
 
 # Test design
-# - pattern recognition in different structural cases:
-#   <span>...</span>$some text$
-#   <span>...</span><br>$some text$
-#
-# - verify that other things are not detected within the delimiters
-#
-# - multiple instance recognition
-#   $some text$$some text$
-#   $some text$x$some text$
-#   $some text$<span></span>$some text$
-#
-# - interactions between two replacement patterns
-# - interactions between replacement and inline patterns (particularly backticks)
-# - escaping
 # - respecting AtomicString
 
 
 class ReplacementPatternsTestCase(unittest.TestCase):
 
-
     def test_single_pattern(self):
+
+        class TestHtmlBlockProcessor(markdown.blockprocessors.BlockProcessor):
+            '''
+            This is to force Markdown to convert HTML into actual Element nodes, to be seen in the
+            tree-processing (and hence replacement-processing) stage. We need a way to test that
+            ReplacementProcessor can handle structural situations.
+            '''
+            def test(self, parent, block):
+                return True
+
+            def run(self, parent, blocks):
+                parent.append(ElementTree.fromstring(f'<p>{blocks.pop(0)}</p>'))
+
 
         class DollarPattern(replacement_patterns.ReplacementPattern):
             def __init__(self):
@@ -94,20 +90,53 @@ class ReplacementPatternsTestCase(unittest.TestCase):
                 r'hello \\\\\$some text$ world',
                 r'hello \\$some text$ world'
             ),
+            (
+                r'hello \$x\\\$y\\\\\$z world',
+                r'hello $x\$y\\$z world'
+            ),
+
+            # Backtick interaction (also tests the interaction of two replacement patterns
+            # generally)
+            (
+                r'hello `$some text$` world',
+                r'hello <code>$some text$</code> world'
+            ),
+            (
+                r'hello ````$some text$```` world',
+                r'hello <code>$some text$</code> world'
+            ),
+            (
+                r'hello $`some text`$ world',
+                r'hello <span x="1">`some text`</span> world'
+            ),
+            (
+                r'hello $````some text````$ world',
+                r'hello <span x="1">````some text````</span> world'
+            ),
+            (
+                r'hello `$some`$`text$` world',
+                r'hello <code>$some</code><span x="1">`text</span>` world'
+            ),
+            (
+                r'hello $`some$`$text`$ world',
+                r'hello <span x="1">`some</span><code>$text</code>$ world'
+            ),
         ]:
             md = markdown.Markdown()
+            md.parser.blockprocessors.register(TestHtmlBlockProcessor(md.parser), 'testblock', 1000)
+
             replacement_patterns.init(md)
             md.ESCAPED_CHARS.append('$')
             md.replacement_patterns.register(DollarPattern(), 'dollar', 10)
 
             html = md.convert(input_text)
-            # print(html)
 
             assert_that(html, contains_string(expected_html))
 
 
+
     def test_transparent_pattern(self):
-        class DollarPattern(replacement_patterns.ReplacementPattern):
+        class ElementPattern(replacement_patterns.ReplacementPattern):
             def __init__(self):
                 super().__init__('\$([^$]+)\$', allow_inline_patterns = True)
 
@@ -116,13 +145,31 @@ class ReplacementPatternsTestCase(unittest.TestCase):
                 elem.text = match.group(1)
                 return elem
 
+
+        class StringPattern(replacement_patterns.ReplacementPattern):
+            def __init__(self):
+                super().__init__('\$([^$]+)\$', allow_inline_patterns = True)
+
+            def handle_match(self, match):
+                return f'AAA {match.group(1)} BBB'
+
+
         input_text = '_hello_ $_some_ `text`$ `world`'
-        expected_html = '<em>hello</em> <span x="1"><em>some</em> <code>text</code></span> <code>world</code>'
 
-        md = markdown.Markdown()
-        replacement_patterns.init(md)
-        md.ESCAPED_CHARS.append('$')
-        md.replacement_patterns.register(DollarPattern(), 'dollar', 10)
+        for pattern, expected_html in [
+            (
+                ElementPattern,
+                '<em>hello</em> <span x="1"><em>some</em> <code>text</code></span> <code>world</code>'
+            ),
+            (
+                StringPattern,
+                '<em>hello</em> AAA <em>some</em> <code>text</code> BBB <code>world</code>'
+            )
+        ]:
+            md = markdown.Markdown()
+            replacement_patterns.init(md)
+            md.ESCAPED_CHARS.append('$')
+            md.replacement_patterns.register(pattern(), 'dollar', 10)
 
-        html = md.convert(input_text)
-        assert_that(html, contains_string(expected_html))
+            html = md.convert(input_text)
+            assert_that(html, contains_string(expected_html))

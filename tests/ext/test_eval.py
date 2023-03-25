@@ -105,15 +105,15 @@ class EvalTestCase(unittest.TestCase):
         self.assertIn('triple delimiter', html)
 
 
-    def test_alt_delimiter(self):
-        html = self.run_markdown(
-            r'''
-            Sometext #///'alt delimiter'///& sometext
-            ''',
-            allow_exec = True,
-            start = '#',
-            end = '&',
-            delimiter = '/'
-        )
-
-        self.assertIn('alt delimiter', html)
+    # def test_alt_delimiter(self):
+    #     html = self.run_markdown(
+    #         r'''
+    #         Sometext #///'alt delimiter'///& sometext
+    #         ''',
+    #         allow_exec = True,
+    #         start = '#',
+    #         end = '&',
+    #         delimiter = '/'
+    #     )
+    #
+    #     self.assertIn('alt delimiter', html)
