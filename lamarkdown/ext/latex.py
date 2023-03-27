@@ -64,6 +64,7 @@ import time
 from typing import Dict, List, Set, Union
 from xml.etree import ElementTree
 
+NAME = 'la.latex' # For error messages
 
 
 class CommandException(Exception):
@@ -308,7 +309,7 @@ class LatexCompiler:
         # If not in cache, compile it.
         run_latex = True
         if cache_key in self.cache:
-            self.progress.progress('Latex', 'Cache hit -- skipping compilation')
+            #self.progress.progress(NAME, 'Cache hit -- skipping compilation')
 
             element, dependencies = self.cache.get(cache_key)
             if self.are_deps_unchanged(dependencies):
@@ -317,6 +318,8 @@ class LatexCompiler:
                 # conceivably be assigned different attributes below.
                 element = copy.copy(element)
                 run_latex = False
+            else:
+                self.progress.cache_hit(NAME)
 
         if run_latex:
             hasher = hashlib.sha1()
@@ -334,10 +337,10 @@ class LatexCompiler:
                     f.write(latex)
 
             except OSError as e:
-                return self.progress.error_from_exception('Latex', e).as_html_str()
+                return self.progress.error_from_exception(NAME, e).as_html_str()
 
             try:
-                self.progress.progress(self.tex_cmdline[0], 'Compiling .tex to .pdf...')
+                self.progress.progress(NAME, f'Invoking "{self.tex_cmdline[0]}" to compile .tex to .pdf...')
                 check_run(
                     self.tex_cmdline,
                     pdf_file,
@@ -358,17 +361,17 @@ class LatexCompiler:
                     if first_error_line:
                         output = '\n'.join(lines[first_error_line:])
 
-                return self.progress.error('Latex', str(e), output, latex).as_html_str()
+                return self.progress.error(NAME, str(e), output, latex).as_html_str()
 
             if os.path.exists(fls_file):
                 dependencies = self.find_live_update_deps(fls_file)
                 self.live_update_deps.update(dependencies.keys())
             else:
                 dependencies = {}
-                self.progress.warning('latex', f'Tex command did not create an .fls file')
+                self.progress.warning(NAME, f'Tex command did not create an .fls file')
 
             try:
-                self.progress.progress(self.converter_cmdline[0], 'Converting .pdf to .svg...')
+                self.progress.progress(NAME, f'Invoking "{self.converter_cmdline[0]}" to convert .pdf to .svg...')
                 check_run(
                     self.converter_cmdline,
                     svg_file,
@@ -379,7 +382,7 @@ class LatexCompiler:
                     svg_content = reader.read()
                     if "viewBox='0 0 0 0'" in svg_content:
                         return self.progress.error(
-                            'Latex',
+                            NAME,
                             f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
                             svg_content
                         ).as_html_str()
@@ -390,7 +393,7 @@ class LatexCompiler:
                 self.cache[cache_key] = (copy.copy(element), dependencies)
 
             except CommandException as e:
-                return self.progress.error('Latex', str(e), e.output, latex).as_html_str()
+                return self.progress.error(NAME, str(e), e.output, latex).as_html_str()
 
         if attrs:
             # Hijack parts of the attr_list extension to handle the attribute list.
@@ -762,7 +765,7 @@ class LatexExtension(Extension):
 
         embedding = self.getConfig('embedding')
         if embedding not in LatexCompiler.EMBEDDERS:
-            progress.error('latex', f'Invalid value "{embedding}" for config option "embedding"')
+            progress.error(NAME, f'Invalid value "{embedding}" for config option "embedding"')
             self.setConfig('embedding', 'data_uri')
 
 

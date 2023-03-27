@@ -56,13 +56,13 @@ def caching_formatter(build_params: BuildParams,
                 result = base_formatter(source, language, css_class, options, md, **kwargs)
                 build_params.build_cache[cache_key] = result
             else:
-                build_params.progress.progress(name, 'Cache hit -- skipping formatting')
+                # build_params.progress.progress(name, 'Cache hit -- skipping formatting')
+                build_params.progress.cache_hit(name)
 
             return result
 
         except Exception as e: # Not expecting an exception, but any internal errors will be
                                # swallowed by pymdownx.superfences.
-            print(e)
             return build_params.progress.error_from_exception(name, e).as_html_str()
 
     return formatter
@@ -120,14 +120,15 @@ def attr_formatter(base_formatter: Formatter) -> Formatter:
 
 
 def matplotlib_formatter(build_params: BuildParams) -> Formatter:
+    NAME = 'matplotlib' # Progress/error messages
+
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
             # Matplotlib _isn't_ a core dependency of Lamarkdown, so we (try to) import it locally.
-            build_params.progress.progress('matplotlib', f'Invoking matplotlib...')
+            build_params.progress.progress(NAME, f'Running code...')
             import matplotlib.pyplot as plot
         except ModuleNotFoundError as e:
-            print(e)
-            build_params.progress.error('matplotlib', 'Module not found; you probably need to run "pip install matplotlib"').as_html_str()
+            build_params.progress.error(NAME, 'Module not found; you may need to run "pip install matplotlib"').as_html_str()
         else:
             try:
                 exec(source, build_params.env)
@@ -136,13 +137,14 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
                 plot.clf() # Clear the current figure (so we start from a clean slate next time)
                 return buf.getvalue().decode()
             except Exception as e:
-                print(e)
-                return build_params.progress.error_from_exception('matplotlib', e).as_html_str()
+                return build_params.progress.error_from_exception(NAME, e).as_html_str()
 
     return formatter
 
 
 def r_plot_formatter(build_params: BuildParams) -> Formatter:
+
+    NAME = 'R' # Progress/error messages
 
     base_formatter = command_formatter(build_params, ['R', '-q', '-s'])
 
@@ -172,8 +174,7 @@ def r_plot_formatter(build_params: BuildParams) -> Formatter:
             )
 
         except Exception as e:
-            print(e)
-            return build_params.progress.error_from_exception('r', e).as_html_str
+            return build_params.progress.error_from_exception(NAME, e).as_html_str
 
     return formatter
 

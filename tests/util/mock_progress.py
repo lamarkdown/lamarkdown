@@ -17,6 +17,7 @@ class MockProgress:
         self._received_error = False
 
     def progress(self, *a, **k): return MockMsg()
+    def cache_hit(self, *a, **k): return MockMsg()
     def warning(self, *a, **k):  return MockMsg()
     def error(self, location, msg, *a, **k):
         if self._expect_error:

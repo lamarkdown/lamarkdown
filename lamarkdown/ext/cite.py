@@ -28,6 +28,8 @@ import re
 from typing import List
 from xml.etree import ElementTree
 
+NAME = 'la.cite' # For progress/error messages
+
 
 # TODO:
 # * investigate https://github.com/brechtm/citeproc-py (a citation style language (CSL) processor)
@@ -105,7 +107,7 @@ class MetadataPreprocessor(Preprocessor):
             try:
                 self.bib_parser.parse_file(filename)
             except Exception as e:
-                self.ext.getConfig('progress').error_from_exception('Pybtex', e)
+                self.ext.getConfig('progress').error_from_exception(NAME, e)
 
         for nocite in meta.get('nocite', []):
             if '@*' in nocite:
@@ -201,10 +203,10 @@ class PybtexTreeProcessor(Treeprocessor):
             formatted_biblio = self.bib_style.format_bibliography(self.bib_parser.data,
                                                                   self.cited_keys)
         except pybtex.exceptions.PybtexError as e:
-            progress.error('la.cite (pybtex)', str(e))
+            progress.error(NAME, str(e))
             return
 
-        progress.progress('la.cite', f'{len(self.cited_keys)} citation(s)')
+        progress.progress(NAME, f'{len(self.cited_keys)} citation(s)')
 
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels'
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.
@@ -432,7 +434,7 @@ class CiteExtension(markdown.Extension):
             try:
                 bib_parser.parse_file(file)
             except Exception as e:
-                self.getConfig('progress').error_from_exception('Pybtex', e)
+                self.getConfig('progress').error_from_exception(NAME, e)
 
         # Pybtex formatter -- creates the document reference list.
         bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting', self.getConfig('style'))

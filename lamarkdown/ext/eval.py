@@ -41,6 +41,7 @@ from xml.etree import ElementTree
 
 import datetime
 
+NAME = 'la.eval' # For error messages
 
 DEFAULT_REPLACEMENTS = {
     'date':     str(datetime.date.today()),
@@ -69,11 +70,11 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
             try:
                 element.text = str(eval(code, self.env))
             except Exception as e:
-                element = self.progress.error_from_exception('Eval', str(e), code).as_dom_element()
+                element = self.progress.error_from_exception(NAME, str(e), code).as_dom_element()
 
         else:
             element = self.progress.error(
-                'Eval',
+                NAME,
                 f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
                 code
             ).as_dom_element()

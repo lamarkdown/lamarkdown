@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+NAME = 'resource specification'
 
 DEFAULT_USER_AGENT = None
 DEFAULT_CACHE_EXPIRY = 86400 # By default, cache resources for 24 hours
@@ -22,11 +23,13 @@ def read_url(url: str,
              progress: Progress,
              user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
 
+    NAME = 'fetching'
+
     if REMOTE_URL_SCHEME_REGEX.match(url):
         cache_entry = cache.get(url)
 
         if cache_entry is None:
-            progress.progress('External resource', f'Downloading {url}...')
+            progress.progress(NAME, url)
             with urllib.request.urlopen(url) as conn:
                 try:
                     content_bytes = conn.read()
@@ -75,18 +78,18 @@ def read_url(url: str,
                             cache.set(url, (content_bytes, mime_type), expire = cache_expiry)
 
                     else: # status != 200
-                        progress.error(url,
+                        progress.error(NAME,
                                        f'Server returned {status} code',
                                        content_bytes.decode(errors = 'ignore'))
                         content_bytes = b''
                         mime_type = None
 
                 except OSError as e:
-                    progress.error_from_exception(url, e)
+                    progress.error_from_exception(NAME, e)
                     content_bytes = b''
 
         else:
-            progress.progress('External resource', f'Using cached value of {url}')
+            progress.cache_hit(NAME, url)
             content_bytes, mime_type = cache_entry
 
         return (True, content_bytes, mime_type)
@@ -107,8 +110,9 @@ def read_url(url: str,
                 return (False, reader.read(), mime_type)
 
         except urllib.error.URLError as e:
-            thing = 'file' if url.startswith('file:') else 'URL'
-            progress.error(f'"{orig_url}"', f'Cannot read {thing}')
+            # thing = 'file' if url.startswith('file:') else 'URL'
+            # progress.error(f'"{orig_url}"', f'Cannot read {thing}')
+            progress.error(NAME, f'Cannot read "{url}"')
             return (False, b'', None)
 
 
@@ -195,7 +199,7 @@ class UrlResourceSpec(ResourceSpec):
 
         hash_type = self.hash_type_fn()
         if hash_type not in [None, 'sha256', 'sha384', 'sha512']:
-            progress.error(f'"{url}"', f'Unsupported hash type: {hash_type}')
+            progress.error(NAME, f'Unsupported hash type "{hash_type}" for "{url}"')
             hash_type = 'sha256'
 
         if hash_type:
@@ -207,8 +211,8 @@ class UrlResourceSpec(ResourceSpec):
 
             if not is_remote:
                 progress.warning(
-                    f'"{url}"',
-                    f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage.')
+                    NAME,
+                    f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage. ("{url}")')
 
             return UrlResource(url = url, hash = hash, hash_type = hash_type)
 

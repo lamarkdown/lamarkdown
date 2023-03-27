@@ -96,8 +96,9 @@ class ErrorMsg(Message):
 
 
 class Progress:
-    def __init__(self):
+    def __init__(self, show_cache_hits = False):
         self._errors = []
+        self._show_cache_hits = show_cache_hits
 
     def show(self, msg: Message, skip = 0):
         for _ in range(skip):
@@ -110,14 +111,26 @@ class Progress:
     def progress(self, *args, **kwargs):
         return self.show(ProgressMsg(*args), **kwargs)
 
+    def cache_hit(self, location: str, resource: str = None):
+        obj = ProgressMsg(location,
+                          'Using cached value' + (f' for {resource}' if resource else ''))
+        return self.show(obj) if self._show_cache_hits else obj
+
     def warning(self, *args, **kwargs):
         return self.show(WarningMsg(*args), **kwargs)
 
     def error(self, *args, **kwargs):
         return self.show(ErrorMsg(*args), **kwargs)
 
-    def error_from_exception(self, location: str, e: Exception, *details_list: str, **kwargs):
-        return self.show(ErrorMsg(location, str(e), ''.join(traceback.format_exc()), *details_list), **kwargs)
+    def error_from_exception(self, location: str, e: Exception, *details_list: str, msg = None, **kwargs):
+        return self.show(
+            ErrorMsg(location,
+                     f'{msg}: {str(e)}' if msg else str(e),
+                     ''.join(traceback.format_exc()),
+                     *details_list
+            ),
+            **kwargs
+        )
 
     def get_errors(self):
         return list(self._errors)

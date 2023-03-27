@@ -29,6 +29,7 @@ import re
 from typing import Callable, Dict, List, Set
 from xml.etree import ElementTree
 
+NAME = 'md_compiler' # For progress/error messages
 
 class CompileException(Exception): pass
 
@@ -43,7 +44,7 @@ def compile(base_build_params: BuildParams):
     build_params.set_current()
     progress = build_params.progress
 
-    build_params.progress.progress(os.path.basename(build_params.src_file), 'Configuring')
+    build_params.progress.progress(NAME, f'Configuring {os.path.basename(build_params.src_file)}')
 
     any_build_modules = False
 
@@ -52,7 +53,7 @@ def compile(base_build_params: BuildParams):
             any_build_modules = True
             module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
             if module_spec is None:
-                progress.error(build_file, f'Could not load build module "{build_file}"')
+                progress.error(NAME, f'Could not load build module "{build_file}"')
 
             build_module = importlib.util.module_from_spec(module_spec)
             try:
@@ -63,7 +64,7 @@ def compile(base_build_params: BuildParams):
                         build_file_contents = reader.read()
                 except OSError:
                     build_file_contents = '[could not read file]'
-                progress.error_from_exception(build_file, e, build_file_contents)
+                progress.error_from_exception(NAME, e, build_file_contents, msg = build_file)
 
             build_params.env.update(build_module.__dict__)
 
@@ -113,7 +114,8 @@ def compile_variant(variant: Variant,
             variant_fn_source = inspect.getsource(variant.build_fn)
         except OSError:
             variant_fn_source = '[could not obtain source]'
-        build_params.progress.error_from_exception(variant.name, e, variant_fn_source)
+        build_params.progress.error_from_exception(NAME, e, variant_fn_source,
+                                                   msg = f'variant "{variant.name}"')
 
     if build_params.variants:
         all_build_params = []
@@ -131,7 +133,8 @@ def compile_variant(variant: Variant,
 
 def invoke_python_markdown(build_params: BuildParams):
 
-    build_params.progress.progress(os.path.basename(build_params.output_file), 'Invoking Python Markdown')
+    build_params.progress.progress(
+        NAME, f'running Python Markdown for {os.path.basename(build_params.output_file)}')
     content_html = ''
     meta: Dict[str,List[str]] = {}
 
@@ -139,7 +142,7 @@ def invoke_python_markdown(build_params: BuildParams):
         with open(build_params.src_file, 'r') as src:
             content_markdown = src.read()
     except OSError as e:
-        build_params.progress.error_from_exception(build_params.src_file, e)
+        build_params.progress.error_from_exception(NAME, e, msg = build_params.src_file)
 
     else:
         try:
@@ -152,7 +155,7 @@ def invoke_python_markdown(build_params: BuildParams):
             meta = md.__dict__.get('Meta', {})
 
         except Exception as e:
-            build_params.progress.error_from_exception('Python Markdown', e)
+            build_params.progress.error_from_exception(NAME, e, msg = 'Error while running Python Markdown')
 
     return content_html, meta
 
@@ -184,7 +187,8 @@ def write_html(content_html: str,
                meta: Dict[str,List[str]],
                build_params: BuildParams):
 
-    build_params.progress.progress(os.path.basename(build_params.output_file), 'Creating output document')
+    build_params.progress.progress(
+        NAME, f'creating output document {os.path.basename(build_params.output_file)}')
 
     # Run HTML hook functions
     # (Note: content_html *does not* have a <body> element wrapped around it at this point.)
@@ -197,7 +201,7 @@ def write_html(content_html: str,
     try:
         root_element = lxml.html.parse(buf, _parser).find('body')
     except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
-        build_params.progress.error(os.path.basename(build_params.output_file), 'No document created')
+        build_params.progress.error(NAME, f'{os.path.basename(build_params.output_file)}: no document created')
         return
 
     # Run tree hook functions

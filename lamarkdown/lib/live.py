@@ -25,6 +25,8 @@ import traceback
 import webbrowser
 from typing import List
 
+NAME = 'live updating' # For progress/error messages
+
 
 DEFAULT_PORT_RANGE = range(8000, 8020)
 
@@ -284,11 +286,11 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     break
                 except OSError: # Port in use; try next one.
                     self._base_build_params.progress.warning(
-                        'Live updating', f'Port {try_port} appears to be in use.')
+                        NAME, f'Port {try_port} appears to be in use.')
 
             if port:
                 self._base_build_params.progress.progress(
-                    'Live updating',
+                    NAME,
                     'Launching server and browser, and monitoring changes to source/build files.',
                     f'Browse to http://{address or "localhost"}:{port}\nPress Ctrl-C to quit.')
 
@@ -307,7 +309,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
             else:
                 self._base_build_params.progress.error(
-                    'Live updating',
+                    NAME,
                     f'Cannot launch server: all ports in range {port_range.start}-{port_range.stop - 1} are in use.')
 
         except KeyboardInterrupt: # Ctrl-C
@@ -340,7 +342,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
 
     def clear_cache(self):
-        self._base_build_params.progress.warning('Live updating', 'Clearing cache')
+        self._base_build_params.progress.warning(NAME, 'Clearing cache')
         self._base_build_params.build_cache.clear()
 
 
@@ -357,7 +359,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                 try:
                     self._complete_build_params = md_compiler.compile(self._base_build_params)
                 except Exception as e:
-                    self._base_build_params.progress.error_from_exception('Live updating', e)
+                    self._base_build_params.progress.error_from_exception(NAME, e)
 
                 self._base_variant = self._complete_build_params[0].name
                 self._update_n += 1
@@ -366,7 +368,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     self.read_and_instrument()
                     self.watch_dependencies()
                 except Exception as e:
-                    self._base_build_params.progress.error_from_exception('Live updating', e)
+                    self._base_build_params.progress.error_from_exception(NAME, e)
 
                 if self._update_event is not None:
                     self._update_event.set()

@@ -8,9 +8,10 @@ from lxml.etree import SubElement
 def apply(heading_numbers = True):
     la(
         'admonition', # 'Notes', 'warnings', etc.
-        'meta',       # Allows for defining metadata in the markdown.
-        'smarty',     # Auto-replacement of quotes, ellipses and dashes.
         'attr_list',
+        'meta',       # Allows for defining metadata in the markdown.
+        'sane_lists',
+        'smarty',     # Auto-replacement of quotes, ellipses and dashes.
 
         # 3rd Party: pymdown
         'pymdownx.highlight', # Needed for control over whether 'super-fences' uses Pygments or not

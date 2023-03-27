@@ -142,10 +142,12 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
 
 
     def _opaque_tree(self, element):
-        element.text = markdown.util.AtomicString(element.text)
+        if element.text:
+            element.text = markdown.util.AtomicString(element.text)
         for subelement in element:
             self._opaque_tree(subelement)
-            subelement.tail = markdown.util.AtomicString(subelement.tail)
+            if subelement.tail:
+                subelement.tail = markdown.util.AtomicString(subelement.tail)
 
 
 
