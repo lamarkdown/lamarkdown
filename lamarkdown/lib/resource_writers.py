@@ -16,7 +16,7 @@ from typing import Callable, Iterable, List, Tuple, Union
 import urllib.parse
 import urllib.request
 
-NAME = 'resource writing' # For progress/error messages
+NAME = 'resource linking' # For progress/error messages
 
 Converter = Callable[[str,bytes,str],Tuple[bytes,str]]
 
@@ -461,7 +461,7 @@ def embed_media(root_element, base_url: str, build_params: BuildParams):
                                            **(dict(type = embed_type) if embed_type else {})):
 
                     build_params.progress.progress(
-                        NAME, f'embedding {base_url or f"<{element.tag}>"}')
+                        NAME, f'embedding {base_url or element.get("src") or f"<{element.tag}>"}')
                     add_local_dependency(src, build_params)
                     element.set('src', make_data_url(src, mime_type, build_params))
 

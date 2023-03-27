@@ -29,7 +29,7 @@ import re
 from typing import Callable, Dict, List, Set
 from xml.etree import ElementTree
 
-NAME = 'md_compiler' # For progress/error messages
+NAME = 'compiling' # For progress/error messages
 
 class CompileException(Exception): pass
 
@@ -44,7 +44,7 @@ def compile(base_build_params: BuildParams):
     build_params.set_current()
     progress = build_params.progress
 
-    build_params.progress.progress(NAME, f'Configuring {os.path.basename(build_params.src_file)}')
+    build_params.progress.progress(NAME, f'configuring {os.path.basename(build_params.src_file)}')
 
     any_build_modules = False
 
@@ -75,11 +75,13 @@ def compile(base_build_params: BuildParams):
         all_build_params = []
         for variant in build_params.variants:
             all_build_params += compile_variant(variant, build_params)
+        build_params.progress.progress(NAME, 'all variants done')
         return all_build_params
 
     else:
         content_html, meta = invoke_python_markdown(build_params)
         write_html(content_html, meta, build_params)
+        build_params.progress.progress(NAME, 'done')
         return [build_params]
 
 
@@ -338,6 +340,8 @@ def write_html(content_html: str,
 
     with open(build_params.output_file, 'w') as target:
         target.write(full_html)
+
+    build_params.progress.progress(NAME, 'output written')
 
 
 def disentangle_svgs(root_element):

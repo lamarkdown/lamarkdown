@@ -2,11 +2,25 @@
 '''
 from markdown.util import AtomicString
 import html
-import textwrap
+import shutil
 import traceback
 from xml.etree import ElementTree
 
 RESET = '\033[0m'
+
+
+def wrap(text, width):
+    if text == '':
+        yield ''
+    while text:
+        newline_index = text.find('\n')
+        if newline_index != -1 and newline_index <= width:
+            yield text[:newline_index]
+            text = text[newline_index + 1:]
+        else:
+            yield text[:width]
+            text = text[width:]
+
 
 class Message:
     def __init__(self, location: str, msg: str, *details_list: str):
@@ -17,17 +31,29 @@ class Message:
     def print(self):
         print(f'{self.LOCATION_COLOUR}{self.TAG}{self._location}:{RESET} {self.MSG_COLOUR}{self._msg}{RESET}')
 
+        terminal_width = shutil.get_terminal_size(fallback = (80, 40)).columns
+        text_width = terminal_width - 6
+
+        first = True
         for details in self._details_list:
             if details:
                 assert isinstance(details, str)
-                if details[-1] == '\n':
-                    details = details[:-1]
-                print(textwrap.indent(details, '  | ', lambda line: True))
-                print('  ---')
+                if first:
+                    print('  ┌─' + ('─' * text_width) + '─┐')
+                    first = False
+                else:
+                    print('  ├─' + ('─' * text_width) + '─┤')
+
+                for line in wrap(details.rstrip(), text_width):
+                    print('  │ ' + line + (' ' * (text_width - len(line))) + ' │')
+
+        if not first:
+            print('  └─' + ('─' * text_width) + '─┘')
+
 
 class ProgressMsg(Message):
-    LOCATION_COLOUR = '\033[35m'
-    MSG_COLOUR = '\033[35m'
+    LOCATION_COLOUR = '\033[32m'
+    MSG_COLOUR = ''
     TAG = ''
 
 class WarningMsg(Message):
