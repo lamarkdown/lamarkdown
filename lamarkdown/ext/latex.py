@@ -207,6 +207,8 @@ ATTR = r'''
     [ ]*\}                  # Ends with '}' (with optional spaces)
 '''
 
+ERROR_LINE_NUMBER_RE = re.compile(r'(^|\n)l\.(?P<n>[0-9]+)')
+
 
 class LatexCompiler:
     '''
@@ -337,7 +339,7 @@ class LatexCompiler:
                     f.write(latex)
 
             except OSError as e:
-                return self.progress.error_from_exception(NAME, e).as_html_str()
+                return self.progress.error(NAME, exception = e).as_html_str()
 
             try:
                 self.progress.progress(NAME, f'Invoking "{self.tex_cmdline[0]}" to compile .tex to .pdf...')
@@ -361,7 +363,19 @@ class LatexCompiler:
                     if first_error_line:
                         output = '\n'.join(lines[first_error_line:])
 
-                return self.progress.error(NAME, str(e), output, latex).as_html_str()
+                ln_match = ERROR_LINE_NUMBER_RE.search(output)
+                if ln_match:
+                    line = int(ln_match.group('n'))
+                    highlight_lines = {line, line - 1}
+                else:
+                    highlight_lines = None
+
+                return self.progress.error(NAME,
+                                           exception = e,
+                                           show_traceback = False,
+                                           output = output,
+                                           code = latex,
+                                           highlight_lines = highlight_lines).as_html_str()
 
             if os.path.exists(fls_file):
                 dependencies = self.find_live_update_deps(fls_file)
@@ -383,9 +397,8 @@ class LatexCompiler:
                     if "viewBox='0 0 0 0'" in svg_content:
                         return self.progress.error(
                             NAME,
-                            f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
-                            svg_content
-                        ).as_html_str()
+                            msg = f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
+                            output = svg_content).as_html_str()
 
                 svg_content = self.converter_correction(svg_content)
 
@@ -393,7 +406,12 @@ class LatexCompiler:
                 self.cache[cache_key] = (copy.copy(element), dependencies)
 
             except CommandException as e:
-                return self.progress.error(NAME, str(e), e.output, latex).as_html_str()
+                return self.progress.error(NAME,
+                                           exception = e,
+                                           show_traceback = False,
+                                           output = e.output,
+                                           code = latex,
+                                           context_lines = None).as_html_str()
 
         if attrs:
             # Hijack parts of the attr_list extension to handle the attribute list.
@@ -765,7 +783,7 @@ class LatexExtension(Extension):
 
         embedding = self.getConfig('embedding')
         if embedding not in LatexCompiler.EMBEDDERS:
-            progress.error(NAME, f'Invalid value "{embedding}" for config option "embedding"')
+            progress.error(NAME, msg = f'Invalid value "{embedding}" for config option "embedding"')
             self.setConfig('embedding', 'data_uri')
 
 

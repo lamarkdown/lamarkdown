@@ -310,7 +310,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             else:
                 self._base_build_params.progress.error(
                     NAME,
-                    f'Cannot launch server: all ports in range {port_range.start}-{port_range.stop - 1} are in use.')
+                    msg = f'Cannot launch server: all ports in range {port_range.start}-{port_range.stop - 1} are in use.')
 
         except KeyboardInterrupt: # Ctrl-C
             pass
@@ -359,7 +359,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                 try:
                     self._complete_build_params = md_compiler.compile(self._base_build_params)
                 except Exception as e:
-                    self._base_build_params.progress.error_from_exception(NAME, e)
+                    self._base_build_params.progress.error(NAME, exception = e)
 
                 self._base_variant = self._complete_build_params[0].name
                 self._update_n += 1
@@ -368,7 +368,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     self.read_and_instrument()
                     self.watch_dependencies()
                 except Exception as e:
-                    self._base_build_params.progress.error_from_exception(NAME, e)
+                    self._base_build_params.progress.error(NAME, exception = e)
 
                 if self._update_event is not None:
                     self._update_event.set()

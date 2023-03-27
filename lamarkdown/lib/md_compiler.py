@@ -53,7 +53,7 @@ def compile(base_build_params: BuildParams):
             any_build_modules = True
             module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
             if module_spec is None:
-                progress.error(NAME, f'Could not load build module "{build_file}"')
+                progress.error(NAME, msg = f'Could not load build module "{build_file}"')
 
             build_module = importlib.util.module_from_spec(module_spec)
             try:
@@ -64,7 +64,10 @@ def compile(base_build_params: BuildParams):
                         build_file_contents = reader.read()
                 except OSError:
                     build_file_contents = '[could not read file]'
-                progress.error_from_exception(NAME, e, build_file_contents, msg = build_file)
+                progress.error(NAME,
+                               msg = build_file,
+                               exception = e,
+                               code = build_file_contents)
 
             build_params.env.update(build_module.__dict__)
 
@@ -116,8 +119,10 @@ def compile_variant(variant: Variant,
             variant_fn_source = inspect.getsource(variant.build_fn)
         except OSError:
             variant_fn_source = '[could not obtain source]'
-        build_params.progress.error_from_exception(NAME, e, variant_fn_source,
-                                                   msg = f'variant "{variant.name}"')
+        build_params.progress.error(NAME,
+                                    msg = f'variant "{variant.name}"',
+                                    exception = e,
+                                    code = variant_fn_source)
 
     if build_params.variants:
         all_build_params = []
@@ -144,7 +149,7 @@ def invoke_python_markdown(build_params: BuildParams):
         with open(build_params.src_file, 'r') as src:
             content_markdown = src.read()
     except OSError as e:
-        build_params.progress.error_from_exception(NAME, e, msg = build_params.src_file)
+        build_params.progress.error(NAME, msg = build_params.src_file, exception = e)
 
     else:
         try:
@@ -157,7 +162,9 @@ def invoke_python_markdown(build_params: BuildParams):
             meta = md.__dict__.get('Meta', {})
 
         except Exception as e:
-            build_params.progress.error_from_exception(NAME, e, msg = 'Error while running Python Markdown')
+            build_params.progress.error(NAME,
+                                        msg = 'Error while running Python Markdown',
+                                        exception = e)
 
     return content_html, meta
 
@@ -203,7 +210,8 @@ def write_html(content_html: str,
     try:
         root_element = lxml.html.parse(buf, _parser).find('body')
     except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
-        build_params.progress.error(NAME, f'{os.path.basename(build_params.output_file)}: no document created')
+        build_params.progress.error(NAME,
+                                    msg = f'{os.path.basename(build_params.output_file)}: no document created')
         return
 
     # Run tree hook functions

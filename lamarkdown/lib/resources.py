@@ -79,13 +79,13 @@ def read_url(url: str,
 
                     else: # status != 200
                         progress.error(NAME,
-                                       f'Server returned {status} code',
-                                       content_bytes.decode(errors = 'ignore'))
+                                       msg = f'Server returned {status} code',
+                                       output = content_bytes.decode(errors = 'ignore'))
                         content_bytes = b''
                         mime_type = None
 
                 except OSError as e:
-                    progress.error_from_exception(NAME, e)
+                    progress.error(NAME, exception = e)
                     content_bytes = b''
 
         else:
@@ -110,9 +110,10 @@ def read_url(url: str,
                 return (False, reader.read(), mime_type)
 
         except urllib.error.URLError as e:
-            # thing = 'file' if url.startswith('file:') else 'URL'
-            # progress.error(f'"{orig_url}"', f'Cannot read {thing}')
-            progress.error(NAME, f'Cannot read "{url}"')
+            progress.error(NAME,
+                           msg = f'Cannot read "{url}"',
+                           exception = e,
+                           show_traceback = False)
             return (False, b'', None)
 
 
@@ -199,7 +200,8 @@ class UrlResourceSpec(ResourceSpec):
 
         hash_type = self.hash_type_fn()
         if hash_type not in [None, 'sha256', 'sha384', 'sha512']:
-            progress.error(NAME, f'Unsupported hash type "{hash_type}" for "{url}"')
+            progress.error(NAME,
+                           msg = f'Unsupported hash type "{hash_type}" for "{url}"')
             hash_type = 'sha256'
 
         if hash_type:

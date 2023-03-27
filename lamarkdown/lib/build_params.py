@@ -203,30 +203,7 @@ class BuildParams:
                         # This might invoke callbacks, hence the error checking
                         configs[extension][key] = value.value
                     except Exception as e:
-                        self.progress.error_from_exception(f'{extension}:{key}', e)
+                        self.progress.error(f'{extension}:{key}', exception = e)
                 else:
                     configs[extension][key] = value
         return configs
-
-
-    # def reset(self):
-    #     self.name = ''
-    #     self.variant_name_sep = '_'
-    #     self.variants = []
-    #     self._named_extensions = {}
-    #     self.obj_extensions = []
-    #     self.tree_hooks = []
-    #     self.html_hooks = []
-    #     self.font_codepoints = set()
-    #     self.css_vars = {}
-    #     self.css = []
-    #     self.js = []
-    #     self.resource_base_url = ''
-    #     self.embed_rule         = default_embed_rule
-    #     self.resource_hash_rule = default_resource_hash_rule
-    #     self.scale_rule         = default_scale_rule
-    #     self.env = Environment()
-    #     self.output_namer = default_output_namer
-    #     self.live_update_deps = set()
-    #     self.allow_exec = self.allow_exec_cmdline
-

@@ -19,23 +19,21 @@ class MockProgress:
     def progress(self, *a, **k): return MockMsg()
     def cache_hit(self, *a, **k): return MockMsg()
     def warning(self, *a, **k):  return MockMsg()
-    def error(self, location, msg, *a, **k):
+    def error(self, location, *, msg = None, exception = None, show_traceback = False, output = None, code = None, line_number = None):
         if self._expect_error:
             self._received_error = True
             return MockMsg()
         else:
-            print(f'[!!] {location}: {msg}\n---\n{a}\n---\n{k}\n---')
-            raise MockProgressException(f'{location}: {msg}')
-
-    def error_from_exception(self, location, ex, *a, **k):
-        if self._expect_error:
-            self._received_error = True
-            return MockMsg()
-        else:
-            print(f'[!!] {location}\n---')
-            traceback.print_exc()
-            print(f'---\n{a}\n---\n{k}\n---')
-            raise MockProgressException(f'{location}: {ex}') from ex
+            print(f'[!!] {location}: {msg}: {exception}')
+            if exception:
+                print(''.join(traceback.format_exc()))
+            if output:
+                print('--- output ---')
+                print(output)
+            if code:
+                print('--- code ---')
+                print(code)
+            raise MockProgressException(f'{location}: {msg}: {exception}')
 
     def get_errors(self, *a, **k): return []
 

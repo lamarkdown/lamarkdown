@@ -30,7 +30,7 @@ def make_data_url(url: str,
                                                               build_params.fetch_cache,
                                                               build_params.progress)
     except Exception as e:
-        build_params.progress.error_from_exception(url, e)
+        build_params.progress.error(NAME, msg = url, exception = e)
         return f'data:;base64,'
 
     else:
@@ -60,7 +60,9 @@ class ResourceWriter:
         try:
             self.write(buffer, resource_list)
         except Exception as e:
-            err = self.build_params.progress.error_from_exception(NAME, e, msg = self.__class__.__name__)
+            err = self.build_params.progress.error(NAME,
+                                                   msg = self.__class__.__name__,
+                                                   exception = e)
             buffer.write(err.as_comment())
         return buffer.getvalue()
 
@@ -199,7 +201,7 @@ class StylesheetWriter(ResourceWriter):
     def _push_url(self, url):
         if url in self.url_stack:
             self.build_params.progress.error(
-                NAME, f'Cycle in stylesheet "@import"s, involving "{url}".')
+                NAME, msg = f'Cycle in stylesheet "@import"s, involving "{url}".')
             return False
 
         self.url_stack.append(url)

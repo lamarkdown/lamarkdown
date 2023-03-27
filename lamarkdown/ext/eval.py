@@ -70,13 +70,14 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
             try:
                 element.text = str(eval(code, self.env))
             except Exception as e:
-                element = self.progress.error_from_exception(NAME, str(e), code).as_dom_element()
+                element = self.progress.error(
+                    NAME, exception = e, show_traceback = False, code = code).as_dom_element()
 
         else:
             element = self.progress.error(
                 NAME,
-                f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
-                code
+                msg = f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
+                code = code
             ).as_dom_element()
 
         return element

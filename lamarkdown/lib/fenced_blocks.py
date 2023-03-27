@@ -28,15 +28,15 @@ def command_formatter(build_params: BuildParams,
             if proc.returncode != 0:
                 return build_params.progress.error(
                     command[0],
-                    f'"{command[0]}" returned error code {proc.returncode}',
-                    proc.stderr,
-                    source
+                    msg = f'"{command[0]}" returned error code {proc.returncode}',
+                    output = proc.stderr,
+                    code = source
                 ).as_html_str()
 
             return proc.stdout
 
         except Exception as e:
-            return build_params.progress.error_from_exception(command[0], e).as_html_str()
+            return build_params.progress.error(command[0], exception = e).as_html_str()
 
     return formatter
 
@@ -63,7 +63,7 @@ def caching_formatter(build_params: BuildParams,
 
         except Exception as e: # Not expecting an exception, but any internal errors will be
                                # swallowed by pymdownx.superfences.
-            return build_params.progress.error_from_exception(name, e).as_html_str()
+            return build_params.progress.error(name, exception = e).as_html_str()
 
     return formatter
 
@@ -75,7 +75,7 @@ def exec_formatter(build_params: BuildParams,
         if not build_params.allow_exec:
             return build_params.progress.error(
                 name,
-                f'The "allow_exec" option is False, so we cannot execute code.'
+                msg = f'The "allow_exec" option is False, so we cannot execute code.'
             ).as_html_str()
 
         return base_formatter(source, language, css_class, options, md, **kwargs)
@@ -128,7 +128,10 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
             build_params.progress.progress(NAME, f'Running code...')
             import matplotlib.pyplot as plot
         except ModuleNotFoundError as e:
-            build_params.progress.error(NAME, 'Module not found; you may need to run "pip install matplotlib"').as_html_str()
+            build_params.progress.error(
+                NAME,
+                msg = 'Module not found; you may need to run "pip install matplotlib"'
+            ).as_html_str()
         else:
             try:
                 exec(source, build_params.env)
@@ -137,7 +140,7 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
                 plot.clf() # Clear the current figure (so we start from a clean slate next time)
                 return buf.getvalue().decode()
             except Exception as e:
-                return build_params.progress.error_from_exception(NAME, e).as_html_str()
+                return build_params.progress.error(NAME, exception = e).as_html_str()
 
     return formatter
 
@@ -174,7 +177,7 @@ def r_plot_formatter(build_params: BuildParams) -> Formatter:
             )
 
         except Exception as e:
-            return build_params.progress.error_from_exception(NAME, e).as_html_str
+            return build_params.progress.error(NAME, exception = e).as_html_str()
 
     return formatter
 

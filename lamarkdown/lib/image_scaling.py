@@ -30,7 +30,7 @@ def scale_images(root_element, build_params: BuildParams):
                                                               build_params.fetch_cache,
                                                               progress)
                     except Exception as e:
-                        progress.error_from_exception(NAME, e)
+                        progress.error(NAME, exception = e)
                         continue
 
                 else:
