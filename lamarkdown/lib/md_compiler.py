@@ -44,7 +44,8 @@ def compile(base_build_params: BuildParams):
     build_params.set_current()
     progress = build_params.progress
 
-    build_params.progress.progress(NAME, f'configuring {os.path.basename(build_params.src_file)}')
+    build_params.progress.progress(NAME,
+                                   msg = f'configuring {os.path.basename(build_params.src_file)}')
 
     any_build_modules = False
 
@@ -65,7 +66,7 @@ def compile(base_build_params: BuildParams):
                 except OSError:
                     build_file_contents = '[could not read file]'
                 progress.error(NAME,
-                               msg = build_file,
+                               msg = f'in build file "{os.path.basename(build_file)}"',
                                exception = e,
                                code = build_file_contents)
 
@@ -78,13 +79,13 @@ def compile(base_build_params: BuildParams):
         all_build_params = []
         for variant in build_params.variants:
             all_build_params += compile_variant(variant, build_params)
-        build_params.progress.progress(NAME, 'all variants done')
+        build_params.progress.progress(NAME, msg = 'all variants done')
         return all_build_params
 
     else:
         content_html, meta = invoke_python_markdown(build_params)
         write_html(content_html, meta, build_params)
-        build_params.progress.progress(NAME, 'done')
+        build_params.progress.progress(NAME, msg = 'done')
         return [build_params]
 
 
@@ -141,7 +142,7 @@ def compile_variant(variant: Variant,
 def invoke_python_markdown(build_params: BuildParams):
 
     build_params.progress.progress(
-        NAME, f'running Python Markdown for {os.path.basename(build_params.output_file)}')
+        NAME, msg = f'running Python Markdown for {os.path.basename(build_params.output_file)}')
     content_html = ''
     meta: Dict[str,List[str]] = {}
 
@@ -197,7 +198,7 @@ def write_html(content_html: str,
                build_params: BuildParams):
 
     build_params.progress.progress(
-        NAME, f'creating output document {os.path.basename(build_params.output_file)}')
+        NAME, msg = f'creating output document {os.path.basename(build_params.output_file)}')
 
     # Run HTML hook functions
     # (Note: content_html *does not* have a <body> element wrapped around it at this point.)
@@ -349,7 +350,7 @@ def write_html(content_html: str,
     with open(build_params.output_file, 'w') as target:
         target.write(full_html)
 
-    build_params.progress.progress(NAME, 'output written')
+    build_params.progress.progress(NAME, msg = 'output written')
 
 
 def disentangle_svgs(root_element):

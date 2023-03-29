@@ -1,9 +1,12 @@
 '''
+Logging/error handling infrastructure.
 '''
+
 from markdown.util import AtomicString
 
 from dataclasses import dataclass, field
 import html
+import io
 import shutil
 import traceback
 from xml.etree import ElementTree
@@ -47,7 +50,7 @@ class Details:
 
 
 class Message:
-    def __init__(self, location: str, msg: str, *details_list: List[Details]):
+    def __init__(self, location: str, msg: str, details_list: List[Details] = []):
         self._location = location
         self._msg = msg
         self._details_list = details_list
@@ -103,13 +106,59 @@ class ErrorMsg(Message):
     MSG_COLOUR = '\033[37;1m'
     TAG = '[!!] '
 
-    PANEL_STYLE = 'border: 2px dashed yellow; background: #800000; padding: 1ex;'
-    MSG_STYLE = 'font-weight: bold; color: white;'
-    LOCATION_STYLE = 'color: yellow;'
-    DETAILS_STYLE = 'max-width: calc(100% - 1ex);'
+    PANEL_STYLE = r'''
+        background: repeating-linear-gradient(-45deg,#c44,#c44 25px,#b33 25px,#b33 50px);
+        padding: 0.5em;
+        border-radius: 2mm;
+    '''
 
-    MAX_ROWS = 30
-    MAX_COLS = 110
+    MSG_STYLE = r'''
+        font-weight: bold;
+        color: white;
+        text-shadow: 1px 1px 2px black;
+    '''
+
+    LOCATION_STYLE = 'color: yellow;'
+
+    LISTING_STYLE = r'''
+        background: rgba(255, 255, 255, 0.7);
+        color: black;
+        padding: 0.5em;
+        overflow: scroll;
+        font-family: monospace;
+        margin: 0.5em 0 0 0;
+    '''
+
+    GRID_LISTING_STYLE = r'''
+        margin: 0.5em 0 0 0;
+        background: rgba(255, 255, 255, 0.7);
+        color: black;
+        padding: 0.5em;
+        overflow: scroll;
+        font-family: monospace;
+        display: grid;
+        grid-template-columns: 0fr 1fr;
+        white-space: pre;
+    '''
+
+    LINE_NUMBER_STYLE = r'''
+        grid-column: 1;
+        color: green;
+        font-size: smaller;
+        user-select: none;
+        text-align: right;
+        width: 3em;
+        margin: 0 1em 0 0;
+    '''
+
+    LINE_STYLE = r'''
+        grid-column: 2;
+        margin: 0
+    '''
+
+    HIGHLIGHT_STYLE = r'''
+        background: yellow;
+    '''
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -120,36 +169,56 @@ class ErrorMsg(Message):
         return self._consumed
 
 
-    def as_dom_element(self) -> ElementTree.Element:
-        panel_elem = ElementTree.Element('form', style = self.PANEL_STYLE)
-        msg_elem = ElementTree.SubElement(panel_elem, 'div', style = self.MSG_STYLE)
-        location_elem = ElementTree.SubElement(msg_elem, 'span', style = self.LOCATION_STYLE)
-
-        location_elem.text = AtomicString(f'[!!] {self._location}:')
-        location_elem.tail = AtomicString(f' {self._msg}')
-
-        if self._details_list:
-            cols = str(max(10, min(self.MAX_COLS,
-                max(len(line) for details in self._details_list for line in details.content.splitlines())
-            )))
-
-            for details in self._details_list:
-                details_elem = ElementTree.SubElement(panel_elem,
-                    'textarea',
-                    style = self.DETAILS_STYLE,
-                    rows = str(max(1, min(self.MAX_ROWS, details.content.count('\n') + 1))),
-                    cols = cols,
-                    readonly = ''
-                )
-                details_elem.text = AtomicString(details.content)
-
-        self._consumed = True
-        return panel_elem
-
-
     def as_html_str(self) -> str:
+
+        buf = io.StringIO()
+        buf.write(f'''
+            <details style="{self.PANEL_STYLE}">\
+            <summary style="{self.MSG_STYLE}"><span style="{self.LOCATION_STYLE}">[!!] {self._location}:</span>
+            {self._msg}</summary>''')
+
+        for details in self._details_list:
+
+            if details.show_line_numbers:
+                buf.write(f'<div style="{self.GRID_LISTING_STYLE}">')
+
+                for line_number, line in enumerate(details.content.rstrip().splitlines(), start = 1):
+                    if (details.context_lines is not None and
+                        details.highlight_lines and
+                        all(abs(line_number - hl) > details.context_lines
+                            for hl in details.highlight_lines)):
+                        continue
+
+                    hl_str = ('; ' + self.HIGHLIGHT_STYLE) if line_number in details.highlight_lines else ''
+                    buf.write(f'<div style="{self.LINE_NUMBER_STYLE}">{line_number}</div>')
+                    buf.write(f'<div style="{self.LINE_STYLE}{hl_str}">{line}</div>')
+
+                buf.write('</div>')
+                buf.write(r'''
+                    <script>
+                        document.getElementById(
+                    </script>
+                ''')
+
+            else:
+                buf.write(f'<pre style="{self.LISTING_STYLE}">{details.content}</pre>')
+
+        buf.write('</details>')
+
         self._consumed = True
-        return ElementTree.tostring(self.as_dom_element(), encoding = 'unicode')
+        return buf.getvalue()
+
+
+    def as_dom_element(self) -> ElementTree.Element:
+        elem = ElementTree.fromstring(self.as_html_str())
+
+        if elem.text: elem.text = AtomicString(elem.text)
+        for sub_elem in elem.iter():
+            if sub_elem.text: sub_elem.text = AtomicString(sub_elem.text)
+            if sub_elem.tail: sub_elem.tail = AtomicString(sub_elem.tail)
+
+        return elem
+
 
     def as_comment(self) -> str:
         # Do not mark as consumed, because the user may not see it; this is mainly to assist
@@ -171,8 +240,11 @@ class Progress:
         return msg
 
 
-    def progress(self, *args, **kwargs):
-        return self.show(ProgressMsg(*args), **kwargs)
+    def progress(self, location, *, msg, advice = None):
+        details_list = []
+        if advice:
+            details_list.append(Details('Advice', advice))
+        return self.show(ProgressMsg(location, msg, details_list))
 
 
     def cache_hit(self, location: str, resource: str = None):
@@ -181,35 +253,35 @@ class Progress:
         return self.show(obj) if self._show_cache_hits else obj
 
 
-    def warning(self, *args, **kwargs):
+    def warning(self, location, *, msg):
         return self.show(WarningMsg(*args), **kwargs)
 
 
     def error(self, location, *, msg = None, exception = None, show_traceback = True,
               output = None, code = None, highlight_lines = set(), context_lines = 6):
-        details = []
+        details_list = []
         if exception:
-            msg = f'{msg}: {str(exception)}' if msg else str(exception)
+            msg = f'{msg}: {str(exception)} ({exception.__class__.__name__})' if msg else str(exception)
             if show_traceback:
-                details.append(Details('Traceback', ''.join(traceback.format_exc())))
+                details_list.append(Details('Traceback', ''.join(traceback.format_exc())))
 
         elif not msg:
             msg = 'error'
 
         if output:
-            details.append(Details('Output', output))
+            details_list.append(Details('Output', output))
 
         if code:
             if exception and highlight_lines == set():
                 highlight_lines = {traceback.extract_tb(exception.__traceback__)[-1].lineno}
 
-            details.append(Details('Code',
+            details_list.append(Details('Code',
                                    code,
                                    show_line_numbers = True,
                                    highlight_lines = highlight_lines or set(),
                                    context_lines = context_lines))
 
-        return self.show(ErrorMsg(location, msg, *details))
+        return self.show(ErrorMsg(location, msg, details_list))
 
 
     def get_errors(self):

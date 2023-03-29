@@ -16,7 +16,7 @@ def command_formatter(build_params: BuildParams,
     def formatter(source, language, css_class, options, md, **kwargs):
 
         try:
-            build_params.progress.progress(command[0], f'Running {command[0]}...')
+            build_params.progress.progress(command[0], msg = f'running {command[0]}...')
             proc = subprocess.run(
                 command,
                 text = True,
@@ -56,7 +56,6 @@ def caching_formatter(build_params: BuildParams,
                 result = base_formatter(source, language, css_class, options, md, **kwargs)
                 build_params.build_cache[cache_key] = result
             else:
-                # build_params.progress.progress(name, 'Cache hit -- skipping formatting')
                 build_params.progress.cache_hit(name)
 
             return result
@@ -125,7 +124,7 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
             # Matplotlib _isn't_ a core dependency of Lamarkdown, so we (try to) import it locally.
-            build_params.progress.progress(NAME, f'Running code...')
+            build_params.progress.progress(NAME, msg = f'running code...')
             import matplotlib.pyplot as plot
         except ModuleNotFoundError as e:
             build_params.progress.error(

@@ -311,8 +311,6 @@ class LatexCompiler:
         # If not in cache, compile it.
         run_latex = True
         if cache_key in self.cache:
-            #self.progress.progress(NAME, 'Cache hit -- skipping compilation')
-
             element, dependencies = self.cache.get(cache_key)
             if self.are_deps_unchanged(dependencies):
                 self.live_update_deps.update(dependencies)
@@ -342,7 +340,8 @@ class LatexCompiler:
                 return self.progress.error(NAME, exception = e).as_html_str()
 
             try:
-                self.progress.progress(NAME, f'Invoking "{self.tex_cmdline[0]}" to compile .tex to .pdf...')
+                self.progress.progress(
+                    NAME, msg = f'Invoking "{self.tex_cmdline[0]}" to compile .tex to .pdf...')
                 check_run(
                     self.tex_cmdline,
                     pdf_file,
@@ -351,6 +350,7 @@ class LatexCompiler:
                     timeout = self.timeout
                 )
             except CommandException as e:
+                msg = str(e)
                 output = e.output
                 if not self.verbose_errors:
                     # Try to detect the start of a Latex error message (beginning with '!') and
@@ -361,6 +361,7 @@ class LatexCompiler:
                         (i for i, line in enumerate(lines) if line.startswith('!')),
                         None)
                     if first_error_line:
+                        msg = lines[first_error_line][2:]
                         output = '\n'.join(lines[first_error_line:])
 
                 ln_match = ERROR_LINE_NUMBER_RE.search(output)
@@ -371,8 +372,7 @@ class LatexCompiler:
                     highlight_lines = None
 
                 return self.progress.error(NAME,
-                                           exception = e,
-                                           show_traceback = False,
+                                           msg = msg,
                                            output = output,
                                            code = latex,
                                            highlight_lines = highlight_lines).as_html_str()
@@ -382,10 +382,12 @@ class LatexCompiler:
                 self.live_update_deps.update(dependencies.keys())
             else:
                 dependencies = {}
-                self.progress.warning(NAME, f'Tex command did not create an .fls file')
+                self.progress.warning(NAME, msg = f'Tex command did not create an .fls file')
 
             try:
-                self.progress.progress(NAME, f'Invoking "{self.converter_cmdline[0]}" to convert .pdf to .svg...')
+                self.progress.progress(
+                    NAME,
+                    msg = f'Invoking "{self.converter_cmdline[0]}" to convert .pdf to .svg...')
                 check_run(
                     self.converter_cmdline,
                     svg_file,

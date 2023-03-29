@@ -206,7 +206,7 @@ class PybtexTreeProcessor(Treeprocessor):
             progress.error(NAME, str(e))
             return
 
-        progress.progress(NAME, f'{len(self.cited_keys)} citation(s)')
+        progress.progress(NAME, msg = f'{len(self.cited_keys)} citation(s)')
 
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels'
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.

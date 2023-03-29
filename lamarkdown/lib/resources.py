@@ -29,7 +29,7 @@ def read_url(url: str,
         cache_entry = cache.get(url)
 
         if cache_entry is None:
-            progress.progress(NAME, url)
+            progress.progress(NAME, msg = url)
             with urllib.request.urlopen(url) as conn:
                 try:
                     content_bytes = conn.read()
@@ -214,7 +214,7 @@ class UrlResourceSpec(ResourceSpec):
             if not is_remote:
                 progress.warning(
                     NAME,
-                    f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage. ("{url}")')
+                    msg = f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage. ("{url}")')
 
             return UrlResource(url = url, hash = hash, hash_type = hash_type)
 

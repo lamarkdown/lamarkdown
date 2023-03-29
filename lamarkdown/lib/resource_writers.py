@@ -210,7 +210,7 @@ class StylesheetWriter(ResourceWriter):
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
-            self.build_params.progress.progress(NAME, f'embedding {res.url}')
+            self.build_params.progress.progress(NAME, msg = f'embedding {res.url}')
             add_local_dependency(res.url, self.build_params)
             is_remote, content_bytes, _ = resources.read_url(res.url,
                                                              self.build_params.fetch_cache,
@@ -357,7 +357,7 @@ class StylesheetWriter(ResourceWriter):
                 content_bytes = self.build_params.build_cache[cache_key]
 
             else:
-                self.build_params.progress.progress(NAME, f'Converting and subsetting font')
+                self.build_params.progress.progress(NAME, msg = f'Converting and subsetting font')
                 subsetter = fontTools.subset.Subsetter()
                 subsetter.populate(unicodes = self.build_params.font_codepoints)
 
@@ -394,7 +394,7 @@ class ScriptWriter(ResourceWriter):
 
     def _write_url(self, buffer, res: UrlResource):
         if res.to_embed:
-            self.build_params.progress.progress(NAME, f'embedding {res.url}')
+            self.build_params.progress.progress(NAME, msg = f'embedding {res.url}')
             add_local_dependency(res.url, self.build_params)
             _, content_bytes, _ = resources.read_url(res.url,
                                                      self.build_params.fetch_cache,
@@ -463,7 +463,8 @@ def embed_media(root_element, base_url: str, build_params: BuildParams):
                                            **(dict(type = embed_type) if embed_type else {})):
 
                     build_params.progress.progress(
-                        NAME, f'embedding {base_url or element.get("src") or f"<{element.tag}>"}')
+                        NAME,
+                        msg = f'embedding {base_url or element.get("src") or f"<{element.tag}>"}')
                     add_local_dependency(src, build_params)
                     element.set('src', make_data_url(src, mime_type, build_params))
 

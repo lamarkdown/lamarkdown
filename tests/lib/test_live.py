@@ -112,10 +112,10 @@ class LiveTestCase(unittest.TestCase):
                                              launch_browser = False),
             ).start()
 
-            try:
-                # The server needs a bit of time to start up (asynchronously) before we query it.
-                # But the browser (selenium) will almost certainly take longer anyway.
+            # The server needs a bit of time to start up (asynchronously) before we query it.
+            time.sleep(0.5)
 
+            try:
                 browser.get('http://127.0.0.1:14100')
 
                 assert_that(find_attr('title', 'textContent'), contains_exactly('Doc Heading'))

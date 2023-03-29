@@ -34,7 +34,7 @@ def scale_images(root_element, build_params: BuildParams):
                         continue
 
                 else:
-                    progress.warning(NAME, f'<{element.tag}> element missing src attribue')
+                    progress.warning(NAME, msg = f'<{element.tag}> element missing src attribue')
 
             else:
                 raise AssertionError
@@ -50,7 +50,9 @@ def _calc_scale(element, type, build_params) -> bool:
         try:
             local_scale = float(element.get('scale'))
         except ValueError:
-            progress.warning(NAME, f'Non-numeric value "{element.get("scale")}" given as a scaling factor')
+            progress.warning(
+                NAME,
+                msg = f'Non-numeric value "{element.get("scale")}" given as a scaling factor')
             return 1.0 # Don't scale
         del element.attrib['scale']
     else:
@@ -139,7 +141,7 @@ def _rescale_element(element,
         except xml.dom.SyntaxErr:
             build_params.progress.warning(
                 NAME,
-                f'Syntax error in style attribute for <{element.tag}> element: "{element.get("style")}"')
+                msg = f'Syntax error in style attribute for <{element.tag}> element: "{element.get("style")}"')
         else:
             if 'width' in style_decls:
                 spec = style_decls.getProperty('width').propertyValue[0]
@@ -175,7 +177,7 @@ def _rescale_element(element,
         return
 
     if element.tag not in ['img', 'source'] or 'src' not in element.attrib:
-        build_params.progress.warning(NAME, f'Cannot identify image dimensions')
+        build_params.progress.warning(NAME, msg = 'Cannot identify image dimensions')
         return
 
 
@@ -191,7 +193,7 @@ def _rescale_element(element,
             except xml.dom.SyntaxErr:
                 build_params.progress.warning(
                     NAME,
-                    f'Syntax error in style attribute for <{svg_root.tag}> element: "{svg_root.get("style")}"')
+                    msg = f'Syntax error in style attribute for <{svg_root.tag}> element: "{svg_root.get("style")}"')
             else:
                 if 'width' in style_decls:
                     spec = style_decls.getProperty('width').propertyValue[0]
@@ -228,7 +230,7 @@ def _rescale_element(element,
                 element.set('height', f'{image.height * scale}')
 
         except PIL.UnidentifiedImageError as e:
-            self.progress.warning(NAME, f'Image format unrecognised: {str(s)}')
+            self.progress.warning(NAME, msg = f'Image format unrecognised: {str(s)}')
 
 
 ABSOLUTE_UNITS = {
@@ -259,5 +261,7 @@ def _length_value(element, key: str):
     try:
         return cssutils.css.value.DimensionValue(element.get(key))
     except xml.dom.SyntaxErr:
-        self.progress.warning(NAME, f'Syntax error in {key} attribute for <{element.tag}> element: "{element.get(key)}"')
+        self.progress.warning(
+            NAME,
+            msg = f'Syntax error in {key} attribute for <{element.tag}> element: "{element.get(key)}"')
         return None

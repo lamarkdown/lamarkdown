@@ -291,8 +291,8 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             if port:
                 self._base_build_params.progress.progress(
                     NAME,
-                    'Launching server and browser, and monitoring changes to source/build files.',
-                    f'Browse to http://{address or "localhost"}:{port}\nPress Ctrl-C to quit.')
+                    msg = 'Launching server and browser, and monitoring changes to source/build files.',
+                    advice = f'Browse to http://{address or "localhost"}:{port}\nPress Ctrl-C to quit.')
 
                 if launch_browser:
                     # We want to open a web browser at the address we're serving, but not before the
@@ -342,7 +342,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
 
     def clear_cache(self):
-        self._base_build_params.progress.warning(NAME, 'Clearing cache')
+        self._base_build_params.progress.warning(NAME, msg = 'Clearing cache')
         self._base_build_params.build_cache.clear()
 
 
