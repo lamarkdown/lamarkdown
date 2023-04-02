@@ -107,7 +107,7 @@ class MetadataPreprocessor(Preprocessor):
             try:
                 self.bib_parser.parse_file(filename)
             except Exception as e:
-                self.ext.getConfig('progress').error_from_exception(NAME, e)
+                self.ext.getConfig('progress').error(NAME, exception = e)
 
         for nocite in meta.get('nocite', []):
             if '@*' in nocite:
@@ -434,7 +434,7 @@ class CiteExtension(markdown.Extension):
             try:
                 bib_parser.parse_file(file)
             except Exception as e:
-                self.getConfig('progress').error_from_exception(NAME, e)
+                self.getConfig('progress').error(NAME, exception = e)
 
         # Pybtex formatter -- creates the document reference list.
         bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting', self.getConfig('style'))
