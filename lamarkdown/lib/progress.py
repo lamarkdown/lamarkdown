@@ -254,7 +254,7 @@ class Progress:
 
 
     def warning(self, location, *, msg):
-        return self.show(WarningMsg(*args), **kwargs)
+        return self.show(WarningMsg(location, msg = msg))
 
 
     def error(self, location, *, msg = None, exception = None, show_traceback = True,
