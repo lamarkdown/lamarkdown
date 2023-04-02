@@ -89,7 +89,7 @@ def read_url(url: str,
                     content_bytes = b''
 
         else:
-            progress.cache_hit(NAME, url)
+            progress.cache_hit(NAME, resource = url)
             content_bytes, mime_type = cache_entry
 
         return (True, content_bytes, mime_type)
