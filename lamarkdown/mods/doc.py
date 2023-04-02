@@ -216,17 +216,21 @@ def apply(heading_numbers = True):
         r'''
         ol {
             width: 100%;
-            counter-reset: listitem;
+            counter-reset: la-listitem;
             padding: 0;
+        }
+
+        ol + :not(ol) {
+            counter-reset: la-listitem;
         }
 
         ol > li {
             display: table;
-            counter-increment: listitem;
+            counter-increment: la-listitem;
         }
 
         ol > li::before {
-            content: counters(listitem, ".") ". ";
+            content: counter(la-listitem, decimal) ". ";
             display: table-cell;
             width: 2ex;
             padding-right: 0.5em;
@@ -248,26 +252,8 @@ def apply(heading_numbers = True):
 
     la.css(
         r'''
-        ol ol > li::before {
-            width: 3ex;
-        }
-        ''',
-        if_selectors = 'ol ol'
-    )
-
-    la.css(
-        r'''
-        ol ol ol > li::before {
-            width: 4ex;
-        }
-        ''',
-        if_selectors = 'ol ol ol'
-    )
-
-    la.css(
-        r'''
         .alpha + ol > li::before {
-            content: "(" counter(listitem, lower-alpha) ") ";
+            content: "(" counter(la-listitem, lower-alpha) ") ";
         }
         ''',
         if_selectors = '.alpha + ol'
@@ -276,10 +262,62 @@ def apply(heading_numbers = True):
     la.css(
         r'''
         .roman + ol > li::before {
-            content: "(" counter(listitem, lower-roman) ") ";
+            content: "(" counter(la-listitem, lower-roman) ") ";
         }
         ''',
         if_selectors = '.roman + ol'
+    )
+
+    la.css(
+        r'''
+        .decimal + ol {
+            counter-reset: la-listitem-decimal;
+        }
+        .decimal + ol > li {
+            counter-increment: la-listitem-decimal;
+        }
+        .decimal + ol > li::before {
+            content: counters(la-listitem-decimal, ".") ". ";
+        }
+        ''',
+        if_selectors = '.decimal + ol'
+    )
+
+    # This is a hack to stop the counters from a previous nested-decimal list 'leaking'
+    # into a subsequent nested-decimal list that happens to be inside a <div>.
+    #
+    # This doesn't fix the more general problem though, only a particular case of it.
+    la.css(
+        r'''
+        .decimal + ol ~ :not(ol) .decimal + ol {
+            counter-reset: la-listitem-decimal2;
+        }
+        .decimal + ol ~ :not(ol) .decimal + ol > li {
+            counter-increment: la-listitem-decimal2;
+        }
+        .decimal + ol ~ :not(ol) .decimal + ol > li::before {
+            content: counters(la-listitem-decimal2, ".") ". ";
+        }
+        ''',
+        if_selectors = '.decimal + ol ~ :not(ol) .decimal + ol'
+    )
+
+    la.css(
+        r'''
+        ol ol.decimal > li::before {
+            width: 3ex;
+        }
+        ''',
+        if_selectors = 'ol ol.decimal'
+    )
+
+    la.css(
+        r'''
+        ol ol.decimal ol.decimal > li::before {
+            width: 4ex;
+        }
+        ''',
+        if_selectors = 'ol ol.decimal ol.decimal'
     )
 
     la.css(
