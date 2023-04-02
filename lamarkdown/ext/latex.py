@@ -125,6 +125,7 @@ def check_run(command: Union[str,List[str]],
 
                 elif (time.time() - last_output_time) >= timeout:
                     # Timeout.
+                    popen.stdout.close()
                     popen.terminate()
                     with output_lock:
                         raise CommandException(

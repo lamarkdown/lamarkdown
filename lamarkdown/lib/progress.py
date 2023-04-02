@@ -247,7 +247,7 @@ class Progress:
         return self.show(ProgressMsg(location, msg, details_list))
 
 
-    def cache_hit(self, location: str, resource: str = None):
+    def cache_hit(self, location: str, *, resource: str = None):
         obj = ProgressMsg(location,
                           'Using cached value' + (f' for {resource}' if resource else ''))
         return self.show(obj) if self._show_cache_hits else obj

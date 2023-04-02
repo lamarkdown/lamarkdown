@@ -619,8 +619,49 @@ class LatexTestCase(unittest.TestCase):
             expect_error = True,
             timeout = 0.5
         )
-        self.assertTrue(self.progress.received_error,
-                        "Latex extension should have timed out, but didn't")
+        # self.assertTrue(self.progress.received_error,
+        #                 "Latex extension should have timed out, but didn't")
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('msg', contains_string('timed out'))))
+
+
+    def test_tex_command_failure(self):
+
+        def md():
+            self.run_markdown(
+                r'''
+                \begin{document}
+                \end{document}
+                ''',
+                expect_error = True)
+
+        # Basic tex command failure
+        with open(self.mock_tex_command, 'w') as writer:
+            writer.write('import sys ; sys.exit(1)')
+        md()
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('msg', contains_string('returned error code 1'))))
+
+        # With error message
+        with open(self.mock_tex_command, 'w') as writer:
+            writer.write(dedent('''
+                import sys
+                print("ignored")
+                print("! mock error message")
+                print("included")
+                sys.exit(1)
+            '''))
+        md()
+        assert_that(
+            self.progress.error_messages,
+            # contains_exactly(has_property('msg', contains_string('mock error message'))))
+            contains_exactly(has_properties({'msg': contains_string('mock error message')} )))
+
+        # print(self.progress.error_messages)
+
+
 
 
     def test_duplication(self):

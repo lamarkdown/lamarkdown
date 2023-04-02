@@ -283,8 +283,8 @@ def apply(heading_numbers = True):
         if_selectors = '.decimal + ol'
     )
 
-    # This is a hack to stop the counters from a previous nested-decimal list 'leaking'
-    # into a subsequent nested-decimal list that happens to be inside a <div>.
+    # This is a hack to stop the counters from a previous nested-decimal list 'leaking' into a
+    # subsequent nested-decimal list that happens to be inside a <div>.
     #
     # This doesn't fix the more general problem though, only a particular case of it.
     la.css(

@@ -353,7 +353,7 @@ class StylesheetWriter(ResourceWriter):
                          content_bytes,
                          frozenset(self.build_params.font_codepoints))
             if cache_key in self.build_params.build_cache:
-                self.build_params.progress.cache_hit(NAME, f'font conversion/subsetting')
+                self.build_params.progress.cache_hit(NAME, resource = f'font conversion/subsetting')
                 content_bytes = self.build_params.build_cache[cache_key]
 
             else:

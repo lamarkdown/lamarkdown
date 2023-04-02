@@ -286,7 +286,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     break
                 except OSError: # Port in use; try next one.
                     self._base_build_params.progress.warning(
-                        NAME, f'Port {try_port} appears to be in use.')
+                        NAME, msg = f'Port {try_port} appears to be in use.')
 
             if port:
                 self._base_build_params.progress.progress(
