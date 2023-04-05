@@ -26,6 +26,10 @@ from textwrap import dedent
 
 class MdCompilerTestCase(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cssutils.log.setLevel('CRITICAL')
+
     def setUp(self):
         self.tmp_dir_context = tempfile.TemporaryDirectory()
         self.tmp_dir = self.tmp_dir_context.__enter__()

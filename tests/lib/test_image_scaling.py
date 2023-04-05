@@ -20,6 +20,11 @@ class ImageScalingTestCase(unittest.TestCase):
 
     NUMBER_REGEX = re.compile('[0-9]+(\.[0-9]+)?')
 
+    @classmethod
+    def setUpClass(cls):
+        import cssutils
+        cssutils.log.setLevel('CRITICAL')
+
     def normalise_number_str(self, match):
         return str(float(match.group()))[:8]
 
