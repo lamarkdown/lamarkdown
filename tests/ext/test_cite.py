@@ -1,10 +1,12 @@
 from ..util.mock_progress import MockProgress
-import unittest
-from hamcrest import *
-import lxml.html
-
 import lamarkdown.ext
+
+import unittest
+from unittest.mock import Mock, patch
+from hamcrest import *
+
 import markdown
+import lxml.html
 
 import re
 import sys
@@ -27,9 +29,8 @@ class CiteTestCase(unittest.TestCase):
             journal = "The Journal B",
             year = "1991"
         }
-        @article{refC,
+        @misc{refC,
             author = "The Author C",
-            title = "The Title C",
             journal = "The Journal C",
             year = "1992"
         }
@@ -46,12 +47,15 @@ class CiteTestCase(unittest.TestCase):
             year = "1994"
         }
     '''
+    # @misc{refC...} gives us a <dd> element with no sub-elements, which helps test a particular
+    # path in cite.py.
 
-    def run_markdown(self, markdown_text, more_extensions=[], **kwargs):
+    def run_markdown(self, markdown_text, more_extensions=[], expect_error = False, **kwargs):
+        self.progress = MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.cite', *more_extensions],
             extension_configs = {'la.cite': {
-                'progress': MockProgress(),
+                'progress': self.progress,
                 **kwargs
             }}
         )
@@ -169,29 +173,30 @@ class CiteTestCase(unittest.TestCase):
                 ('none',    unlinked_citations, unlinked_refs)]
 
         for hyperlinks, cite_regex, ref_regex in data:
-            html = self.run_markdown(
-                r'''
-                # Heading
+            for file_spec in [None, []]:
+                html = self.run_markdown(
+                    r'''
+                    # Heading
 
-                Citation B [@refB, p. 5], citation C [@refC].
+                    Citation B [@refB, p. 5], citation C [@refC].
 
-                Citation D [@refD maybe], citation B [@refB].
-                ''',
-                file = [],
-                references = self.REFERENCES,
-                hyperlinks = hyperlinks)
+                    Citation D [@refD maybe], citation B [@refB].
+                    ''',
+                    file = file_spec,
+                    references = self.REFERENCES,
+                    hyperlinks = hyperlinks)
 
-            self.assertRegex(
-                html,
-                fr'''(?sx)
-                \s* <h1>Heading</h1>
-                {cite_regex}
-                \s* <dl[ ]id="la-bibliography">
-                {ref_regex}
-                \s* </dl>
-                \s*
-                '''
-            )
+                self.assertRegex(
+                    html,
+                    fr'''(?sx)
+                    \s* <h1>Heading</h1>
+                    {cite_regex}
+                    \s* <dl[ ]id="la-bibliography">
+                    {ref_regex}
+                    \s* </dl>
+                    \s*
+                    '''
+                )
 
 
     def test_placeholder(self):
@@ -443,3 +448,82 @@ class CiteTestCase(unittest.TestCase):
         assert_that(
             lxml.html.fromstring(html).xpath('.//br'),
             empty())
+
+
+    def test_parse_error(self):
+        html = self.run_markdown(
+            r'''
+            [@refA]
+            ''',
+            file = ['nonexistent.bib'],
+            ignore_missing_file = False,
+            expect_error = True
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.cite')))
+
+        html = self.run_markdown(
+            r'''
+            bibliography: nonexistent.bib
+
+            [@refA]
+            ''',
+            file = [],
+            ignore_missing_file = False,
+            more_extensions = ['meta'],
+            expect_error = True
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.cite')))
+
+
+    def test_format_error(self):
+        html = self.run_markdown(
+            r'''
+            [@refA]
+            ''',
+            file = [],
+            references =
+                r'''
+                @article{refA}
+                ''',
+            expect_error = True
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.cite')))
+
+
+    def test_extension_setup(self):
+        import importlib
+        import importlib.metadata
+
+        module_name, class_name = importlib.metadata.entry_points(
+            group = 'markdown.extensions')['la.cite'].value.split(':', 1)
+        cls = importlib.import_module(module_name).__dict__[class_name]
+
+        assert_that(
+            cls,
+            same_instance(lamarkdown.ext.cite.CiteExtension))
+
+        instance = lamarkdown.ext.cite.makeExtension(file = 'mock_filename')
+
+        assert_that(
+            instance,
+            instance_of(lamarkdown.ext.cite.CiteExtension))
+
+        assert_that(
+            instance.getConfig('file'),
+            is_('mock_filename'))
+
+        class MockBuildParams:
+            def __getattr__(self, name):
+                raise ModuleNotFoundError
+
+        with patch('lamarkdown.lib.build_params.BuildParams', MockBuildParams()):
+            instance = lamarkdown.ext.cite.makeExtension()

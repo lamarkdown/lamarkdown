@@ -203,7 +203,7 @@ class PybtexTreeProcessor(Treeprocessor):
             formatted_biblio = self.bib_style.format_bibliography(self.bib_parser.data,
                                                                   self.cited_keys)
         except pybtex.exceptions.PybtexError as e:
-            progress.error(NAME, str(e))
+            progress.error(NAME, exception = e)
             return
 
         progress.progress(NAME, msg = f'{len(self.cited_keys)} citation(s)')
@@ -333,9 +333,6 @@ class CiteExtension(markdown.Extension):
             p = BuildParams.current
         except ModuleNotFoundError:
             pass # Use default defaults
-
-        progress = p.progress if p else Progress()
-        live_update_deps = p.live_update_deps if p else set()
 
         self.config = {
             'progress': [
