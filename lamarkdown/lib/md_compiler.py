@@ -31,8 +31,6 @@ from xml.etree import ElementTree
 
 NAME = 'compiling' # For progress/error messages
 
-class CompileException(Exception): pass
-
 
 def set_default_build_params(build_parms: BuildParams):
     lamarkdown.m.doc()
@@ -84,8 +82,8 @@ def compile(base_build_params: BuildParams):
 
     else:
         content_html, meta = invoke_python_markdown(build_params)
-        write_html(content_html, meta, build_params)
-        build_params.progress.progress(NAME, msg = 'done')
+        if write_html(content_html, meta, build_params):
+            build_params.progress.progress(NAME, msg = 'done')
         return [build_params]
 
 
@@ -347,10 +345,17 @@ def write_html(content_html: str,
         js = js
     )
 
-    with open(build_params.output_file, 'w') as target:
-        target.write(full_html)
+    try:
+        with open(build_params.output_file, 'w') as target:
+            target.write(full_html)
 
-    build_params.progress.progress(NAME, msg = 'output written')
+    except OSError as e:
+        build_params.progress.error(NAME, exception = e, show_traceback = False)
+        return False
+
+    else:
+        build_params.progress.progress(NAME, msg = 'output written')
+        return True
 
 
 def disentangle_svgs(root_element):
