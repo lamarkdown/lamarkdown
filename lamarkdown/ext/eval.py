@@ -44,8 +44,8 @@ import datetime
 NAME = 'la.eval' # For error messages
 
 DEFAULT_REPLACEMENTS = {
-    'date':     str(datetime.date.today()),
-    'datetime': str(datetime.datetime.now()),
+    'date':     lambda: str(datetime.date.today()),
+    'datetime': lambda: str(datetime.datetime.now()),
 }
 
 
@@ -64,7 +64,10 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
         code = match.group('code')
         code_stripped = code.strip()
         if code_stripped in self.replace:
-            element.text = str(self.replace[code_stripped])
+            repl = self.replace[code_stripped]
+            if callable(repl):
+                repl = repl()
+            element.text = str(repl)
 
         elif self.allow_exec:
             try:

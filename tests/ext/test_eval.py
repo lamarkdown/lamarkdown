@@ -43,23 +43,27 @@ class EvalTestCase(unittest.TestCase):
         )
 
     def test_custom_replacement(self):
-        html = self.run_markdown(
-            r'''
-            Sometext $`xyz` sometext
-            ''',
-            replace = {'xyz': 'test replacement'}
-        )
+        for replace in [
+            {'xyz': 'test replacement'},
+            {'xyz': lambda: 'test replacement'}
+        ]:
+            html = self.run_markdown(
+                r'''
+                Sometext $`xyz` sometext
+                ''',
+                replace = replace
+            )
 
-        self.assertRegex(
-            html,
-            fr'''(?x)
-            <p>Sometext[ ]
-            <span>
-            test[ ]replacement
-            </span>
-            [ ]sometext</p>
-            '''
-        )
+            self.assertRegex(
+                html,
+                fr'''(?x)
+                <p>Sometext[ ]
+                <span>
+                test[ ]replacement
+                </span>
+                [ ]sometext</p>
+                '''
+            )
 
 
     def test_code_eval(self):
