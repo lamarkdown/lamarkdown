@@ -66,18 +66,31 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
         if code_stripped in self.replace:
             repl = self.replace[code_stripped]
             if callable(repl):
-                repl = repl()
-            element.text = str(repl)
+                try:
+                    element.text = repl()
+                except Exception as e:
+                    element = self.progress.error(
+                        NAME,
+                        msg = f'Exception while evaluating la.eval replacement function',
+                        exception = e,
+                        code = code
+                    ).as_dom_element()
+            else:
+                element.text = str(repl)
 
         elif self.allow_exec:
             try:
                 element.text = str(eval(code, self.env))
             except Exception as e:
                 element = self.progress.error(
-                    NAME, exception = e, show_traceback = False, code = code).as_dom_element()
+                    NAME,
+                    exception = e,
+                    show_traceback = False,
+                    code = code
+                ).as_dom_element()
 
         else:
-            element = self.progress.error(
+            return self.progress.error(
                 NAME,
                 msg = f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
                 code = code
