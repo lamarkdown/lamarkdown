@@ -14,6 +14,7 @@ import re
 import sys
 import tempfile
 from textwrap import dedent
+from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
@@ -59,7 +60,7 @@ class LatexTestCase(unittest.TestCase):
             r'\n\s*',
             '',
             '''
-            <svg xmlns="http://www.w3.org/2000/svg" width="45" height="15">
+            <svg xmlns="http://www.w3.org/2000/svg" width="45" height="15" viewBox="1 1 1 1">
                 <text x="0" y="15">mock</text>
             </svg>
             '''
@@ -502,6 +503,32 @@ class LatexTestCase(unittest.TestCase):
         ''')
 
 
+    def test_prepend_full_doc(self):
+        '''Check that the 'prepend' option works on a full document.'''
+        html = self.run_markdown(
+            r'''
+            Paragraph1
+
+            \documentclass{article}
+            \begin{document}
+                Latex code
+            \end{document}
+
+            Paragraph2
+            ''',
+            prepend = r'\usepackage{mypackage}'
+        )
+
+        self.assert_tex_regex(r'''(?x)
+            ^\s* \\documentclass \{ article \}
+            \s* \\usepackage \{mypackage\}
+            \s* \\begin \{document\}
+            \s* Latex[ ]code
+            \s* \\end \{document\}
+            \s* $
+        ''')
+
+
     def test_multiple(self):
         '''Check that we can process multiple Latex snippets in a single markdown file.'''
         html = self.run_markdown(
@@ -546,8 +573,10 @@ class LatexTestCase(unittest.TestCase):
             'There should be 3 <img> elements, one for each Latex snippet')
 
 
+
     def test_multiple_cached(self):
         '''Check that, when processing multiple identical Latex snippets, we use the cache rather than re-compiling redundantly.'''
+
         html = self.run_markdown(
             r'''
             Paragraph1
@@ -591,6 +620,47 @@ class LatexTestCase(unittest.TestCase):
             'There should be 3 <img> elements, one for each Latex snippet')
 
 
+    def test_invalid_options(self):
+        for option in ['embedding', 'math']:
+            self.run_markdown(
+                r'''
+                \begin{document}
+                    Latex code
+                \end{document}
+                ''',
+                expect_error = True,
+                **{option: 'notanoption'}
+            )
+
+            assert_that(
+                self.progress.error_messages,
+                contains_exactly(has_properties({
+                    'location': 'la.latex',
+                    'msg': contains_string(f'"{option}"')
+                })))
+
+
+    def test_build_dir_failure(self):
+        '''Checks that a failure to write the .tex file results in an error message.'''
+
+        # Cause the build directory to be non-existent.
+        self.tmp_dir = os.path.join(self.tmp_dir, 'nonexistent')
+        with open(self.tmp_dir, 'w') as f:
+            f.write("Can't be a directory if it's a file.")
+
+        self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            expect_error = True,
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.latex')))
+
 
     def test_timeout(self):
         r'''
@@ -619,11 +689,44 @@ class LatexTestCase(unittest.TestCase):
             expect_error = True,
             timeout = 0.5
         )
-        # self.assertTrue(self.progress.received_error,
-        #                 "Latex extension should have timed out, but didn't")
         assert_that(
             self.progress.error_messages,
             contains_exactly(has_property('msg', contains_string('timed out'))))
+
+
+    def test_non_timeout(self):
+        with open(self.mock_tex_command, 'w') as f:
+            # Use a different mock 'tex' compiler here. It waits 1.2 seconds collectively, more
+            # than the timeout value, but with intervening output to 'keep it alive'.
+            f.write(dedent('''
+                import sys
+                import time
+                time.sleep(0.4)
+                print('keepalive output')
+                time.sleep(0.4)
+                print('keepalive output')
+                time.sleep(0.4)
+                print('keepalive output')
+                mock_pdf_file = sys.argv[2]
+                with open(mock_pdf_file, 'w') as f:
+                    f.write('mock')
+            '''))
+
+        # Ensures that the mock compiler doesn't buffer its output.
+        os.environ["PYTHONUNBUFFERED"] = "1"
+
+        html = self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            expect_error = True,
+            timeout = 0.5
+        )
+        assert_that(
+            self.progress.error_messages,
+            empty())
 
 
     def test_tex_command_failure(self):
@@ -642,13 +745,17 @@ class LatexTestCase(unittest.TestCase):
         md()
         assert_that(
             self.progress.error_messages,
-            contains_exactly(has_property('msg', contains_string('returned error code 1'))))
+            contains_exactly(has_properties({
+                'location': 'la.latex',
+                'msg': contains_string('returned error code 1'),
+                'output': '',
+            })))
 
         # With error message
         with open(self.mock_tex_command, 'w') as writer:
             writer.write(dedent('''
                 import sys
-                print("ignored")
+                print("excluded")
                 print("! mock error message")
                 print("included")
                 sys.exit(1)
@@ -657,11 +764,117 @@ class LatexTestCase(unittest.TestCase):
         assert_that(
             self.progress.error_messages,
             # contains_exactly(has_property('msg', contains_string('mock error message'))))
-            contains_exactly(has_properties({'msg': contains_string('mock error message')} )))
+            contains_exactly(has_properties({
+                'location': 'la.latex',
+                'msg': contains_string('mock error message'),
+                'output': all_of(
+                    not_(contains_string('excluded')),
+                    contains_string('included'))
+            })))
 
-        # print(self.progress.error_messages)
+        # With error message and line number
+        with open(self.mock_tex_command, 'w') as writer:
+            writer.write(dedent('''
+                import sys
+                print("excluded")
+                print("! mock error message")
+                print("included")
+                print("l.99")
+                sys.exit(1)
+            '''))
+        md()
+        assert_that(
+            self.progress.error_messages,
+            # contains_exactly(has_property('msg', contains_string('mock error message'))))
+            contains_exactly(has_properties({
+                'location': 'la.latex',
+                'msg': contains_string('mock error message'),
+                'output': all_of(
+                    not_(contains_string('excluded')),
+                    contains_string('included')),
+                'highlight_lines': {98, 99}
+            })))
 
 
+    def test_tex_command_output_failure(self):
+        '''Checks that an error is produced if the Tex command fails to output a .pdf file.'''
+
+        with open(self.mock_tex_command, 'w') as writer:
+            # Our mock 'tex' compiler can be trivial in this case
+            writer.write('\n')
+
+        html = self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            expect_error = True,
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.latex')))
+
+
+    def test_pdf_command_output_failure(self):
+        '''Checks that an error is produced if the Tex command fails to output a .pdf file.'''
+
+        with open(self.mock_tex_command, 'w') as writer:
+            # Our mock 'tex' compiler can be trivial in this case
+            writer.write('\n')
+
+        html = self.run_markdown(
+            r'''
+            \begin{document}
+                Latex code
+            \end{document}
+            ''',
+            expect_error = True,
+        )
+
+        assert_that(
+            self.progress.error_messages,
+            contains_exactly(has_property('location', 'la.latex')))
+
+
+    def test_svg_command_output_failure(self):
+        '''Checks that an error is produced if the pdf2svg command fails to output an .svg file,
+        or the viewBox attribute is missing or zero-sized.'''
+
+
+        for mock_svg_code in [
+            '\n',
+
+            fr'''
+            import sys
+            mock_svg_file = sys.argv[2]
+            with open(mock_svg_file, 'w') as f:
+                f.write('<svg></svg>')
+            ''',
+
+            fr'''
+            import sys
+            mock_svg_file = sys.argv[2]
+            with open(mock_svg_file, 'w') as f:
+                f.write('<svg viewBox="0 0 0 0"></svg>')
+            '''
+        ]:
+            with open(self.mock_pdf2svg_command, 'w') as f:
+                f.write(dedent(mock_svg_code))
+
+            html = self.run_markdown(
+                r'''
+                \begin{document}
+                    Latex code
+                \end{document}
+                ''',
+                expect_error = True,
+            )
+
+            assert_that(
+                self.progress.error_messages,
+                contains_exactly(has_property('location', 'la.latex')))
 
 
     def test_duplication(self):
@@ -728,6 +941,26 @@ class LatexTestCase(unittest.TestCase):
                 contains_string(f'Text1{expected_output}Text2'))
 
             self.assertFalse(os.path.exists(self.tex_file))
+
+
+    def test_math_attr(self):
+        for math in ['latex', 'mathml']:
+            for embedding in ['data_uri', 'svg_element']:
+                html = self.run_markdown(
+                    r'''
+                    Text1 $math${.test-class #test-id test-attr="test-value"} Text2
+
+                    Text1 $$math$${test-attr="test-value" .test-class #test-id} Text2
+                    ''',
+                    math = math,
+                    embedding = embedding)
+
+                for element in lxml.html.fromstring(html).xpath('//math | //svg | //img'):
+                    assert_that(
+                        element.attrib,
+                        has_entries({'id': 'test-id',
+                                     'class': 'test-class',
+                                     'test-attr': 'test-value'}))
 
 
     def test_math_corner_cases(self):
@@ -929,3 +1162,137 @@ class LatexTestCase(unittest.TestCase):
         )
         assert_that(len(live_update_deps), is_(6))
 
+
+    def test_dependency_changes(self):
+        '''Does recompiling happen when a dependency file changes?'''
+
+        cache = {}
+        live_update_deps = set()
+        dependency_file = os.path.join(self.tmp_dir, 'dep-file.sty')
+        flag_file       = os.path.join(self.tmp_dir, 'flag-file.txt')
+
+        with open(self.mock_tex_command, 'a') as f:
+            f.write(dedent(f'''
+                with open(sys.argv[2][:-4] + '.fls', 'w') as fls:
+                    fls.write('INPUT {dependency_file}')
+            '''))
+
+        with open(dependency_file, 'w') as f:
+            f.write('1')
+
+        # The dependency file must be in the current directory (or, theoretically, the home dir),
+        # or else it won't be considered.
+        orig_cwd = os.getcwd()
+        os.chdir(self.tmp_dir)
+
+        self.run_markdown(
+            r'''
+            \begin{document}
+            \end{document}
+            ''',
+            cache = cache,
+            live_update_deps = live_update_deps
+        )
+
+        # Amend the mock compiler so that it creates 'flag_file' when run, so that we know _if_
+        # it's been run again.
+        with open(self.mock_tex_command, 'a') as f:
+            f.write(dedent(f'''
+                with open('{flag_file}', 'w') as g:
+                    g.write('1')
+            '''))
+
+        self.run_markdown(
+            r'''
+            \begin{document}
+            \end{document}
+            ''',
+            cache = cache,
+            live_update_deps = live_update_deps
+        )
+
+        self.assertFalse(os.path.exists(flag_file),
+                         'Tex should _not_ be re-run if the dependency file does not change')
+
+        with open(dependency_file, 'w') as f:
+            f.write('2')
+        self.run_markdown(
+            r'''
+            \begin{document}
+            \end{document}
+            ''',
+            cache = cache,
+            live_update_deps = live_update_deps
+        )
+
+        self.assertTrue(os.path.exists(flag_file),
+                        'Tex _should_ be re-run when the dependency file changes')
+
+        os.chdir(orig_cwd)
+
+
+
+    def test_coerce_subtree(self):
+        xml = '<abc:x xmlns:abc="http://example.com">text 1<abc:y abc:z="z-value" />text 2</abc:x>'
+        elem = ElementTree.fromstring(xml)
+
+        assert_that(elem.tag, is_('{http://example.com}x'))
+        assert_that(elem[0].tag, is_('{http://example.com}y'))
+        assert_that(elem[0].attrib, is_({'{http://example.com}z': 'z-value'}))
+        assert_that(
+            elem.text,
+            all_of(
+                is_('text 1'),
+                not_(instance_of(markdown.util.AtomicString))))
+        assert_that(
+            elem[0].tail,
+            all_of(
+                is_('text 2'),
+                not_(instance_of(markdown.util.AtomicString))))
+
+        from la import latex
+        latex.coerce_subtree(elem)
+
+        assert_that(elem.tag, is_('x'))
+        assert_that(elem[0].tag, is_('y'))
+        assert_that(elem[0].attrib, is_({'z': 'z-value'}))
+        assert_that(
+            elem.text,
+            all_of(
+                is_('text 1'),
+                instance_of(markdown.util.AtomicString)))
+        assert_that(
+            elem[0].tail,
+            all_of(
+                is_('text 2'),
+                instance_of(markdown.util.AtomicString)))
+
+
+    def test_extension_setup(self):
+        import importlib
+        import importlib.metadata
+
+        module_name, class_name = importlib.metadata.entry_points(
+            group = 'markdown.extensions')['la.latex'].value.split(':', 1)
+        cls = importlib.import_module(module_name).__dict__[class_name]
+
+        assert_that(
+            cls,
+            same_instance(lamarkdown.ext.latex.LatexExtension))
+
+        instance = lamarkdown.ext.latex.makeExtension(prepend = 'mock_tex_code')
+
+        assert_that(
+            instance,
+            instance_of(lamarkdown.ext.latex.LatexExtension))
+
+        assert_that(
+            instance.getConfig('prepend'),
+            is_('mock_tex_code'))
+
+        class MockBuildParams:
+            def __getattr__(self, name):
+                raise ModuleNotFoundError
+
+        with patch('lamarkdown.lib.build_params.BuildParams', MockBuildParams()):
+            instance = lamarkdown.ext.latex.makeExtension()

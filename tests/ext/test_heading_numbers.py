@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+from hamcrest import *
 
 import lamarkdown.ext
 import markdown
@@ -63,3 +65,32 @@ class HeadingNumbersTestCase(unittest.TestCase):
             \s*
             '''
         )
+
+    def test_extension_setup(self):
+        import importlib
+        import importlib.metadata
+
+        module_name, class_name = importlib.metadata.entry_points(
+            group = 'markdown.extensions')['la.heading_numbers'].value.split(':', 1)
+        cls = importlib.import_module(module_name).__dict__[class_name]
+
+        assert_that(
+            cls,
+            same_instance(lamarkdown.ext.heading_numbers.HeadingNumbersExtension))
+
+        instance = lamarkdown.ext.heading_numbers.makeExtension(from_level = 4)
+
+        assert_that(
+            instance,
+            instance_of(lamarkdown.ext.heading_numbers.HeadingNumbersExtension))
+
+        assert_that(
+            instance.getConfig('from_level'),
+            is_(4))
+
+        class MockBuildParams:
+            def __getattr__(self, name):
+                raise ModuleNotFoundError
+
+        with patch('lamarkdown.lib.build_params.BuildParams', MockBuildParams()):
+            instance = lamarkdown.ext.heading_numbers.makeExtension()

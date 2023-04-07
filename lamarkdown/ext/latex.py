@@ -66,6 +66,13 @@ from xml.etree import ElementTree
 
 NAME = 'la.latex' # For error messages
 
+DATA_URI_EMBEDDING = 'data_uri'
+SVG_ELEMENT_EMBEDDING = 'svg_element'
+
+MATH_MATHML = 'mathml'
+MATH_LATEX  = 'latex'
+MATH_IGNORE = 'ignore'
+
 
 class CommandException(Exception):
     def __init__(self, msg: str, output: str):
@@ -86,6 +93,7 @@ def check_run(command: Union[str,List[str]],
                              stdout = subprocess.PIPE,
                              stderr = subprocess.STDOUT,
                              encoding = 'utf-8',
+                             bufsize = 1, # line-buffered
                              **kwargs)
 
     new_output = threading.Event()
@@ -95,11 +103,13 @@ def check_run(command: Union[str,List[str]],
     def read_stdout():
         # Reads stdout from the process in a separate thread, so the blocking doesn't interfere with
         # our timeout monitoring.
-        for line in iter(popen.stdout.readline, ''):
-            new_output.set()
-            with output_lock:
-                output_buf.write(line)
-        popen.stdout.close()
+        try:
+            for line in iter(popen.stdout.readline, ''):
+                new_output.set()
+                with output_lock:
+                    output_buf.write(line)
+        finally:
+            popen.stdout.close()
 
     threading.Thread(target = read_stdout).start()
 
@@ -174,25 +184,6 @@ def coerce_subtree(elem: ElementTree.Element):
 
 
 
-class Embedder:
-    def generate_html(self, svg_content: str) -> ElementTree.Element: raise NotImplementedError
-
-
-class DataUriEmbedder(Embedder):
-    def generate_html(self, svg_content: str) -> ElementTree.Element:
-        # Encode SVG data as a data URI in an <img> element.
-        data_uri = f'data:image/svg+xml;base64,{base64.b64encode(svg_content.strip().encode()).decode()}'
-        return ElementTree.fromstring(f'<img src="{data_uri}" />')
-
-
-class SvgElementEmbedder(Embedder):
-    def generate_html(self, svg_content: str) -> ElementTree.Element:
-        svg_element = ElementTree.fromstring(svg_content)
-        coerce_subtree(svg_element)
-        return svg_element
-
-
-
 STX = '\u0002'
 ETX = '\u0003'
 LATEX_PLACEHOLDER_PREFIX = f'{STX}la.latex-uoqwpkayei:'
@@ -241,11 +232,6 @@ class LatexCompiler:
                                       svg)
     }
 
-    EMBEDDERS = {
-        'data_uri': DataUriEmbedder,
-        'svg_element': SvgElementEmbedder
-    }
-
     home_dir = os.path.expanduser('~')
 
     def __init__(self, md, cache_factors: tuple, build_dir: str, cache, progress: Progress,
@@ -280,8 +266,6 @@ class LatexCompiler:
         )
 
         self.embedding = embedding
-        self.embedder = self.EMBEDDERS[self.embedding]()
-
         self.strip_html_comments = strip_html_comments
         self.timeout = timeout
         self.verbose_errors = verbose_errors
@@ -326,14 +310,15 @@ class LatexCompiler:
             hasher = hashlib.sha1()
             hasher.update(latex.encode('utf-8'))
             file_build_dir = os.path.join(self.build_dir, 'latex-' + hasher.hexdigest())
-            os.makedirs(file_build_dir, exist_ok=True)
-
-            tex_file = os.path.join(file_build_dir, 'job.tex')
-            fls_file = os.path.join(file_build_dir, 'job.fls')
-            pdf_file = os.path.join(file_build_dir, 'job.pdf')
-            svg_file = os.path.join(file_build_dir, 'job.svg')
 
             try:
+                os.makedirs(file_build_dir, exist_ok=True)
+
+                tex_file = os.path.join(file_build_dir, 'job.tex')
+                fls_file = os.path.join(file_build_dir, 'job.fls')
+                pdf_file = os.path.join(file_build_dir, 'job.pdf')
+                svg_file = os.path.join(file_build_dir, 'job.svg')
+
                 with open(tex_file, 'w') as f:
                     f.write(latex)
 
@@ -396,16 +381,20 @@ class LatexCompiler:
                 )
 
                 with open(svg_file) as reader:
-                    svg_content = reader.read()
-                    if "viewBox='0 0 0 0'" in svg_content:
+                    svg_content = self.converter_correction(reader.read())
+                    element = ElementTree.fromstring(svg_content)
+                    coerce_subtree(element)
+
+                    if element.get('viewBox') in [None, '0 0 0 0']:
                         return self.progress.error(
                             NAME,
                             msg = f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
                             output = svg_content).as_html_str()
 
-                svg_content = self.converter_correction(svg_content)
+                if self.embedding == DATA_URI_EMBEDDING:
+                    data_uri = f'data:image/svg+xml;base64,{base64.b64encode(svg_content.strip().encode()).decode()}'
+                    element = ElementTree.fromstring(f'<img src="{data_uri}" />')
 
-                element = self.embedder.generate_html(svg_content)
                 self.cache[cache_key] = (copy.copy(element), dependencies)
 
             except CommandException as e:
@@ -430,7 +419,7 @@ class LatexCompiler:
     def find_live_update_deps(self, fls_file):
         cwd = os.getcwd()
         with open(fls_file) as log:
-            input_files = {os.path.abspath(line[6:-1])
+            input_files = {os.path.abspath(line[6:-1] if line.endswith('\n') else line[6:])
                            for line in log
                            if line.startswith('INPUT ')}
 
@@ -535,7 +524,7 @@ class LatexPreprocessor(Preprocessor):
         full_doc = match_obj.group('doc')
         if full_doc:
             if self.prepend:
-                split = match_obj.end('docclass') - match.start()
+                split = match_obj.end('docclass') - match_obj.start()
                 full_doc = f'{full_doc[:split]}\n{self.prepend}{full_doc[split:]}'
             else:
                 pass
@@ -722,8 +711,6 @@ class LatexExtension(Extension):
         except ModuleNotFoundError:
             pass # Use default defaults
 
-        progress = p.progress if p else Progress()
-
         self.config = {
             'build_dir': [
                 p.build_dir if p else 'build',
@@ -734,7 +721,7 @@ class LatexExtension(Extension):
                 'A dictionary-like cache object to help avoid unnecessary rebuilds.'
             ],
             'progress': [
-                progress,
+                p.progress if p else Progress(),
                 'An object accepting progress messages.'
             ],
             'live_update_deps': [
@@ -750,8 +737,8 @@ class LatexExtension(Extension):
                 'Program used to convert PDF files (produced by Tex) to SVG files to be embedded in the HTML output. Generally, this should be a complete command-line containing the strings "in.pdf" and "out.svg" (which will be replaced with the real names as needed). However, it can also be simply  "dvisvgm", "pdf2svg" or "inkscape", in which case pre-defined command-lines for those commands will be used.'
             ],
             'embedding': [
-                'data_uri',
-                'Either "data_uri" or "svg_element", specifying how the SVG data will be attached to the HTML document.'
+                DATA_URI_EMBEDDING,
+                f'Either "{DATA_URI_EMBEDDING}" or "{SVG_ELEMENT_EMBEDDING}", specifying how the SVG data will be attached to the HTML document.'
             ],
             'prepend': [
                 '',
@@ -778,16 +765,23 @@ class LatexExtension(Extension):
                 r'If True, then everything the Tex command writes to stdout will be included in any error messages. If False (the default), the extension will try to detect the start of any actual Tex error message, and only output that.'
             ],
             'math': [
-                'mathml',
-                r'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex math code. The options are "ignore", "latex" or "mathml" (the default). For "ignore", math code is left untouched by this extension. Use this to avoid conflicts if, for instance, you\'re using another extension (like pymdownx.arithmatex) to handle them. For "latex", math code is compiled in essentially the same way as \begin{}...\end{} blocks (but in math mode). For "mathml", math code is converted to MathML <math> elements, to be rendered by the browser.'
+                MATH_MATHML,
+                rf'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex math code. The options are "{MATH_IGNORE}", "{MATH_LATEX}" or "{MATH_MATHML}" (the default). For "{MATH_IGNORE}", math code is left untouched by this extension. Use this to avoid conflicts if, for instance, you\'re using another extension (like pymdownx.arithmatex) to handle them. For "{MATH_LATEX}", math code is compiled in essentially the same way as \begin{{}}...\end{{}} blocks (but in math mode). For "{MATH_MATHML}", math code is converted to MathML <math> elements, to be rendered by the browser.'
             ],
         }
         super().__init__(**kwargs)
 
+        progress = self.getConfig('progress')
+
         embedding = self.getConfig('embedding')
-        if embedding not in LatexCompiler.EMBEDDERS:
+        if embedding not in [DATA_URI_EMBEDDING, SVG_ELEMENT_EMBEDDING]:
             progress.error(NAME, msg = f'Invalid value "{embedding}" for config option "embedding"')
-            self.setConfig('embedding', 'data_uri')
+            self.setConfig('embedding', DATA_URI_EMBEDDING)
+
+        math = self.getConfig('math')
+        if math not in [MATH_IGNORE, MATH_LATEX, MATH_MATHML]:
+            progress.error(NAME, msg = f'Invalid value "{math}" for config option "math"')
+            self.setConfig('math', MATH_MATHML)
 
 
     def extendMarkdown(self, md):
