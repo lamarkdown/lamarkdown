@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from hamcrest import *
 
-import lamarkdown.ext
+import lamarkdown.ext.latex
 import markdown
 import lxml
 
@@ -338,7 +338,7 @@ class LatexTestCase(unittest.TestCase):
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
-    def test_commented_out_option_set(self, **kwargs):
+    def test_block_commented_out(self, **kwargs):
         'Check that an entire Latex snippet is ignored if it occurs entirely within an HTML comment.'
         html = self.run_markdown(
             r'''
@@ -362,7 +362,7 @@ class LatexTestCase(unittest.TestCase):
     # embedding Latex code in HTML comments *may or may not* make it visible to the latex
     # extension code. There's no definitive expectation on what should happen here.
 
-    #def test_commented_out_option_unset(self):
+    #def test_block_not_commented_out(self):
         #html = self.run_markdown(
             #r'''
             #Paragraph1
@@ -380,6 +380,31 @@ class LatexTestCase(unittest.TestCase):
             #os.path.isfile(self.tex_file),
             #'The .tex file should have been created. Though the Latex code was commented out, the comments should have been disregarded.')
 
+
+    def test_html_comments_off(self):
+        'Check that HTML comments remain visible within a Tex block, if the option is turned off.'
+
+        self.run_markdown(
+            r'''
+            \begin{document}
+                <!-- commented out -->
+                Latex code
+                <!-- also commented out -->
+            \end{document}''',
+            strip_html_comments = False)
+
+        with open(self.tex_file) as f:
+            tex = f.read()
+
+        assert_that(
+            tex,
+            string_contains_in_order(
+                r'\begin{document}',
+                '<!-- commented out -->',
+                'Latex code',
+                '<!-- also commented out -->',
+                r'\end{document}'
+            ))
 
 
     def test_embedded_in_paragraph(self):
@@ -620,6 +645,22 @@ class LatexTestCase(unittest.TestCase):
             'There should be 3 <img> elements, one for each Latex snippet')
 
 
+    def test_converter_corrections(self):
+        svg = '''
+            <svg version='1.1'
+                 xmlns='http://www.w3.org/2000/svg'
+                 xmlns:xlink='http://www.w3.org/1999/xlink'
+                 width='40pt' height='30pt'
+                 viewBox='0 0 1 1'>
+            </svg>
+        '''
+        uncorrected_svg = svg.replace('pt', '')
+
+        assert_that(
+            lamarkdown.ext.latex.LatexCompiler.CONVERTER_CORRECTIONS['pdf2svg'](uncorrected_svg),
+            is_(svg))
+
+
     def test_invalid_options(self):
         for option in ['embedding', 'math']:
             self.run_markdown(
@@ -731,13 +772,14 @@ class LatexTestCase(unittest.TestCase):
 
     def test_tex_command_failure(self):
 
-        def md():
+        def md(**kwargs):
             self.run_markdown(
                 r'''
                 \begin{document}
                 \end{document}
                 ''',
-                expect_error = True)
+                expect_error = True,
+                **kwargs)
 
         # Basic tex command failure
         with open(self.mock_tex_command, 'w') as writer:
@@ -751,49 +793,54 @@ class LatexTestCase(unittest.TestCase):
                 'output': '',
             })))
 
-        # With error message
-        with open(self.mock_tex_command, 'w') as writer:
-            writer.write(dedent('''
-                import sys
-                print("excluded")
-                print("! mock error message")
-                print("included")
-                sys.exit(1)
-            '''))
-        md()
-        assert_that(
-            self.progress.error_messages,
-            # contains_exactly(has_property('msg', contains_string('mock error message'))))
-            contains_exactly(has_properties({
-                'location': 'la.latex',
-                'msg': contains_string('mock error message'),
-                'output': all_of(
-                    not_(contains_string('excluded')),
-                    contains_string('included'))
-            })))
+        for verbose_errors, excl_matcher in [
+            (False, not_(contains_string('excluded'))),
+            (True,  contains_string('excluded'))
+        ]:
 
-        # With error message and line number
-        with open(self.mock_tex_command, 'w') as writer:
-            writer.write(dedent('''
-                import sys
-                print("excluded")
-                print("! mock error message")
-                print("included")
-                print("l.99")
-                sys.exit(1)
-            '''))
-        md()
-        assert_that(
-            self.progress.error_messages,
-            # contains_exactly(has_property('msg', contains_string('mock error message'))))
-            contains_exactly(has_properties({
-                'location': 'la.latex',
-                'msg': contains_string('mock error message'),
-                'output': all_of(
-                    not_(contains_string('excluded')),
-                    contains_string('included')),
-                'highlight_lines': {98, 99}
-            })))
+            # With error message
+            with open(self.mock_tex_command, 'w') as writer:
+                writer.write(dedent('''
+                    import sys
+                    print("excluded")
+                    print("! mock error message")
+                    print("included")
+                    sys.exit(1)
+                '''))
+            md(verbose_errors = verbose_errors)
+            assert_that(
+                self.progress.error_messages,
+                # contains_exactly(has_property('msg', contains_string('mock error message'))))
+                contains_exactly(has_properties({
+                    'location': 'la.latex',
+                    'msg': contains_string('mock error message'),
+                    'output': all_of(
+                        excl_matcher,
+                        contains_string('included'))
+                })))
+
+            # With error message and line number
+            with open(self.mock_tex_command, 'w') as writer:
+                writer.write(dedent('''
+                    import sys
+                    print("excluded")
+                    print("! mock error message")
+                    print("included")
+                    print("l.99")
+                    sys.exit(1)
+                '''))
+            md(verbose_errors = verbose_errors)
+            assert_that(
+                self.progress.error_messages,
+                # contains_exactly(has_property('msg', contains_string('mock error message'))))
+                contains_exactly(has_properties({
+                    'location': 'la.latex',
+                    'msg': contains_string('mock error message'),
+                    'output': all_of(
+                        excl_matcher,
+                        contains_string('included')),
+                    'highlight_lines': {98, 99}
+                })))
 
 
     def test_tex_command_output_failure(self):
@@ -1229,43 +1276,6 @@ class LatexTestCase(unittest.TestCase):
                         'Tex _should_ be re-run when the dependency file changes')
 
         os.chdir(orig_cwd)
-
-
-
-    def test_coerce_subtree(self):
-        xml = '<abc:x xmlns:abc="http://example.com">text 1<abc:y abc:z="z-value" />text 2</abc:x>'
-        elem = ElementTree.fromstring(xml)
-
-        assert_that(elem.tag, is_('{http://example.com}x'))
-        assert_that(elem[0].tag, is_('{http://example.com}y'))
-        assert_that(elem[0].attrib, is_({'{http://example.com}z': 'z-value'}))
-        assert_that(
-            elem.text,
-            all_of(
-                is_('text 1'),
-                not_(instance_of(markdown.util.AtomicString))))
-        assert_that(
-            elem[0].tail,
-            all_of(
-                is_('text 2'),
-                not_(instance_of(markdown.util.AtomicString))))
-
-        from la import latex
-        latex.coerce_subtree(elem)
-
-        assert_that(elem.tag, is_('x'))
-        assert_that(elem[0].tag, is_('y'))
-        assert_that(elem[0].attrib, is_({'z': 'z-value'}))
-        assert_that(
-            elem.text,
-            all_of(
-                is_('text 1'),
-                instance_of(markdown.util.AtomicString)))
-        assert_that(
-            elem[0].tail,
-            all_of(
-                is_('text 2'),
-                instance_of(markdown.util.AtomicString)))
 
 
     def test_extension_setup(self):

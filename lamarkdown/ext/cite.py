@@ -30,6 +30,8 @@ from xml.etree import ElementTree
 
 NAME = 'la.cite' # For progress/error messages
 
+_CITE_ATTR = 'la-cite-b45be3e01f92cfad8895fc09a1dddc91'
+
 
 # TODO:
 # * investigate https://github.com/brechtm/citeproc-py (a citation style language (CSL) processor)
@@ -101,13 +103,14 @@ class MetadataPreprocessor(Preprocessor):
 
     def run(self, lines):
         meta = self.md.__dict__.get('Meta', {})
+        progress = self.ext.getConfig('progress')
 
         for filename in meta.get('bibliography', []):
             self.ext.getConfig('live_update_deps').add(filename)
             try:
                 self.bib_parser.parse_file(filename)
             except Exception as e:
-                self.ext.getConfig('progress').error(NAME, exception = e)
+                progress.error(NAME, exception = e)
 
         for nocite in meta.get('nocite', []):
             if '@*' in nocite:
@@ -119,6 +122,10 @@ class MetadataPreprocessor(Preprocessor):
                 key = cite_match.group('simple_key') or cite_match.group('complex_key')
                 if key in self.bib_parser.data.entries:
                     self.cited_keys.append(key)
+                else:
+                    progress.warning(
+                        NAME,
+                        msg = f'Cite key "{key}" (specified in "nocite") not found in database')
 
         return lines # Unmodified
 
@@ -133,6 +140,7 @@ class CitationInlineProcessor(InlineProcessor):
     def handleMatch(self, group_match, data):
         cite_elem = ElementTree.Element('cite')
         cite_elem.text = group_match.group('pre')
+        cite_elem.set(_CITE_ATTR, '1')
 
         def a1(text): cite_elem.text += text
         append_last = a1
@@ -144,7 +152,8 @@ class CitationInlineProcessor(InlineProcessor):
                 any_valid_citations = True
                 self.cited_keys.append(key)
                 span = ElementTree.SubElement(cite_elem, 'span')
-                span.attrib['key'] = key
+                span.set('key', key)
+                span.set(_CITE_ATTR, '1')
                 span.tail = cite_match.group('post')
 
                 def a2(text): span.tail += text
@@ -215,10 +224,15 @@ class PybtexTreeProcessor(Treeprocessor):
         create_forward_links = self.ext.getConfig('hyperlinks') in ['both', 'forward']
 
         for elem in root.iter(tag = 'cite'):
+            if elem.get(_CITE_ATTR) != '1':
+                continue
+
+            del elem.attrib[_CITE_ATTR]
             for child in elem:
-                key = child.attrib.get('key')
-                if child.tag == 'span' and key is not None:
+                if child.tag == 'span' and child.get(_CITE_ATTR) == '1':
+                    key = child.attrib.get('key')
                     del child.attrib['key']
+                    del child.attrib[_CITE_ATTR]
 
                     label = entries[key].label
                     n_citations[label] = n_citations.get(label, 0) + 1
@@ -229,8 +243,8 @@ class PybtexTreeProcessor(Treeprocessor):
                         child.tag = 'a'
                         child.attrib['href'] = f'#la-ref:{label}'
 
-            elem.text = f'[{elem.text}'
-            elem[-1].tail += ']'
+            elem.text = f'[{elem.text or ""}'
+            elem[-1].tail = (elem[-1].tail or '') + ']'
 
 
         # Generate the full bibliography HTML

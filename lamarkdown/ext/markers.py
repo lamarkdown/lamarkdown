@@ -10,29 +10,33 @@ elements invisible (with 'display: none'). However, you can attach attributes to
 placed before a list, you can style the list using the CSS sibling selector '+'.
 '''
 
-
+from . import util
 import markdown
+
 import re
 from xml.etree import ElementTree
 
 
-class MarkersProcessor(markdown.treeprocessors.Treeprocessor):
-    REGEX = re.compile(r'/({[^}]*})')
+class MarkersTreeProcessor(markdown.treeprocessors.Treeprocessor):
+    REGEX = re.compile(rf'(?x)/{util.ATTR}')
 
     def __init__(self, md):
         super().__init__(md)
 
     def run(self, root):
         for element in root.iter('p'):
-            if isinstance(element.text, str):
+            if not (element.text is None or isinstance(element.text, markdown.util.AtomicString)):
                 match = self.REGEX.fullmatch(element.text)
                 if match:
                     # Not a paragraph anymore
                     element.tag = 'div'
-                    
+
                     # Leave just the attribute list, for attr_list to parse later.
-                    element.text = '\n' + match.group(1)
-                    
+                    element.text = None
+
+                    # attr_list_proc.assign_attrs(element, attrs)
+                    util.set_attributes(element, match)
+
                     # Stop it being rendered in the output.
                     element.set('style', 'display: none;')
 
@@ -46,9 +50,9 @@ class MarkersExtension(markdown.Extension):
 
     def extendMarkdown(self, md):
         # Auto-load attr_list, since the markers extension is essentially useless without it.
-        md.registerExtensions(['attr_list'], {}) 
-        
-        md.treeprocessors.register(MarkersProcessor(md), 'la-markers-tree', 100)
+        md.registerExtensions(['attr_list'], {})
+
+        md.treeprocessors.register(MarkersTreeProcessor(md), 'la-markers-tree', 100)
 
 
 def makeExtension(**kwargs):

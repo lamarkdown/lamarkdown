@@ -1,4 +1,4 @@
-from ..util.mock_progress import MockProgress
+from ..util import mock_progress, html_block_processor
 import lamarkdown.ext
 
 import unittest
@@ -50,8 +50,12 @@ class CiteTestCase(unittest.TestCase):
     # @misc{refC...} gives us a <dd> element with no sub-elements, which helps test a particular
     # path in cite.py.
 
-    def run_markdown(self, markdown_text, more_extensions=[], expect_error = False, **kwargs):
-        self.progress = MockProgress(expect_error = expect_error)
+    def run_markdown(self, markdown_text,
+                           more_extensions = [],
+                           expect_error = False,
+                           hook = lambda md: None,
+                           **kwargs):
+        self.progress = mock_progress.MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.cite', *more_extensions],
             extension_configs = {'la.cite': {
@@ -59,6 +63,7 @@ class CiteTestCase(unittest.TestCase):
                 **kwargs
             }}
         )
+        hook(md)
         return md.convert(dedent(markdown_text).strip())
 
 
@@ -137,6 +142,49 @@ class CiteTestCase(unittest.TestCase):
             \s*
             '''
         )
+
+
+    def test_manual_cites(self):
+        '''Ensure that we don't mangle any existing <cite> elements, or other elements.'''
+
+        html = self.run_markdown(
+            r'''
+            <span>Existing div</span>
+
+            <cite>Existing cite 1</cite>
+
+            [@refA]
+
+            <cite id="x" y="z">Existing cite 2</cite>
+            ''',
+            file = [],
+            references = self.REFERENCES,
+            hook = lambda md: html_block_processor.init(md)
+        )
+
+        assert_that(
+            lxml.html.fromstring(html).xpath('.//cite'),
+            contains_exactly(
+                has_properties({'text': 'Existing cite 1', 'attrib': {}}),
+                not_none(),
+                has_properties({'text': 'Existing cite 2', 'attrib': {'id': 'x', 'y': 'z'}})))
+
+
+    def test_formatting(self):
+        html = self.run_markdown(
+            r'''
+            [_text 1_ @refA **text 2**]
+            ''',
+            file = [],
+            references = self.REFERENCES,
+        )
+
+        assert_that(
+            lxml.html.fromstring(html).xpath('.//cite/*'),
+            contains_exactly(
+                has_properties({'tag': 'em', 'text': 'text 1'}),
+                has_properties({'tag': 'a'}),
+                has_properties({'tag': 'strong', 'text': 'text 2'})))
 
 
     def test_links(self):
@@ -414,7 +462,7 @@ class CiteTestCase(unittest.TestCase):
 
         html = self.run_markdown(
             fr'''
-            nocite: @refB, @refC
+            nocite: @refB, @nonexistent, @refC
                     @refD
 
             # Heading
@@ -434,6 +482,13 @@ class CiteTestCase(unittest.TestCase):
             \s* </dl>
             \s*
             ''')
+
+        assert_that(
+            self.progress.warning_messages,
+            contains_exactly(has_properties({
+                'location': 'la.cite',
+                'msg': contains_string('nonexistent')
+            })))
 
 
     def test_nl2br_interaction(self):

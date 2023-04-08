@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+from hamcrest import *
 
 import lamarkdown.ext
 import markdown
@@ -73,7 +75,7 @@ class SectionsTestCase(unittest.TestCase):
 
 
     def test_false_positive_dividers(self):
-        '''Section dividers are only recognised (for now) if they're separate blocks.'''
+        '''Section dividers are only rec(for now) if they're separate blocks.'''
         html = self.run_markdown(
             r'''
             Paragraph1
@@ -156,3 +158,33 @@ class SectionsTestCase(unittest.TestCase):
                 \s* <p>Paragraph2</p>
                 \s* </section>
                 ''')
+
+
+    def test_extension_setup(self):
+        import importlib
+        import importlib.metadata
+
+        module_name, class_name = importlib.metadata.entry_points(
+            group = 'markdown.extensions')['la.sections'].value.split(':', 1)
+        cls = importlib.import_module(module_name).__dict__[class_name]
+
+        assert_that(
+            cls,
+            same_instance(lamarkdown.ext.sections.SectionsExtension))
+
+        instance = lamarkdown.ext.sections.makeExtension(separator = '====')
+
+        assert_that(
+            instance,
+            instance_of(lamarkdown.ext.sections.SectionsExtension))
+
+        assert_that(
+            instance.getConfig('separator'),
+            is_('===='))
+
+        class MockBuildParams:
+            def __getattr__(self, name):
+                raise ModuleNotFoundError
+
+        with patch('lamarkdown.lib.build_params.BuildParams', MockBuildParams()):
+            instance = lamarkdown.ext.sections.makeExtension()

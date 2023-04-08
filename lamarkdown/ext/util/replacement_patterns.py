@@ -26,7 +26,7 @@ other replacement processors replacing anything inside them, but which then perm
 -- i.e., the backtick inline processor -- to handle the content.
 '''
 
-
+from . import opaque_tree
 import markdown
 from markdown.treeprocessors import Treeprocessor
 
@@ -134,21 +134,11 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
                         if match:
                             new_element = pattern.handle_match(match)
                             if isinstance(new_element, ElementTree.Element) and not pattern.allow_inline_patterns:
-                                self._opaque_tree(new_element)
+                                opaque_tree(new_element)
                             return new_element, match
                 escaped = False
 
         return None, None
-
-
-    def _opaque_tree(self, element):
-        if element.text:
-            element.text = markdown.util.AtomicString(element.text)
-        for subelement in element:
-            self._opaque_tree(subelement)
-            if subelement.tail:
-                subelement.tail = markdown.util.AtomicString(subelement.tail)
-
 
 
 def init(md):

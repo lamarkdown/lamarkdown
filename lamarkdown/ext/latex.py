@@ -40,11 +40,11 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
 
 
 from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
+from . import util
 from .util import replacement_patterns
 
 from markdown import *
 from markdown.extensions import *
-from markdown.extensions.attr_list import AttrListTreeprocessor
 from markdown.preprocessors import Preprocessor
 from markdown.postprocessors import Postprocessor
 from markdown.util import AtomicString
@@ -162,28 +162,6 @@ def check_run(command: Union[str,List[str]],
                 output_buf.getvalue())
 
 
-def coerce_subtree(elem: ElementTree.Element):
-    if elem.tag.startswith('{'):
-        elem.tag = elem.tag.split('}', 1)[1]
-
-    key_set = set(elem.attrib.keys())
-    for key in key_set:
-        if key.startswith('{'):
-            elem.attrib[key.split('}', 1)[1]] = elem.attrib[key]
-            del elem.attrib[key]
-
-    # Second, wrap all text in AtomicString (to prevent other markdown processors getting to it)
-    if elem.text:
-        elem.text = AtomicString(elem.text)
-
-    if elem.tail:
-        elem.tail = AtomicString(elem.tail)
-
-    for child in elem:
-        coerce_subtree(child)
-
-
-
 STX = '\u0002'
 ETX = '\u0003'
 LATEX_PLACEHOLDER_PREFIX = f'{STX}la.latex-uoqwpkayei:'
@@ -191,13 +169,6 @@ LATEX_PLACEHOLDER_RE     = re.compile(f'{LATEX_PLACEHOLDER_PREFIX}(?P<id>[0-9]+)
 
 HTML_COMMENT_RE = re.compile(r'<!--.*?(-->|$)', flags = re.DOTALL)
 
-ATTR = r'''
-    \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
-    (?P<attr>
-        [^\}\n ][^\}\n]*    # No '}' or newlines, and at least one non-space char.
-    )?
-    [ ]*\}                  # Ends with '}' (with optional spaces)
-'''
 
 ERROR_LINE_NUMBER_RE = re.compile(r'(^|\n)l\.(?P<n>[0-9]+)')
 
@@ -225,11 +196,14 @@ class LatexCompiler:
     CONVERTER_CORRECTIONS = {
         # pdf2svg leaves off the units on width/height, and the default is technically 'px', but
         # the numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
-        'pdf2svg': lambda svg: re.sub('<svg[^>]*>',
-                                      lambda m: re.sub(r'((width|height)="[0-9]+(\.[0-9]+)?)"',
-                                                       r'\1pt"',
-                                                       m.group()),
-                                      svg)
+        'pdf2svg':
+            lambda svg: re.sub(
+                '<svg[^>]*>',
+                lambda m: re.sub(
+                    r'''((width|height)=['"][0-9]+(\.[0-9]+)?)(?=['"])''',
+                    r'\1pt',
+                    m.group()),
+            svg)
     }
 
     home_dir = os.path.expanduser('~')
@@ -338,16 +312,17 @@ class LatexCompiler:
             except CommandException as e:
                 msg = str(e)
                 output = e.output
-                if not self.verbose_errors:
-                    # Try to detect the start of a Latex error message (beginning with '!') and
-                    # omit output before that point.
 
-                    lines = output.splitlines()
-                    first_error_line = next(
-                        (i for i, line in enumerate(lines) if line.startswith('!')),
-                        None)
-                    if first_error_line:
-                        msg = lines[first_error_line][2:]
+                # Try to detect the start of a Latex error message (beginning with '!'), so we can
+                # report that message directly.
+                lines = output.splitlines()
+                first_error_line = next(
+                    (i for i, line in enumerate(lines) if line.startswith('!')),
+                    None)
+                if first_error_line:
+                    msg = lines[first_error_line][2:]
+                    if not self.verbose_errors:
+                        # Generally, output prior to the error message can be ignored.
                         output = '\n'.join(lines[first_error_line:])
 
                 ln_match = ERROR_LINE_NUMBER_RE.search(output)
@@ -383,7 +358,8 @@ class LatexCompiler:
                 with open(svg_file) as reader:
                     svg_content = self.converter_correction(reader.read())
                     element = ElementTree.fromstring(svg_content)
-                    coerce_subtree(element)
+                    util.strip_namespaces(element)
+                    util.opaque_tree(element)
 
                     if element.get('viewBox') in [None, '0 0 0 0']:
                         return self.progress.error(
@@ -405,14 +381,7 @@ class LatexCompiler:
                                            code = latex,
                                            context_lines = None).as_html_str()
 
-        if attrs:
-            # Hijack parts of the attr_list extension to handle the attribute list.
-            #
-            # (Warning: there is a risk here that a future version of Markdown will change
-            # the design of attr_list, such that this call doesn't work anymore. For now, it
-            # seems the easiest and most consistent way to go.)
-            AttrListTreeprocessor().assign_attrs(element, attrs)
-
+        util.set_attributes(element, attrs)
         return ElementTree.tostring(element, encoding = 'unicode')
 
 
@@ -502,7 +471,7 @@ class LatexPreprocessor(Preprocessor):
         [ \t]* (%[^\n]*)?   # Ends with whitespace, then an optional comment
         (
             \n[ \t]*        # Start attributes (if any) on a new line
-            {ATTR}
+            {util.ATTR}
         )?
         ''',
         re.VERBOSE | re.DOTALL | re.MULTILINE)
@@ -580,8 +549,7 @@ class LatexPreprocessor(Preprocessor):
             last_match_end = match.end()
 
         # Add any trailing non-Latex text.
-        if last_match_end < len(raw_text):
-            return_text.append(raw_text[last_match_end:])
+        return_text.append(raw_text[last_match_end:])
 
         # Join all the fragments together, and then split them back into lines, as required by
         # contract.
@@ -606,7 +574,7 @@ MATH_TEX_RE = rf'''(?xs)
         )
         \$
     )
-    ({ATTR})?
+    ({util.ATTR})?
 '''
 
 
@@ -669,11 +637,9 @@ class LatexMathMLReplacementProcessor(replacement_patterns.ReplacementPattern):
         mathml_code = latex2mathml.converter.convert(latex_inline or latex_block,
                                                      display = display_attr)
         element = ElementTree.fromstring(mathml_code)
-        coerce_subtree(element)
-
-        attrs = match.group('attr')
-        if attrs:
-            AttrListTreeprocessor().assign_attrs(element, attrs)
+        util.strip_namespaces(element)
+        util.opaque_tree(element)
+        util.set_attributes(element, match)
 
         return element
 
@@ -841,7 +807,7 @@ class LatexExtension(Extension):
             replacementProcessor = None
 
         if replacementProcessor:
-            replacement_patterns.init(md)
+            util.replacement_patterns.init(md)
             md.replacement_patterns.register(replacementProcessor, 'la-latex-replacement', 20)
             md.ESCAPED_CHARS.append('$')
 

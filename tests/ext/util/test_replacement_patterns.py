@@ -1,4 +1,5 @@
 from lamarkdown.ext.util import replacement_patterns
+from tests.util import html_block_processor
 
 import unittest
 from hamcrest import *
@@ -14,19 +15,6 @@ from xml.etree import ElementTree
 class ReplacementPatternsTestCase(unittest.TestCase):
 
     def test_single_pattern(self):
-
-        class TestHtmlBlockProcessor(markdown.blockprocessors.BlockProcessor):
-            '''
-            This is to force Markdown to convert HTML into actual Element nodes, to be seen in the
-            tree-processing (and hence replacement-processing) stage. We need a way to test that
-            ReplacementProcessor can handle structural situations.
-            '''
-            def test(self, parent, block):
-                return True
-
-            def run(self, parent, blocks):
-                parent.append(ElementTree.fromstring(f'<p>{blocks.pop(0)}</p>'))
-
 
         class DollarPattern(replacement_patterns.ReplacementPattern):
             def __init__(self):
@@ -123,7 +111,8 @@ class ReplacementPatternsTestCase(unittest.TestCase):
             ),
         ]:
             md = markdown.Markdown()
-            md.parser.blockprocessors.register(TestHtmlBlockProcessor(md.parser), 'testblock', 1000)
+            # md.parser.blockprocessors.register(TestHtmlBlockProcessor(md.parser), 'testblock', 1000)
+            html_block_processor.init(md)
 
             replacement_patterns.init(md)
             md.ESCAPED_CHARS.append('$')
