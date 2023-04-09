@@ -8,24 +8,18 @@ import markdown
 from xml.etree import ElementTree
 
 
-# Test design
-# - respecting AtomicString
-
-
 class ReplacementPatternsTestCase(unittest.TestCase):
 
+    class DollarPattern(replacement_patterns.ReplacementPattern):
+        def __init__(self):
+            super().__init__('\$([^$]+)\$')
+
+        def handle_match(self, match):
+            elem = ElementTree.Element('span', x = '1')
+            elem.text = match.group(1)
+            return elem
+
     def test_single_pattern(self):
-
-        class DollarPattern(replacement_patterns.ReplacementPattern):
-            def __init__(self):
-                super().__init__('\$([^$]+)\$')
-
-            def handle_match(self, match):
-                elem = ElementTree.Element('span', x = '1')
-                elem.text = match.group(1)
-                return elem
-
-
         for input_text, expected_html in [
             # Structural variations
             (
@@ -111,17 +105,44 @@ class ReplacementPatternsTestCase(unittest.TestCase):
             ),
         ]:
             md = markdown.Markdown()
-            # md.parser.blockprocessors.register(TestHtmlBlockProcessor(md.parser), 'testblock', 1000)
             html_block_processor.init(md)
 
             replacement_patterns.init(md)
             md.ESCAPED_CHARS.append('$')
-            md.replacement_patterns.register(DollarPattern(), 'dollar', 10)
+            md.replacement_patterns.register(self.DollarPattern(), 'dollar', 10)
 
             html = md.convert(input_text)
 
             assert_that(html, contains_string(expected_html))
 
+
+    def test_atomic_strings(self):
+        root = ElementTree.fromstring(r'''
+            <div>
+                <p></p>
+                <p>$some text$</p>
+                <p>$some text$</p>
+            </div>
+        ''')
+        root[1].text = markdown.util.AtomicString(root[1].text)
+
+        md = markdown.Markdown()
+
+        for i in range(3):
+            # Also test that init() is idempotent, so that calling it multiple times won't mess
+            # anything up.
+            replacement_patterns.init(md)
+
+            md.replacement_patterns.register(self.DollarPattern(), 'dollar', 10)
+            replacement_patterns.ReplacementProcessor(md).run(root)
+
+            assert_that(
+                root,
+                contains_exactly(
+                    empty(),
+                    empty(),
+                    contains_exactly(
+                        has_properties(tag = 'span', attrib = {'x': '1'}, text = 'some text'))))
 
 
     def test_transparent_pattern(self):
