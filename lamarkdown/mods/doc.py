@@ -22,6 +22,7 @@ def apply(heading_numbers = True):
         # Note: the package is 'lamarkdown.ext' (hence 'lamarkdown.ext.latex', etc.). However,
         # 'la' ('la.latex') is nicer. To make that work, we use the '[tool.poetry.plugins]' section
         # in `pyproject.toml` (equivalent to 'entry points' in other build setups).
+        'la.attr_prefix',
         'la.cite',
         'la.eval',
         'la.markers',
@@ -252,6 +253,16 @@ def apply(heading_numbers = True):
 
     la.css(
         r'''
+        ol.alpha > li::before {
+            content: "(" counter(la-listitem, lower-alpha) ") ";
+        }
+        ''',
+        if_selectors = 'ol.alpha'
+    )
+
+    # DEPRECATED
+    la.css(
+        r'''
         .alpha + ol > li::before {
             content: "(" counter(la-listitem, lower-alpha) ") ";
         }
@@ -261,6 +272,16 @@ def apply(heading_numbers = True):
 
     la.css(
         r'''
+        ol.roman > li::before {
+            content: "(" counter(la-listitem, lower-roman) ") ";
+        }
+        ''',
+        if_selectors = 'ol.roman'
+    )
+
+    # DEPRECATED
+    la.css(
+        r'''
         .roman + ol > li::before {
             content: "(" counter(la-listitem, lower-roman) ") ";
         }
@@ -268,6 +289,22 @@ def apply(heading_numbers = True):
         if_selectors = '.roman + ol'
     )
 
+    la.css(
+        r'''
+        ol.decimal {
+            counter-reset: la-listitem-decimal;
+        }
+        ol.decimal > li {
+            counter-increment: la-listitem-decimal;
+        }
+        ol.decimal > li::before {
+            content: counters(la-listitem-decimal, ".") ". ";
+        }
+        ''',
+        if_selectors = 'ol.decimal'
+    )
+
+    # DEPRECATED
     la.css(
         r'''
         .decimal + ol {
@@ -287,6 +324,22 @@ def apply(heading_numbers = True):
     # subsequent nested-decimal list that happens to be inside a <div>.
     #
     # This doesn't fix the more general problem though, only a particular case of it.
+    la.css(
+        r'''
+        ol.decimal ~ :not(ol) ol.decimal {
+            counter-reset: la-listitem-decimal2;
+        }
+        ol.decimal ~ :not(ol) ol.decimal > li {
+            counter-increment: la-listitem-decimal2;
+        }
+        ol.decimal ~ :not(ol) ol.decimal > li::before {
+            content: counters(la-listitem-decimal2, ".") ". ";
+        }
+        ''',
+        if_selectors = 'ol.decimal ~ :not(ol) ol.decimal'
+    )
+
+    # DEPRECATED
     la.css(
         r'''
         .decimal + ol ~ :not(ol) .decimal + ol {

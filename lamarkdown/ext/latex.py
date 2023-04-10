@@ -39,7 +39,7 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
 '''
 
 
-from lamarkdown.lib.progress import Progress, ErrorMsg, ProgressMsg
+from lamarkdown.lib.progress import Progress
 from . import util
 from .util import replacement_patterns
 

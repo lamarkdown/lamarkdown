@@ -1,4 +1,6 @@
-from ..util import html_block_processor
+from ..util.mock_progress import MockProgress
+from ..util.hamcrest_elements import *
+
 import unittest
 from unittest.mock import patch
 from hamcrest import *
@@ -14,31 +16,18 @@ from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
-def whitespace():
-    return matches_regexp(r'\s*')
-
-def is_element(tag = None, *, text = None, tail = None, children = [], **attrib):
-    if 'class' not in attrib and 'className' in attrib:
-        attrib['class'] = attrib['className']
-        del attrib['className']
-
-    return all_of(
-        has_properties(tag = tag,
-                       text = text,
-                       tail = tail,
-                       attrib = has_entries(**attrib)),
-        empty() if len(children) == 0 else contains_exactly(*children)
-    )
-
-
-
 class MarkersTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text,
                            hook = lambda md: None,
                            **kwargs):
         md = markdown.Markdown(
-            extensions = ['la.markers']
+            extensions = ['la.markers'],
+            extension_configs = {
+                'la.markers': {
+                    'progress': MockProgress(),
+                }
+            }
         )
         hook(md)
         return md.convert(dedent(markdown_text).strip())
@@ -58,62 +47,25 @@ class MarkersTestCase(unittest.TestCase):
             2. Item2
             ''')
 
-        # assert_that(
-        #     lxml.html.fromstring(html),
-        #     contains_exactly(
-        #         has_properties(tag = 'h1', text = 'Heading'),
-        #         has_properties(tag = 'div',
-        #                        attrib = has_entries({
-        #                            'attrz': 'value',
-        #                            'class': 'classX',
-        #                            'id': 'idY',
-        #                            'style': matches_regexp(r'display:\s*none;?')})),
-        #         all_of(
-        #             has_properties(tag = 'ol'),
-        #             contains_exactly(1
-        #                 has_properties(tag = 'li')
-        #             )
-        #         )
-        #     ))
+        assert_that(
+            lxml.html.fromstring(html),
+            contains_exactly(
+                is_element('h1', {}, 'Heading'),
+                is_element('div', {'attrz': 'value',
+                                   'class': 'classX',
+                                   'id': 'idY',
+                                   'style': matches_regexp(r'display:\s*none;?')}, None),
+                is_element('ol', {}, space(),
+                    is_element('li', {}, space(),
+                        is_element('p', {}, 'Item1'),
+                        is_element('div', {'style': matches_regexp(r'display:\s*none;?')}, None),
+                    ),
+                    is_element('li', {}, space(),
+                        is_element('p', {}, 'Item2'),
+                    ),
+                )
+            ))
 
-        # assert_that(
-        #     lxml.html.fromstring(html),
-        #     is_element('div', children = [
-        #         is_element('h1', text = 'Heading', tail = whitespace()),
-        #         is_element('div',
-        #                    attrz = 'value',
-        #                    className = 'classX',
-        #                    id = 'idY',
-        #                    style = matches_regexp(r'display:\s*none;?')),
-        #         is_element('ol')
-        #         # is_element('ol', children = [
-        #         #     is_element('li', children = [
-        #         #         is_element('p', text = 'Item1'),
-        #         #         is_element('div', className = 'classA', style = matches_regexp(r'display:\s*none;?')),
-        #         #     ]),
-        #         #     is_element('li', children = [
-        #         #         is_element('p', text = 'Item2')
-        #         #     ])
-        #         # ])
-        #     ]))
-
-        self.assertRegex(
-            html,
-            r'''(?x)
-            \s* <h1>Heading</h1>
-            \s* <div[ ]attrZ="value"[ ]class="classX"[ ]id="idY"[ ]style="display:\s*none;?"\s*(/>|></div>)
-            \s* <ol>
-            \s* <li>
-            \s* <p>Item1</p>
-            \s* <div[ ]class="classA"[ ]style="display:\s*none;?"\s*(/>|></div>)
-            \s* </li>
-            \s* <li>
-            \s* <p>Item2</p>
-            \s* </li>
-            \s* </ol>
-            \s*
-            '''
-        )
 
     def test_non_usage(self):
         '''
@@ -132,14 +84,14 @@ class MarkersTestCase(unittest.TestCase):
         ''')
         root[1].text = markdown.util.AtomicString(root[1].text)
 
-        lamarkdown.ext.markers.MarkersTreeProcessor(None).run(root)
+        lamarkdown.ext.markers.MarkersTreeProcessor(None, MockProgress()).run(root)
 
         assert_that(
             root,
             contains_exactly(
-                has_properties(tag = 'p', text = None),
-                has_properties(tag = 'p', text = '/{.classX}'),
-                has_properties(tag = 'div', attrib = has_entries({'class': 'classX'}))))
+                is_element('p', {}, None),
+                is_element('p', {}, '/{.classX}'),
+                is_element('div', {'class': 'classX'}, None)))
 
 
 

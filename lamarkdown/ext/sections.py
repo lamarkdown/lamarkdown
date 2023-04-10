@@ -13,6 +13,8 @@ element. If a divider appears before any other content, then it *won't* create a
 <section> before it, and can instead serve to attribute the first <section> below.
 '''
 
+from . import util
+
 import markdown
 from markdown.extensions.attr_list import AttrListTreeprocessor
 
@@ -20,8 +22,7 @@ import copy
 import re
 from xml.etree import ElementTree
 
-_SEPARATOR_ATTR = 'lamarkdown-sections-b25e560abe34c46aff67f5681e21a6a84eb10012'
-_SEPARATOR_ATTR_VALUE = '1'
+_SEPARATOR_ATTR = 'la-sections-b25e560abe34c46aff67f5681e21a6a84eb10012'
 
 class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
     """
@@ -30,9 +31,10 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
     '<hr/>'.
     """
 
-    def __init__(self, md, separator):
-        super().__init__(md)
-        self._regex = re.compile('^[ ]*' + re.escape(separator) + r'([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
+    def __init__(self, md_parser, separator):
+        super().__init__(md_parser)
+        # self._regex = re.compile('^[ ]*' + re.escape(separator) + r'([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
+        self._regex = re.compile(fr'(?x)^[ ]*{re.escape(separator)}([ ]*\n)?({util.ATTR})?\s*$')
 
     def test(self, parent, block):
         self._match = self._regex.fullmatch(block)
@@ -40,11 +42,8 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
 
     def run(self, parent, blocks):
         blocks.pop(0) # We don't actually need the block, but we have to discard it.
-        elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: _SEPARATOR_ATTR_VALUE})
-        attr_list = self._match.group("attr")
-        if attr_list:
-            AttrListTreeprocessor().assign_attrs(elem, attr_list)
-
+        elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: '1'})
+        util.set_attributes(elem, self._match)
 
 
 class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
@@ -60,7 +59,7 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
         section.tail = '\n'
 
         for element in root:
-            if element.tag == 'div' and element.attrib.get(_SEPARATOR_ATTR) == _SEPARATOR_ATTR_VALUE:
+            if element.tag == 'div' and element.get(_SEPARATOR_ATTR) == '1':
                 sections_found = True
                 if not first:
                     # Allow for a 'separator' right at the start, which serves purely to specify
@@ -95,7 +94,6 @@ class SectionsExtension(markdown.Extension):
 
         # Block processor priority must be >50, to override HRProcessor.
         md.parser.blockprocessors.register(block_proc, 'la-sections-block', 60)
-
         md.treeprocessors.register(tree_proc, 'la-sections-tree', 30)
 
 
