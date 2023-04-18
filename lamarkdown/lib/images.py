@@ -4,12 +4,13 @@ from . import resources
 import cssutils
 import PIL.Image
 
+import collections
 import io
 import re
 import xml.dom
 from xml.etree import ElementTree
 
-NAME = 'scaling' # Progress/error messages
+NAME = 'images' # Progress/error messages
 
 
 def scale_images(root_element, build_params: BuildParams):
@@ -265,3 +266,29 @@ def _length_value(element, key: str):
             NAME,
             msg = f'Syntax error in {key} attribute for <{element.tag}> element: "{element.get(key)}"')
         return None
+
+
+def disentangle_svgs(root_element):
+    all_original_ids = collections.Counter(root_element.xpath('//@id'))
+
+    i = 0
+    for svg_element in root_element.xpath('//svg'):
+        # Find elements with IDs, and give them new ones.
+        id_map = {}
+        for id_element in svg_element.xpath('.//*[@id]'):
+            orig_id = id_element.get('id')
+            # Already-unique IDs are allowed to remain as-is.
+            if all_original_ids[orig_id] > 1:
+                while True:
+                    new_id = f'{orig_id}_{i}'
+                    i += 1
+                    if new_id not in all_original_ids: break
+                id_element.set('id', new_id)
+                id_map[orig_id] = new_id
+
+        # Find/convert elements referring to those IDs.
+        for ref_element in svg_element.xpath('.//*[@href]'):
+            href = ref_element.get('href')
+            if href.startswith('#'):
+                id = href[1:]
+                ref_element.set('href', '#' + id_map.get(id, id))

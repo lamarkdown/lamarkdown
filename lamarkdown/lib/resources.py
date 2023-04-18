@@ -166,6 +166,16 @@ class ContentResourceSpec(ResourceSpec):
         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
         return ContentResource(content) if content else None
 
+# class ContentResourceSpec(ResourceSpec):
+#     def __init__(self, content_spec: Callable[[Set[str]],Optional[str]]
+#                        xpaths_required: List[str] = []):
+#         super().__init__(xpaths_required)
+#         self.content_factory = content_factory
+#
+#     def make_resource(self, xpaths_found: Set[str], progress: Progress) -> OptResource:
+#         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
+#         return ContentResource(content) if content else None
+
 
 class UrlResourceSpec(ResourceSpec):
 

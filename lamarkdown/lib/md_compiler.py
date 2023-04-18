@@ -10,14 +10,11 @@ import lamarkdown
 from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
 from .progress import Progress
-from . import resources
-from . import resource_writers
-from . import image_scaling
+from . import resources, resource_writers, lists, images
 
 import lxml.html
 import markdown
 
-import collections
 from copy import deepcopy
 import html
 import importlib.util
@@ -220,13 +217,14 @@ def write_html(content_html: str,
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
 
-    image_scaling.scale_images(root_element, build_params)
+    lists.label_lists(root_element, build_params)
+    images.scale_images(root_element, build_params)
 
     # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
     # We're still only dealing with the output of Python Markdown here.)
     resource_writers.embed_media(root_element, build_params.resource_base_url, build_params)
 
-    disentangle_svgs(root_element)
+    images.disentangle_svgs(root_element)
 
     # Find all used codepoints
     build_params.font_codepoints.update(
@@ -358,27 +356,3 @@ def write_html(content_html: str,
         return True
 
 
-def disentangle_svgs(root_element):
-    all_original_ids = collections.Counter(root_element.xpath('//@id'))
-
-    i = 0
-    for svg_element in root_element.xpath('//svg'):
-        # Find elements with IDs, and give them new ones.
-        id_map = {}
-        for id_element in svg_element.xpath('.//*[@id]'):
-            orig_id = id_element.get('id')
-            # Already-unique IDs are allowed to remain as-is.
-            if all_original_ids[orig_id] > 1:
-                while True:
-                    new_id = f'{orig_id}_{i}'
-                    i += 1
-                    if new_id not in all_original_ids: break
-                id_element.set('id', new_id)
-                id_map[orig_id] = new_id
-
-        # Find/convert elements referring to those IDs.
-        for ref_element in svg_element.xpath('.//*[@href]'):
-            href = ref_element.get('href')
-            if href.startswith('#'):
-                id = href[1:]
-                ref_element.set('href', '#' + id_map.get(id, id))

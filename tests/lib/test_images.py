@@ -1,11 +1,14 @@
 from ..util.mock_progress import MockProgress
-from lamarkdown.lib import image_scaling
+from lamarkdown.lib import images
 
 import unittest
 from unittest.mock import Mock, PropertyMock, patch
+from hamcrest import *
 
+import lxml
 import PIL.Image
 
+import collections
 import io
 import re
 from textwrap import dedent
@@ -232,7 +235,7 @@ class ImageScalingTestCase(unittest.TestCase):
                 p = ElementTree.SubElement(root, 'p')
                 image = ElementTree.SubElement(p, tag, attrib = inp_attr)
 
-                image_scaling.scale_images(root, mock_build_params)
+                images.scale_images(root, mock_build_params)
 
                 self._compare_attrs(image, exp_attr,
                                     repr({'inputs': inp_attr, 'expected_result': exp_attr}))
@@ -428,7 +431,7 @@ class ImageScalingTestCase(unittest.TestCase):
                 p = ElementTree.SubElement(root, 'p')
                 image = ElementTree.SubElement(p, tag, attrib = inp_parent_attr)
 
-                image_scaling.scale_images(root, mock_build_params)
+                images.scale_images(root, mock_build_params)
 
                 self._compare_attrs(image, exp_attr,
                                     repr({'parent attr': inp_parent_attr,
@@ -473,7 +476,7 @@ class ImageScalingTestCase(unittest.TestCase):
                     p = ElementTree.SubElement(root, 'p')
                     image = ElementTree.SubElement(p, 'img', attrib = {'src': 'mock url'})
 
-                    image_scaling.scale_images(root, mock_build_params)
+                    images.scale_images(root, mock_build_params)
 
                     expected_attrib = {'src': 'mock url',
                                        'width': str(10 * 2.5 * px_equiv),
@@ -526,8 +529,83 @@ class ImageScalingTestCase(unittest.TestCase):
                     p = ElementTree.SubElement(root, 'p')
                     image = ElementTree.SubElement(p, tag, attrib = inp_attr)
 
-                    image_scaling.scale_images(root, mock_build_params)
+                    images.scale_images(root, mock_build_params)
 
                     self._compare_attrs(image, exp_attr,
                                         repr({'input attr': inp_attr, 'expected result': exp_attr}))
 
+
+
+    def test_disentangle_svgs_fn(self):
+        doc = r'''
+            <div id="alpha">
+                <p id="beta"></p>
+                <p id="gamma"></p>
+                <svg id="delta">
+                    <defs>
+                        <g id="gamma" />
+                        <g id="delta" />
+                        <g id="epsilon" />
+                        <g id="zeta" />
+                    </defs>
+                    <use href="#alpha" />
+                    <use href="#beta" />
+                    <use href="#gamma" />
+                    <use href="#delta" />
+                    <use href="#epsilon" />
+                    <use href="#zeta" />
+                </svg>
+                <svg id="epsilon">
+                    <defs>
+                        <g id="alpha" />
+                        <g id="gamma" />
+                        <g id="gamma_0" />
+                        <g id="gamma_1" />
+                    </defs>
+                    <use href="#alpha" />
+                    <use href="#gamma" />
+                    <use href="#gamma_0" />
+                    <use href="#gamma_1" />
+                    <use href="#zeta" />
+                </svg>
+            </div>
+        '''
+
+        root_element = lxml.html.fromstring(doc)
+        original_id_set = set(root_element.xpath('//@id'))
+
+        # Copy all id and href attributes to id0 and href0, so that the original matching elements
+        # can be matched up again after their id and href have changed.
+
+        for id_element in root_element.xpath('//svg//*[@id]'):
+            id_element.set('id0', id_element.get('id'))
+
+        for href_element in root_element.xpath('//svg//*[@href]'):
+            href = href_element.get('href')
+            href_element.set('href0', href)
+            # Sanity-check the test setup itself:
+            self.assertTrue(href.startswith('#'))
+            self.assertTrue(href[1:] in original_id_set)
+
+        images.disentangle_svgs(root_element)
+
+        new_ids = collections.Counter(root_element.xpath('//@id'))
+        assert_that(new_ids, has_entries({id: 1 for id in original_id_set}))
+
+        # Within each <svg> element, test for consistency in how href= and id= elements map to
+        # one another
+
+        for svg_element in root_element.xpath('//svg'):
+            id_map = {} # New->old ID mapping
+            for id_element in svg_element.xpath('.//*[@id]'):
+                id_map[id_element.get('id')] = id_element.get('id0')
+
+            for href_element in svg_element.xpath('.//*[@href]'):
+                new_href = href_element.get('href')[1:]
+                old_href = href_element.get('href0')[1:]
+                if new_href in id_map:
+                    self.assertEqual(old_href, id_map[new_href])
+                else:
+                    # If the reference isn't defined now (within the <svg> element), then it
+                    # shouldn't have been defined before either.
+                    self.assertNotIn(old_href, id_map.values())

@@ -217,23 +217,32 @@ def apply(heading_numbers = True):
         r'''
         ol {
             width: 100%;
-            counter-reset: la-listitem;
-            padding: 0;
+            counter-reset: list-item;
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: 0;
+            margin-right: 0;
+            --la-list-label: counter(list-item, decimal) ". ";
         }
 
         ol + :not(ol) {
-            counter-reset: la-listitem;
+            counter-reset: list-item;
         }
 
         ol > li {
             display: table;
-            counter-increment: la-listitem;
+            counter-increment: list-item;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
         }
 
         ol > li::before {
-            content: counter(la-listitem, decimal) ". ";
+            content: var(--la-list-label);
             display: table-cell;
-            width: 2ex;
+            width: 1.5em;
             padding-right: 0.5em;
             color: var(--la-number-color);
             font-weight: bold;
@@ -251,39 +260,21 @@ def apply(heading_numbers = True):
         if_selectors = 'ol'
     )
 
-    la.css(
-        r'''
-        ol.alpha > li::before {
-            content: "(" counter(la-listitem, lower-alpha) ") ";
-        }
-        ''',
-        if_selectors = 'ol.alpha'
-    )
-
     # DEPRECATED
     la.css(
         r'''
         .alpha + ol > li::before {
-            content: "(" counter(la-listitem, lower-alpha) ") ";
+            content: "(" counter(list-item, lower-alpha) ") ";
         }
         ''',
         if_selectors = '.alpha + ol'
-    )
-
-    la.css(
-        r'''
-        ol.roman > li::before {
-            content: "(" counter(la-listitem, lower-roman) ") ";
-        }
-        ''',
-        if_selectors = 'ol.roman'
     )
 
     # DEPRECATED
     la.css(
         r'''
         .roman + ol > li::before {
-            content: "(" counter(la-listitem, lower-roman) ") ";
+            content: "(" counter(list-item, lower-roman) ") ";
         }
         ''',
         if_selectors = '.roman + ol'
