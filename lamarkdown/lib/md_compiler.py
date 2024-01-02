@@ -10,7 +10,8 @@ import lamarkdown
 from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
 from .progress import Progress
-from . import resources, resource_writers, lists, images
+# from . import resources, resource_writers, lists, images
+from . import resources, resource_writers, images
 
 import lxml.html
 import markdown
@@ -217,7 +218,7 @@ def write_html(content_html: str,
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
 
-    lists.label_lists(root_element, build_params)
+    # lists.label_lists(root_element, build_params)
     images.scale_images(root_element, build_params)
 
     # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.

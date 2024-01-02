@@ -31,7 +31,7 @@ def apply(heading_numbers = True):
     def latex_preamble():
         font_size = la.css_vars.get('la-font-size')
         if font_size.endswith('pt'):
-            return f'\KOMAoptions{{fontsize={font_size}}}'
+            return rf'\KOMAoptions{{fontsize={font_size}}}'
         return ''
 
 
@@ -40,7 +40,8 @@ def apply(heading_numbers = True):
     )
 
     if heading_numbers:
-        la('la.heading_numbers')
+        # la('la.heading_numbers')
+        pass # TODO: replace this with the la.list_labels extension
 
     la('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
     # Note:
