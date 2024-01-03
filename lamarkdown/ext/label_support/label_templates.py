@@ -10,8 +10,6 @@ class LabelTemplate:
     separator: str
     suffix: str
     parent_type: str
-    # heading_parent: bool
-    # list_parent: bool
     counter_type: Optional[counter_types.CounterType]
     child_template: Optional['LabelTemplate']
 
@@ -53,7 +51,6 @@ ESCAPED_QUOTES = {'"': re.compile('""'),
                   "'": re.compile("''")}
 
 def _repl_literal(match) -> str:
-    # quote = match.group('quote')
     quote = match.group()[0]
     text  = match.group()[1:-1]
     return ESCAPED_QUOTES[quote].sub(quote, text)
@@ -61,9 +58,6 @@ def _repl_literal(match) -> str:
 
 class LabelTemplateParser:
 
-    # DEFAULT = LabelTemplate(prefix = '', separator = '', suffix = '.',
-    #                         heading_parent = False, list_parent = False,
-    #                         counter_type = counter_types.get_counter_type('decimal'))
     DEFAULT = LabelTemplate(prefix = '', separator = '', suffix = '.', parent_type = '',
                             counter_type = counter_types.get_counter_type('decimal'),
                             child_template = None)
@@ -116,7 +110,7 @@ class LabelTemplateParser:
 
         parent_type = None
         if (parent_spec := match.group('parent')) is not None:
-            parent_type = '' if parent_spec == 'X' else parent_spec.lower()
+            parent_type = {'X': '', 'L': 'ol'}.get(parent_spec) or parent_spec.lower()
 
         counter_type = None
         if (counter_name := match.group('format')) is not None:
@@ -130,8 +124,6 @@ class LabelTemplateParser:
             separator      = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('separator') or ''),
             suffix         = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('suffix') or ''),
             parent_type    = parent_type,
-            # heading_parent = parent in ['P', 'H'],
-            # list_parent    = parent in ['P', 'L'],
             counter_type   = counter_type,
             child_template = None
         )

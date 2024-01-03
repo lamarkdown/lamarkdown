@@ -30,6 +30,20 @@ HEADING_TESTDATA = r'''
     ## Section 2.2
 '''
 
+
+ORDERED_LIST_TESTDATA = r'''
+    1. ItemA
+        1. ItemAA
+        2. ItemAB
+            1. ItemABA
+    2. ItemB
+        1. ItemBA
+            1. ItemBAA
+        2. ItemBB
+    3. ItemC
+    4. ItemD
+'''
+
 class LabelsTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text,
@@ -121,20 +135,68 @@ class LabelsTestCase(unittest.TestCase):
 
 
     def test_default_ordered_lists(self):
-        html = self.run_markdown(
-            r'''
-            1. ItemA
-            2. ItemB
-            3. ItemC
-            ''')
+        html = self.run_markdown(ORDERED_LIST_TESTDATA)
 
         self.assertRegex(
             html,
             fr'''(?xs)
             \s* <ol>
-            \s* <li>ItemA</li>
-            \s* <li>ItemB</li>
+            \s* <li>ItemA
+            \s*     <ol>
+            \s*         <li>ItemAA</li>
+            \s*         <li>ItemAB
+            \s*             <ol>
+            \s*                 <li>ItemABA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*     </ol>
+            \s* </li>
+            \s* <li>ItemB
+            \s*     <ol>
+            \s*         <li>ItemBA
+            \s*             <ol>
+            \s*                 <li>ItemBAA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*         <li>ItemBB</li>
+            \s*     </ol>
+            \s* </li>
             \s* <li>ItemC</li>
+            \s* <li>ItemD</li>
+            \s* </ol>
+            \s*
+            ''')
+
+
+    def test_ordered_lists(self):
+        html = self.run_markdown(ORDERED_LIST_TESTDATA, ol_labels = 'L.1 ,*')
+
+        self.assertRegex(
+            html,
+            fr'''(?xs)
+            \s* <ol[ ]class="la-labelled">
+            \s* <li><span[ ]class="la-label">1[ ]</span>ItemA
+            \s*     <ol[ ]class="la-labelled">
+            \s*         <li><span[ ]class="la-label">1.1[ ]</span>ItemAA</li>
+            \s*         <li><span[ ]class="la-label">1.2[ ]</span>ItemAB
+            \s*             <ol[ ]class="la-labelled">
+            \s*                 <li><span[ ]class="la-label">1.2.1[ ]</span>ItemABA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*     </ol>
+            \s* </li>
+            \s* <li><span[ ]class="la-label">2[ ]</span>ItemB
+            \s*     <ol[ ]class="la-labelled">
+            \s*         <li><span[ ]class="la-label">2.1[ ]</span>ItemBA
+            \s*             <ol[ ]class="la-labelled">
+            \s*                 <li><span[ ]class="la-label">2.1.1[ ]</span>ItemBAA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*         <li><span[ ]class="la-label">2.2[ ]</span>ItemBB</li>
+            \s*     </ol>
+            \s* </li>
+            \s* <li><span[ ]class="la-label">3[ ]</span>ItemC</li>
+            \s* <li><span[ ]class="la-label">4[ ]</span>ItemD</li>
             \s* </ol>
             \s*
             ''')

@@ -114,12 +114,6 @@ Headings would probably use approach 1 by default (though they could use the oth
 Can we write <ol style="display: grid"><li style="display: list-style">...</ol>? And get the best of both worlds?
 
 
----
-
----
-
-Blurb to explain why we might
-
 
 '''
 
@@ -130,79 +124,14 @@ from . import util
 import markdown
 
 from dataclasses import dataclass
-import io
 from typing import Optional
 from xml.etree import ElementTree
 
 
 LABEL_DIRECTIVE = ':label'
 
-
-# QUOTED_LITERAL = r'''
-#     (?P<quote>['"])
-#     (?P<text> ( (?!\1). | \1\1 )*+ )
-#     \1
-# '''
-
-# QUOTED_LITERAL = r'''
-#     ' ( [^'] | '' )*+ '
-#     |
-#     " ( [^"] | "" )*+ "
-# '''
-#
-# LITERAL = fr'''
-#     (
-#         [^a-zA-Z0-9,] | {QUOTED_LITERAL}
-#     )*+
-# '''
-#
-# TEMPLATE_REGEX = re.compile(fr'''(?x)
-#     \s*
-#     (?P<prefix> {LITERAL} )
-#     (
-#         (
-#             (?P<parent> X | L | H[1-6]? )
-#             (?P<separator> {LITERAL} )
-#         )?+
-#         (?P<format> [a-zA-Z0-9-]+ )
-#         (?P<suffix> {LITERAL} )
-#     )?
-#     \s*
-# ''')
-
-# QUOTED_LITERAL_REGEX = re.compile(SQ_LITERAL)
-# ESCAPED_QUOTES = {'"': re.compile('""'), "'": re.compile("''")}
-
-
-# class Labeller(ABC):
-#     @abstractmethod
-#     def label(self, element, template, counter_id, counter):
-#         raise NotImplementedError
-#
-#
-# class SpanLabeller(Labeller):
-#     def label(self, element, template, counter_id, counter):
-#         if element.tag in {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'}: # Not ul or ol.
-#
-#             span = ElementTree.Element('span', {'class': 'la-list-label'})
-#             element.insert(0, span)
-#
-#             span.text = ... # TODO: Generate actual hard-coded label; we generally need the stack of hard-coded parent labels for this.
-#             span.tail = element.text
-#             element.text = ''
-
-#
-# class CssVarLabeller(Labeller):
-#     def label(self, element, template, counter_id, counter):
-
-
-
-
-
-# def repl_literal(match) -> str:
-#     quote = match.group('quote')
-#     return ESCAPED_QUOTES[quote].sub(quote, match.group('text'))
-
+LABELLED_CSS_CLASS = 'la-labelled'
+EXPLICIT_LABEL_CSS_CLASS = 'la-label'
 
 
 class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
@@ -230,44 +159,7 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
 
     def run(self, root):
-        # WTF?
 
-        # 1. We must encounter each h*, ul, ol and li tag to keep track of the actual counters
-        #    (For when we need to output compile-time labels, or parts of labels.)
-
-        # //2. We must identify the inheritable ('all-labels' and 'sub-labels') and one-off ('label')
-        # //   templates
-        # //   This includes a config setting also called 'all-labels' that sets the overall default.
-
-        # 2. We identify inherited labels from parent list elements;
-
-        # 3. For elements needing a label, we decide whether to create a compile-time or css-based
-        #    label.
-        #    (a) Compile-time labels shall use the actual counters;
-        #    (b) CSS-based labels.
-        #
-        # 4. For compile-time labels, we need to generate the label text, then create a few subelement
-        #    and prepend it to the h/li element.
-        #
-        # 5. For CSS-based labels, we need to generate the
-
-
-
-        # A vector of the current heading number at each heading level.
-        # all_counters = [0] * (self.to_level - self.from_level + 1)
-        # h_counters
-
-
-
-        # all_counters = []
-        # h_counter_indexes = [0] * (self.to_level - self.from_level + 1)
-
-
-
-        # TODO: labeller_stack must contain instances of Labeller, which each (may) need to know their 'parent' labeller. To find the parent, we reverse-search through labeller_stack until we get a labeller of the appropriate type (any for 'P', list for 'L' or
-
-
-        # previous_h_level = -1
         labeller_stack = []
         heading_indexes = {}
         css_class_n = 0
@@ -277,7 +169,6 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         def recurse(element):
 
             if element.tag in {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}:
-                # cur_h_level = int(element.tag[1]) - self.h_level
                 cur_h_level = int(element.tag[1])
 
                 labeller = None
@@ -325,21 +216,10 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
                     if self._previous_h_level < cur_h_level:
                         # Starting a new heading level
-                        # self._previous_h_level = cur_h_level
                         heading_indexes[cur_h_level] = len(labeller_stack)
                         labeller_stack.append(labeller)
 
-                    # elif self._previous_h_level > cur_h_level:
-                    #     # Finishing (at least) one heading level, and continuing with a higher-
-                    #     # level heading.
-                    #
-                    #     for i in range(self._previous_h_level, cur_h_level, -1):
-                    #         del labeller_stack[heading_indexes[i]]
-                    #         del heading_indexes[i]
-                    #
-                    #     self._previous_h_level = cur_h_level
-
-                    label_elem = ElementTree.Element('span', **{'class': 'la-label'})
+                    label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
                     label_elem.text = labeller.as_string()
                     label_elem.tail = element.text
                     element.text = ''
@@ -403,12 +283,12 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     labeller_stack.append(labeller)
 
                     if self._css_fn is None:
-                        element.set('class', 'la-label')
+                        element.set('class', LABELLED_CSS_CLASS)
                     else:
                         # Render CSS logic, if possible
                         li_css_counter = None
                         css_counter = labeller.get_css_counter()
-                        element.set('class', f'la-label {css_counter}')
+                        element.set('class', f'{LABELLED_CSS_CLASS} {css_counter}')
                         self._css_fn(f'''
                             .{css_counter} {{
                                 counter-reset: {css_counter};
@@ -455,9 +335,9 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
                             # Render embedded HTML text, if necessary
                             if self._css_fn is None:
-                                label_elem = ElementTree.Element('span', **{'class': 'la-label'})
+                                label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
                                 label_elem.text = labeller.as_string()
-                                label_elem.tail = element.text
+                                label_elem.tail = li.text
                                 li.text = ''
                                 li.insert(0, label_elem)
 
@@ -491,87 +371,6 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
             ''')
 
         return root
-
-
-#
-#
-#
-#                     # Do we assume that the labeller_stack contains
-#
-#                     ...previous sibling template... or ...child template... or self._h_template
-#
-#                 if template_str:
-#                     template = self._parse_template(template_str)
-#
-#
-#                 h_level = int(element.tag[1]) - self.h_from_level
-#                 if h_level > current_h_level:
-#                     # Top-level heading, OR new child heading of the previous heading
-#                     all_counters.append(ListCounter(template)) # TODO: start at a particular value?
-#
-#
-#                 # elif h_level < current_h_level:
-#                 #     # e.g. <h2> following a <h3> (which belongs to a previous <h2>)
-#                 #
-#                 # else:
-#                 #     # Sibling heading
-#
-#                 # If _neither_ :label _nor_ :label-resume is given, then do nothing to this list;
-#                 # just leave it
-#                 # If :label is given, then overwrite the previous template.
-#                 #If :label-resume is
-#                 # given, retain the
-
-                # current_h_level = h_level
-
-
-
-
-            # if element.tag in self.tags and 'notnumbered' not in element.get('class', default=''):
-            #     level = int(element.tag[1:])
-            #     index = level - self.from_level
-            #
-            #     # Increment current level
-            #     numbers[index] += 1
-            #
-            #     # Reset all subsequent levels
-            #     for i in range(index + 1, len(numbers)):
-            #         numbers[i] = 0
-            #
-            #     # Add heading number element
-            #     hnumber = ElementTree.Element('span', attrib = {'class': 'la-heading-number'})
-            #     hnumber.text = '.'.join(str(n) for n in numbers[:index + 1])
-            #     hnumber.tail = self.sep + (element.text or '')
-            #     element.text = ''
-            #     element.insert(0, hnumber)
-
-        # return root
-
-#
-# class HeadingNumbersExtension(markdown.Extension):
-#     def __init__(self, **kwargs):
-#         self.config = {
-#             'from_level': [2, 'Highest-level heading to number.'],
-#             'to_level':   [6, 'Lowest-level heading to number.'],
-#             'sep':        [' ', 'Separator string, inserted between the number and the original heading text.'],
-#         }
-#         super().__init__(**kwargs)
-#
-#     def extendMarkdown(self, md):
-#         proc = HeadingNumbersTreeProcessor(
-#             md,
-#             from_level = self.getConfig('from_level'),
-#             to_level = self.getConfig('to_level'),
-#             sep = self.getConfig('sep'),
-#         )
-#
-#         # Tight range of suitable priorities!
-#         # * We must run after 'attr_list' (priority 8) in order to query class="notnumbered".
-#         # * We must run before 'toc' (priority 5), to get numbers into the table-of-contents.
-#
-#         md.treeprocessors.register(proc, 'la-heading-numbers-tree', 7)
-#
-#
 
 
 LABEL_DEFAULT = 'default'
