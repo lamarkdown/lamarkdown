@@ -124,7 +124,7 @@ from . import util
 import markdown
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 from xml.etree import ElementTree
 
 
@@ -151,7 +151,10 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self._previous_h_level = -1
 
 
-    def _find_parent_labeller(self, stack, parent_type) -> Optional[Labeller]:
+    def _find_parent_labeller(self, stack: List[Labeller],
+                                    parent_type: Optional[str]) -> Optional[Labeller]:
+        if parent_type is None:
+            return None
         for labeller in reversed(stack):
             if labeller.element_type.startswith(parent_type):
                 return labeller
@@ -161,7 +164,7 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def run(self, root):
 
         labeller_stack = []
-        heading_indexes = {}
+        # heading_indexes = {}
         css_class_n = 0
 
         disable_list_style_type = False
@@ -169,33 +172,45 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         def recurse(element):
 
             if element.tag in {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}:
+
                 cur_h_level = int(element.tag[1])
 
-                labeller = None
-                if cur_h_level in heading_indexes:
-                    # A labeller already exists (from a previous sibling heading)
-                    labeller = labeller_stack[heading_indexes[cur_h_level]]
+                # labeller = None
+                # if cur_h_level in heading_indexes:
+                    # labeller = labeller_stack[heading_indexes[cur_h_level]]
+                    # labeller = self._find_parent_labeller(labeller_stack, element.tag)
+
+                # A labeller already exists (from a previous sibling heading)
+                labeller = self._find_parent_labeller(labeller_stack, element.tag)
 
                     # If a ':label' directive is provided _as well_, then we replace the current
                     # labeller with a new one.
 
-                    if (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
-                        labeller = self._labeller_factory.get(
-                            element_type = element.tag,
-                            template = self._parser.parse(new_template_str),
-                            parent = labeller.parent
-                        )
-                        labeller_stack[heading_indexes[cur_h_level]] = labeller
+                    # if (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
+                    #     del element.attrib[LABEL_DIRECTIVE]
+                    #     labeller_stack.remove(labeller)
+                    #     labeller = self._labeller_factory.get(
+                    #         element_type = element.tag,
+                    #         template = self._parser.parse(new_template_str),
+                    #         parent = labeller.parent
+                    #     )
+                    #     labeller_stack.append(labeller)
+                    #     #labeller_stack[heading_indexes[cur_h_level]] = labeller
 
                 if labeller is None:
                     # If no labeller exists, first see if there's a ':label' directive
                     template = None
-                    if LABEL_DIRECTIVE in element.attrib:
-                        template = self._parser.parse(element.get(LABEL_DIRECTIVE))
+                    if (template_str := element.get(LABEL_DIRECTIVE)) is not None:
+                        del element.attrib[LABEL_DIRECTIVE]
+                        template = self._parser.parse(template_str)
 
-                    # Failing that, see if a parent heading labeller specifies a child template
-                    if template is None and (cur_h_level - 1) in heading_indexes:
-                        template = labeller_stack[heading_indexes[cur_h_level - 1]].template.child_template
+                    # Failing that, see if a parent heading labeller specifies an inner template
+                    # if template is None and (cur_h_level - 1) in heading_indexes:
+                    #     template = labeller_stack[heading_indexes[cur_h_level - 1]].template.inner_template
+                    if template is None and (outer_labeller := self._find_parent_labeller(
+                        labeller_stack, f'h{cur_h_level - 1}')) is not None:
+
+                        template = outer_labeller.template.inner_template
 
                     # Failing that, maybe the configuration option is applicable
                     if template is None and cur_h_level == self._h_level:
@@ -209,15 +224,26 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                             template,
                             parent = self._find_parent_labeller(labeller_stack, template.parent_type)
                         )
+                        labeller_stack.append(labeller)
+
+                elif (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
+                    del element.attrib[LABEL_DIRECTIVE]
+                    labeller_stack.remove(labeller)
+                    labeller = self._labeller_factory.get(
+                        element_type = element.tag,
+                        template = self._parser.parse(new_template_str),
+                        parent = labeller.parent
+                    )
+                    labeller_stack.append(labeller)
 
 
                 if labeller is not None:
                     labeller.count += 1
 
-                    if self._previous_h_level < cur_h_level:
-                        # Starting a new heading level
-                        heading_indexes[cur_h_level] = len(labeller_stack)
-                        labeller_stack.append(labeller)
+                    # if cur_h_level not in heading_indexes:
+                    #     # Starting a new heading level
+                    #     heading_indexes[cur_h_level] = len(labeller_stack) - 1
+                    #     # labeller_stack.append(labeller)
 
                     label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
                     label_elem.text = labeller.as_string()
@@ -233,12 +259,20 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     # heading.
 
                     for i in range(self._previous_h_level, cur_h_level, -1):
-                        if i in heading_indexes:
-                            del labeller_stack[heading_indexes[i]]
-                            del heading_indexes[i]
+                        # if i in heading_indexes:
+                        #
+                        #     del labeller_stack[heading_indexes[i]]
+                        #     del heading_indexes[i]
+
+                        if (inner_labeller := self._find_parent_labeller(labeller_stack, f'h{i}')) is not None:
+                            labeller_stack.remove(inner_labeller)
+
+                        # if i in heading_indexes:
+                        #     del labeller_stack[heading_indexes[i]]
+                        #     del heading_indexes[i]
+
 
                 self._previous_h_level = cur_h_level
-
 
 
             # TODO (future):
@@ -254,19 +288,16 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 # TODO (future): check for a 'resume' directive, and if found, re-use an existing sibling list labeller.
 
                 # Find the explicit label directive, if any
-                # list_template_str = element.get(LABEL_DIRECTIVE)
                 template = None
-                if LABEL_DIRECTIVE in element.attrib:
-                    template = self._parser.parse(element.get(LABEL_DIRECTIVE))
+                if (template_str := element.get(LABEL_DIRECTIVE)) is not None:
+                    del element.attrib[LABEL_DIRECTIVE]
+                    template = self._parser.parse(template_str)
 
-                # Otherwise, see if there's a child label
-                # if list_template_str is None and len(labeller_stack) > 0:
-                #     if labeller_stack[-1] **represents the same kind of list (h, ul or ol)**:
-                #         list_template_str = labeller_stack[-1].child_template_str
+                # Otherwise, see if there's a inner template
                 if (template is None and
-                    (parent_labeller := self._find_parent_labeller(labeller_stack, element.tag)) is not None
+                    (outer_labeller := self._find_parent_labeller(labeller_stack, element.tag)) is not None
                 ):
-                    template = parent_labeller.template.child_template
+                    template = outer_labeller.template.inner_template
 
                 # Otherwise, maybe the configuration option is applicable (if this is a top-level list)
                 if template is None and len(labeller_stack) == 0:
@@ -280,6 +311,8 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                         parent = self._find_parent_labeller(labeller_stack, template.parent_type)
                     )
                     # TODO: catch LabelTemplateException from self._parser.parse()
+
+                    list_index = len(labeller_stack)
                     labeller_stack.append(labeller)
 
                     if self._css_fn is None:
@@ -305,8 +338,8 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                         # Lists generally contain just <li> elements, but it doesn't hurt to check.
                         if li.tag == 'li':
 
-                            new_template_str = li.get(LABEL_DIRECTIVE)
-                            if new_template_str is not None:
+                            if (new_template_str := li.get(LABEL_DIRECTIVE)) is not None:
+                                del li.attrib[LABEL_DIRECTIVE]
                                 # labeller.reset(new_template = self._parse_template(new_template_str))
                                 labeller = self._labeller_factory.get(
                                     element_type = element.tag,
@@ -344,21 +377,28 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                             elif li_css_counter is not None:
                                 li.set('class', li_css_counter)
 
-                            for child in li:
-                                recurse(child)
+                            for child_elem in li:
+                                recurse(child_elem)
 
 
+                    # This labeller is ending, so remove all labellers dependent on it.
+                    for child_labeller in labeller.children:
+                        try:
+                            labeller_stack.remove(child_labeller)
+                        except ValueError:
+                            pass # Doesn't matter if not in stack
 
-                    labeller_stack.pop()
+                    del labeller_stack[list_index]
+                    # labeller_stack.pop()
 
                 else:
                     # We're not styling this list, but we must recurse to find other elements.
-                    for child in element:
-                        recurse(child)
+                    for child_elem in element:
+                        recurse(child_elem)
 
             else:
-                for child in element:
-                    recurse(child)
+                for child_elem in element:
+                    recurse(child_elem)
         # end-def
 
         recurse(root)
@@ -431,7 +471,15 @@ class LabelsExtension(markdown.Extension):
             ol_template = None if ol_template == LABEL_DEFAULT else ol_template,
         )
 
-        md.treeprocessors.register(proc, 'la-labels-tree', 15) # low priority?
+        md.treeprocessors.register(proc, 'la-labels-tree', 6)
+
+        # Priority must be:
+        # * Lower than the TreeProcessors of 'attr_list' (priority 8) and 'la.attr_prefix' (15),
+        #   because they will supply the directives (as element attributes) that we consume here.
+        #
+        # * Higher than the TreeProcessor of 'toc' (priority 5), because heading elements must be
+        #   labelled before the table-of-contents is built, or the labels will be omitted from the
+        #   ToC.
 
 
 

@@ -10,7 +10,8 @@ class CounterType(abc.ABC):
                        negative = ('-', ''),
                        pad_width = 0,
                        pad_symbol = '0',
-                       eq_extra = []):
+                       eq_extra = ()):
+
         self._css_id = css_id
         self._fallback = fallback
         self._use_if = use_if
@@ -19,6 +20,8 @@ class CounterType(abc.ABC):
         self._pad_symbol = pad_symbol
         self._eq_extra = eq_extra
         self._cache = {}
+        self._hash = hash((type(self), css_id, fallback, use_if,
+                           negative, pad_width, pad_symbol, eq_extra))
 
     def format(self, count: int) -> str:
         fmt = self._cache.get(count)
@@ -55,8 +58,7 @@ class CounterType(abc.ABC):
 
     def __eq__(self, other):
         """
-        Equality checking for counter types is basically just for testing purposes. We avoid
-        needing each subclass to define its own __eq__() logic by:
+        We avoid needing each subclass to define its own __eq__() logic by:
         1. Checking for type(...)==type(...); and
         2. Having the '_eq_extra' field, which contains arbitrary subclass-specific data.
         """
@@ -71,13 +73,18 @@ class CounterType(abc.ABC):
             and self._eq_extra      == other._eq_extra
         )
 
+    def __hash__(self):
+        return self._hash
+        # return hash((type(self), self._css_id, self._fallback, self._use_if, self._negative,
+        #              self._pad_width, self._pad_symbol, self._eq_extra))
+
 
 class NumericCounter(CounterType):
     def __init__(self, css_id: str,
                        symbols: List[str],
                        use_if = lambda _: True, # Always applicable
                        **kwargs):
-        super().__init__(css_id, use_if = use_if, eq_extra = symbols, **kwargs)
+        super().__init__(css_id, use_if = use_if, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
@@ -95,7 +102,7 @@ class NumericCounter(CounterType):
 
 class AlphabeticCounter(CounterType):
     def __init__(self, css_id: str, symbols: List[str], **kwargs):
-        super().__init__(css_id, eq_extra = symbols, **kwargs)
+        super().__init__(css_id, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
@@ -110,7 +117,7 @@ class AlphabeticCounter(CounterType):
 
 class AdditiveCounter(CounterType):
     def __init__(self, css_id: str, symbols: Dict[int,str], **kwargs):
-        super().__init__(css_id, eq_extra = symbols, **kwargs)
+        super().__init__(css_id, eq_extra = tuple(symbols.items()), **kwargs)
         self._symbols = symbols
         self._symbol_weights = list(symbols.keys())
         self._symbol_weights.sort(reverse = True)
@@ -128,7 +135,7 @@ class AdditiveCounter(CounterType):
 
 class SymbolicCounter(CounterType):
     def __init__(self, css_id: str, symbols: List[str], **kwargs):
-        super().__init__(css_id, eq_extra = symbols, **kwargs)
+        super().__init__(css_id, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
@@ -140,7 +147,7 @@ class SymbolicCounter(CounterType):
 
 class CyclicCounter(CounterType):
     def __init__(self, css_id: str, symbols: List[str], **kwargs):
-        super().__init__(css_id, negative = False, eq_extra = symbols, **kwargs)
+        super().__init__(css_id, negative = False, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
@@ -149,7 +156,7 @@ class CyclicCounter(CounterType):
 
 class FixedCounter(CounterType):
     def __init__(self, css_id: str, symbols: List[str], first = 1, **kwargs):
-        super().__init__(css_id, negative = False, eq_extra = (symbols, first), **kwargs)
+        super().__init__(css_id, negative = False, eq_extra = (*symbols, first), **kwargs)
         self._symbols = symbols
         self._first = first
 

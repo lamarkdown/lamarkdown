@@ -22,6 +22,11 @@ class Labeller:
         self._parent = parent
         self._count = count
         self._css_id = css_id
+        self._children = []
+
+
+    def add_child(self, child: 'Labeller'):
+        self._children.append(child)
 
 
     def _as_string_core(self):
@@ -72,13 +77,15 @@ class Labeller:
         return self._parent
 
     @property
+    def children(self):
+        return self._children
+
+    @property
     def count(self):
         return self._count
 
     @count.setter
     def count(self, n):
-        # self._str = None
-        # self._internal_str = None
         self._count = n
 
 
@@ -120,89 +127,9 @@ class LabellerFactory:
             self._labellers[key] = labeller
 
         labeller.count = count
+
+        if parent is not None:
+            parent.add_child(labeller)
+
         return labeller
 
-
-# class ListCounter:
-#     def __init__(self, #type: str,
-#                        template: LabelTemplate,
-#                        str_impl_only: bool = False,
-#                        parent: ListCounter = None,
-#                        count: int = 1):
-#         #self._type = type
-#         self._template = template
-#         self._str_impl_only = str_impl_only
-#         self._parent = parent
-#         self._count = count
-#
-#         self._str = None
-#         self._expr = None
-#         self._internal_str = None
-#         self._internal_expr = None
-#
-#         # We should pre-evaluate the whole 'parent' boolean expression somehow, both so that it
-#         # doesn't get duplicated below, and for slight efficiency.
-#         #
-#         # Basically, 'parent' can just be None if the expression would be false.
-#
-#
-#     def _as_internal_str(self):
-#         if not self._internal_str:
-#             # self._internal_str = (
-#             #     parent._as_internal_str()
-#             #     if parent and ((parent._type == 'h' and template.heading_parent) or
-#             #                    (parent._type in ['ol', 'ul'] and template.list_parent))
-#             #     else ''
-#             #     +
-#             #     ...
-#             # )
-#             self._internal_str = (
-#                 self._parent._as_internal_str() if self.p_parent else ''
-#                 +
-#                 self._template.counter_type.format(self._count)
-#             )
-#         return self._internal_str
-#
-#
-#     def _as_internal_expr(self):
-#         if self._str_impl_only:
-#             return self._as_internal_str()
-#
-#         if not self._internal_expr:
-#             if self._str_impl_only:
-#                 self._internal_expr = _as_css_str(self._as_internal_str())
-#             else:
-#                 # # TODO: not sure where to get the counter ID from yet
-#                 # self._internal_expr = f'counter({counter_id...}, {self._template.format})'
-#                 #
-#                 # if self._parent and (
-#                 #     (self._parent._type == 'h' and self._template.heading_parent) or
-#                 #     (self._parent._type in ['ol', 'ul'] and self._template.list_parent)):
-#                 #
-#                 #     self._internal_expr = f'{self.parent._as_internal_expr} {_as_css_str(self._template.separator)} {self._internal_expr}'
-#
-#                 # TODO: not sure where to get the counter ID from yet
-#                 self._internal_expr = f'counter({counter_id...}, {self._template.counter_type.css_id})'
-#
-#                 if self._parent:
-#                     self._internal_expr = f'{self._parent._as_internal_expr()} {_as_css_str(self._template.separator)} {self._internal_expr}'
-#
-#         return self._internal_expr
-#
-#     def as_str(self):
-#         if not self._str:
-#             self._str = f'{template.prefix}{self._as_internal_str()}{template.suffix}'
-#         return self._str
-#
-#     def as_expr(self):
-#         if not self._expr:
-#
-#     @property
-#     def count(self):
-#         return self._count
-#
-#     @count.setter
-#     def count(self, n):
-#         self._str = None
-#         self._internal_str = None
-#         self._count = n

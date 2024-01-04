@@ -9,27 +9,69 @@ class LabelTemplatesTestCase(unittest.TestCase):
     def test_parse(self):
         parser = LabelTemplateParser()
 
+        def template(pre, sep, suf, ctype, ptype, child):
+            return LabelTemplate(prefix = pre, separator = sep, suffix = suf,
+                                 counter_type = ctype, parent_type = ptype, child_template = child)
+
         for (template_str, expected_template) in [
-            ('(',   LabelTemplate(prefix = '(',
-                                  separator = '',
-                                  suffix = '',
-                                  parent_type = None,
-                                  counter_type = None,
-                                  child_template = None)),
-            ('(a)', LabelTemplate(prefix = '(',
-                                  separator = '',
-                                  suffix = ')',
-                                  parent_type = None,
-                                  counter_type = get_counter_type('a'),
-                                  child_template = None))
+            # Basic templates
+            ('(',       template('(',   '',  '',  None,                  None, None)),
+            ('(a',      template('(',   '',  '',  get_counter_type('a'), None, None)),
+            ('a)',      template('',    '',  ')', get_counter_type('a'), None, None)),
+            ('(a)',     template('(',   '',  ')', get_counter_type('a'), None, None)),
+
+            # Parent counter specification
+            ('(X.a)',   template('(',   '.', ')', get_counter_type('a'), '',   None)),
+            ('X.a',     template('',    '.', '',  get_counter_type('a'), '',   None)),
+            ('(H.a)',   template('(',   '.', ')', get_counter_type('a'), 'h',  None)),
+            ('(H3.a)',  template('(',   '.', ')', get_counter_type('a'), 'h3', None)),
+            ('(L.a)',   template('(',   '.', ')', get_counter_type('a'), 'ol', None)),
+
+            # Handling of '-' (allowed as an internal character within counter names)
+            ('-X-lower-alpha-', template('-', '-', '-', get_counter_type('lower-alpha'), '', None)),
+
+            # Quoted literals
+            ('"(a)"',         template('(a)',       '', '',    None,                  None, None)),
+            ("'(a)'",         template('(a)',       '', '',    None,                  None, None)),
+            ('"(a,""b,""c)"', template('(a,"b,"c)', '', '',    None,                  None, None)),
+            ("'(d,''e,''f)'", template("(d,'e,'f)", '', '',    None,                  None, None)),
+
+            ('a"a"',          template('',       '',    'a',   get_counter_type('a'), None, None)),
+            ('a."a".',        template('',       '',    '.a.', get_counter_type('a'), None, None)),
+            ('X"a"a',         template('',       'a',   '',    get_counter_type('a'), '',   None)),
+            ('X."a".a',       template('',       '.a.', '',    get_counter_type('a'), '',   None)),
+
+            # Child templates
+            ('(a),[1]',             template('(', '', ')',  get_counter_type('a'), None,
+                                        template('[', '', ']', get_counter_type('1'), None,
+                                            None))),
+
+            ('(H.a),[L:1],{X;i}',   template('(', '.', ')',  get_counter_type('a'), 'h',
+                                        template('[', ':', ']', get_counter_type('1'), 'ol',
+                                            template('{', ';', '}', get_counter_type('i'), '',
+                                                None)))),
         ]:
-            assert_that(expected_template, equal_to(parser.parse(template_str)))
+            assert_that(parser.parse(template_str),
+                        equal_to(expected_template),
+                        f'Parsing template "{template_str}"')
+
+
+    def test_parse_child_wildcard(self):
+        parser = LabelTemplateParser()
+
+        for template_str in ['a,*', '(1),*', 'X.i,*']:
+            template = parser.parse(template_str)
+            assert_that(template.child_template, same_instance(template))
+
+        template = parser.parse('a,(1),X.i,*')
+        assert_that(template.child_template.child_template.child_template,
+                    same_instance(template.child_template.child_template))
 
 
     def test_parse_error(self):
         parser = LabelTemplateParser()
 
-        for template_str in ['invalid-counter', 'a.a', 'X.a.a']:
+        for template_str in ['invalid-counter', 'a.a', 'X.a.a', 'a"']:
             try:
                 template = parser.parse(template_str)
                 self.fail(f'Parsing "{template_str}" should have raised LabelTemplateException, but produced template "{template}" instead')
