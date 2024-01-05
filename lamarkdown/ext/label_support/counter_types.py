@@ -54,7 +54,7 @@ class CounterType(abc.ABC):
     def format_impl(self, count) -> str: ...
 
     @property
-    def css_id(self): return self._name
+    def css_id(self): return self._css_id
 
     def __eq__(self, other):
         """
@@ -75,8 +75,6 @@ class CounterType(abc.ABC):
 
     def __hash__(self):
         return self._hash
-        # return hash((type(self), self._css_id, self._fallback, self._use_if, self._negative,
-        #              self._pad_width, self._pad_symbol, self._eq_extra))
 
 
 class NumericCounter(CounterType):
@@ -197,14 +195,14 @@ def get_counter_type(name: str) -> CounterType:
         'lower-greek':          lambda: AlphabeticCounter(name, 'αβγδεζηθικλμνξοπρστυφχψω'),
 
         'lower-roman':
-            lambda: AdditiveCounter('lower-roman',
+            lambda: AdditiveCounter(name,
             {
                 1000: 'm', 900: 'cm', 500: 'd', 400: 'cd', 100: 'c', 90: 'xc', 50: 'l', 40: 'xl',
                 10: 'x', 9: 'ix', 5: 'v', 4: 'iv', 1: 'i'
             }),
 
         'upper-roman':
-            lambda: AdditiveCounter('upper-roman',
+            lambda: AdditiveCounter(name,
             {
                 1000: 'M', 900: 'CM', 500: 'D', 400: 'CD', 100: 'C', 90: 'XC', 50: 'L', 40: 'XL',
                 10: 'X', 9: 'IX', 5: 'V', 4: 'IV', 1: 'I'

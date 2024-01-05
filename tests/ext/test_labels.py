@@ -2,15 +2,16 @@ from ..util import mock_progress, html_block_processor
 import lamarkdown.ext
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from hamcrest import *
 
 import markdown
-import lxml.html
+# import lxml.html
 
+import io
 import re
 import sys
-import tempfile
+# import tempfile
 from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
@@ -505,44 +506,60 @@ class LabelsTestCase(unittest.TestCase):
         )
 
 
-    # def test_mixed(self):
-    #     '''Interspersed headings and ordered lists, with interacting labels.'''
-    #
-    #     html = self.run_markdown(self.MIXED_TESTDATA,
-    #                              h_labels = "X.A.,*",
-    #                              h_level = 2,
-    #                              ol_labels = "X.1.,*")
-    #
-    #     self.assertRegex(
-    #         html,
-    #         fr'''(?xs)
-    #         \s* <h1>Section1</h1>
-    #         \s* <ol[ ]class="la-labelled">
-    #         \s*   <li><span[ ]class="la-label">1.</span>ItemA</li>
-    #         \s*   <li><span[ ]class="la-label">2.</span>
-    #         \s*     <p>ItemB</p>
-    #         \s*     <h2><span[ ]class="la-label">2.A.</span>Section2</h2>
-    #         \s*     <ol[ ]class="la-labelled">
-    #         \s*       <li><span[ ]class="la-label">2.A.1</span>
-    #         \s*         <p>ItemC</p>
-    #         \s*         <ol[ ]class="la-labelled">
-    #         \s*           <li><span[ ]class="la-label">2.A.1.1</span>
-    #         \s*             <p>ItemD</p>
-    #         \s*             <h3><span[ ]class="la-label">2.A.1.1.A</span>Section3</h3>
-    #         \s*           </li>
-    #         \s*           <li><span[ ]class="la-label">2.A.1.2</span>
-    #         \s*             <p>ItemE</p>
-    #         \s*             <h3><span[ ]class="la-label">2.A.1.2.A</span>Section4</h3>
-    #         \s*             <h4><span[ ]class="la-label">2.A.1.2.A.A</span>Section5</h4>
-    #         \s*           </li>
-    #         \s*         </ol>
-    #         \s*       </li>
-    #         \s*     </ol>
-    #         \s*   </li>
-    #         \s* </ol>
-    #         \s*
-    #         '''
-    #     )
+    def test_mixed(self):
+        '''Interspersed headings and ordered lists, with interacting labels.'''
+
+        html = self.run_markdown(self.MIXED_TESTDATA,
+                                 h_labels = "X.A,*",
+                                 h_level = 2,
+                                 ol_labels = "X.1,*")
+
+        self.assertRegex(
+            html,
+            fr'''(?xs)
+            \s* <h1>Section1</h1>
+            \s* <ol[ ]class="la-labelled">
+            \s*   <li><span[ ]class="la-label">1</span>ItemA</li>
+            \s*   <li><span[ ]class="la-label">2</span>
+            \s*     <p>ItemB</p>
+            \s*     <h2><span[ ]class="la-label">2.A</span>Section2</h2>
+            \s*     <ol[ ]class="la-labelled">
+            \s*       <li><span[ ]class="la-label">2.A.1</span>
+            \s*         <p>ItemC</p>
+            \s*         <ol[ ]class="la-labelled">
+            \s*           <li><span[ ]class="la-label">2.A.1.1</span>
+            \s*             <p>ItemD</p>
+            \s*             <h3><span[ ]class="la-label">2.A.1.1.A</span>Section3</h3>
+            \s*           </li>
+            \s*           <li><span[ ]class="la-label">2.A.1.2</span>
+            \s*             <p>ItemE</p>
+            \s*             <h3><span[ ]class="la-label">2.A.1.2.A</span>Section4</h3>
+            \s*             <h4><span[ ]class="la-label">2.A.1.2.A.A</span>Section5</h4>
+            \s*           </li>
+            \s*         </ol>
+            \s*       </li>
+            \s*     </ol>
+            \s*   </li>
+            \s* </ol>
+            \s*
+            '''
+        )
+
+
+    # TODO: test CSS labelling
+    def test_ordered_lists_css(self):
+
+        css = io.StringIO()
+
+        # print(f'{css.write=}')
+        html = self.run_markdown(self.ORDERED_LIST_TESTDATA,
+                                 ol_labels = 'L.1 ,*',
+                                 css_fn = css.write)
+
+        print(f'<style>\n{css.getvalue()}</style>')
+        print(html)
+
+        self.fail()
 
 
 

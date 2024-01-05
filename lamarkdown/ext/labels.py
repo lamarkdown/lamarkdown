@@ -120,10 +120,9 @@ Can we write <ol style="display: grid"><li style="display: list-style">...</ol>?
 from lamarkdown.ext.label_support.labellers import Labeller, LabellerFactory
 from lamarkdown.ext.label_support.label_templates import LabelTemplateParser
 
-from . import util
 import markdown
 
-from dataclasses import dataclass
+from textwrap import dedent
 from typing import List, Optional
 from xml.etree import ElementTree
 
@@ -148,272 +147,240 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self._ol_template = ol_template and self._parser.parse(ol_template)
         self._ul_template = ul_template and self._parser.parse(ul_template)
 
+        # State
+        self._labeller_stack = []
         self._previous_h_level = -1
+        self._css_done = set()
 
 
-    def _find_parent_labeller(self, stack: List[Labeller],
-                                    parent_type: Optional[str]) -> Optional[Labeller]:
+
+    def _find_labeller(self, parent_type: Optional[str]) -> Optional[Labeller]:
         if parent_type is None:
             return None
-        for labeller in reversed(stack):
+        for labeller in reversed(self._labeller_stack):
             if labeller.element_type.startswith(parent_type):
                 return labeller
         return None
 
 
-    def run(self, root):
-
-        labeller_stack = []
-        # heading_indexes = {}
-        css_class_n = 0
-
-        disable_list_style_type = False
-
-        def recurse(element):
-
-            if element.tag in {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}:
-
-                cur_h_level = int(element.tag[1])
-
-                # labeller = None
-                # if cur_h_level in heading_indexes:
-                    # labeller = labeller_stack[heading_indexes[cur_h_level]]
-                    # labeller = self._find_parent_labeller(labeller_stack, element.tag)
-
-                # A labeller already exists (from a previous sibling heading)
-                labeller = self._find_parent_labeller(labeller_stack, element.tag)
-
-                    # If a ':label' directive is provided _as well_, then we replace the current
-                    # labeller with a new one.
-
-                    # if (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
-                    #     del element.attrib[LABEL_DIRECTIVE]
-                    #     labeller_stack.remove(labeller)
-                    #     labeller = self._labeller_factory.get(
-                    #         element_type = element.tag,
-                    #         template = self._parser.parse(new_template_str),
-                    #         parent = labeller.parent
-                    #     )
-                    #     labeller_stack.append(labeller)
-                    #     #labeller_stack[heading_indexes[cur_h_level]] = labeller
-
-                if labeller is None:
-                    # If no labeller exists, first see if there's a ':label' directive
-                    template = None
-                    if (template_str := element.get(LABEL_DIRECTIVE)) is not None:
-                        del element.attrib[LABEL_DIRECTIVE]
-                        template = self._parser.parse(template_str)
-
-                    # Failing that, see if a parent heading labeller specifies an inner template
-                    # if template is None and (cur_h_level - 1) in heading_indexes:
-                    #     template = labeller_stack[heading_indexes[cur_h_level - 1]].template.inner_template
-                    if template is None and (outer_labeller := self._find_parent_labeller(
-                        labeller_stack, f'h{cur_h_level - 1}')) is not None:
-
-                        template = outer_labeller.template.inner_template
-
-                    # Failing that, maybe the configuration option is applicable
-                    if template is None and cur_h_level == self._h_level:
-                        template = self._h_template
-
-                    # TODO: catch LabelTemplateException from self._parser.parse()
-
-                    if template is not None:
-                        labeller = self._labeller_factory.get(
-                            element.tag,
-                            template,
-                            parent = self._find_parent_labeller(labeller_stack, template.parent_type)
-                        )
-                        labeller_stack.append(labeller)
-
-                elif (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
-                    del element.attrib[LABEL_DIRECTIVE]
-                    labeller_stack.remove(labeller)
-                    labeller = self._labeller_factory.get(
-                        element_type = element.tag,
-                        template = self._parser.parse(new_template_str),
-                        parent = labeller.parent
-                    )
-                    labeller_stack.append(labeller)
+    def _css(self, css: str):
+        if css in self._css_done: return
+        self._css_done.add(css)
+        self._css_fn(dedent(css))
 
 
-                if labeller is not None:
-                    labeller.count += 1
+    def _recurse(self, element):
+        if element.tag in {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}:
 
-                    # if cur_h_level not in heading_indexes:
-                    #     # Starting a new heading level
-                    #     heading_indexes[cur_h_level] = len(labeller_stack) - 1
-                    #     # labeller_stack.append(labeller)
+            cur_h_level = int(element.tag[1])
 
-                    label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
-                    label_elem.text = labeller.as_string()
-                    label_elem.tail = element.text
-                    element.text = ''
-                    element.insert(0, label_elem)
+            # Maybe a labeller already exists (from a previous sibling heading)
+            labeller = self._find_labeller(element.tag)
 
-                # Note: we don't recurse into heading elements. If you have <h2><ul>...</ul></h2>,
-                # you get what you deserve.
-
-                if self._previous_h_level > cur_h_level:
-                    # Finishing (at least) one heading level, and continuing with a higher- level
-                    # heading.
-
-                    for i in range(self._previous_h_level, cur_h_level, -1):
-                        # if i in heading_indexes:
-                        #
-                        #     del labeller_stack[heading_indexes[i]]
-                        #     del heading_indexes[i]
-
-                        if (inner_labeller := self._find_parent_labeller(labeller_stack, f'h{i}')) is not None:
-                            labeller_stack.remove(inner_labeller)
-
-                        # if i in heading_indexes:
-                        #     del labeller_stack[heading_indexes[i]]
-                        #     del heading_indexes[i]
-
-
-                self._previous_h_level = cur_h_level
-
-
-            # TODO (future):
-            # - number <table><caption>... and <figure><figcaption>...
-            # - provide a way to define new numbering series (e.g., listings, equations, etc.)
-
-            # NOTE: There are other types of lists as well: <menu>/<li> and <dd>/<dt>/<dl>, but numbering these is likely a rarefied use case.
-
-            elif element.tag in {'ul', 'ol'}:
-
-                disable_list_style_type = True
-
-                # TODO (future): check for a 'resume' directive, and if found, re-use an existing sibling list labeller.
-
-                # Find the explicit label directive, if any
+            if labeller is None:
+                # If no labeller exists, first see if there's a ':label' directive
                 template = None
                 if (template_str := element.get(LABEL_DIRECTIVE)) is not None:
                     del element.attrib[LABEL_DIRECTIVE]
                     template = self._parser.parse(template_str)
 
-                # Otherwise, see if there's a inner template
-                if (template is None and
-                    (outer_labeller := self._find_parent_labeller(labeller_stack, element.tag)) is not None
-                ):
+                # Failing that, see if a parent heading labeller specifies an inner template
+                if template is None and (
+                    outer_labeller := self._find_labeller(f'h{cur_h_level - 1}')) is not None:
+
                     template = outer_labeller.template.inner_template
 
-                # Otherwise, maybe the configuration option is applicable (if this is a top-level list)
-                if template is None and len(labeller_stack) == 0:
-                    template = self._ul_template if element.tag == 'ul' else self._ol_template
+                # Failing that, maybe the configuration option is applicable
+                if template is None and cur_h_level == self._h_level:
+                    template = self._h_template
+
+                # TODO: catch LabelTemplateException from self._parser.parse()
 
                 if template is not None:
-
                     labeller = self._labeller_factory.get(
-                        element_type = element.tag,
-                        template = template, #self._parser.parse(template_str),
-                        parent = self._find_parent_labeller(labeller_stack, template.parent_type)
+                        element.tag,
+                        template,
+                        parent = self._find_labeller(template.parent_type)
                     )
-                    # TODO: catch LabelTemplateException from self._parser.parse()
+                    self._labeller_stack.append(labeller)
 
-                    list_index = len(labeller_stack)
-                    labeller_stack.append(labeller)
+            elif (new_template_str := element.get(LABEL_DIRECTIVE)) is not None:
 
-                    if self._css_fn is None:
-                        element.set('class', LABELLED_CSS_CLASS)
-                    else:
-                        # Render CSS logic, if possible
-                        li_css_counter = None
-                        css_counter = labeller.get_css_counter()
-                        element.set('class', f'{LABELLED_CSS_CLASS} {css_counter}')
-                        self._css_fn(f'''
-                            .{css_counter} {{
-                                counter-reset: {css_counter};
-                            }}
-                            .{css_counter} > li {{
-                                counter-increment: {css_counter};
-                            }}
-                            .{css_counter} > li::before {{
-                                content: {labeller.as_css_expr()};
-                            }}
-                        ''')
-
-                    for li in element:
-                        # Lists generally contain just <li> elements, but it doesn't hurt to check.
-                        if li.tag == 'li':
-
-                            if (new_template_str := li.get(LABEL_DIRECTIVE)) is not None:
-                                del li.attrib[LABEL_DIRECTIVE]
-                                # labeller.reset(new_template = self._parse_template(new_template_str))
-                                labeller = self._labeller_factory.get(
-                                    element_type = element.tag,
-                                    template = self._parser.parse(new_template_str),
-                                    parent = labeller.parent
-                                )
-                                labeller_stack[-1] = labeller
-
-                                if self._css_fn is not None:
-                                    li_css_counter = labeller.get_css_counter()
-                                    css._css_fn(f'''
-                                        li.{li_css_counter} {{
-                                            counter-increment: {li_css_counter};
-                                        }}
-                                        li.{li_css_counter}::before {{
-                                            content: {labeller.as_css_expr()};
-                                        }}
-                                    ''')
-
-                                    s = li.get('style')
-                                    li.set('style',
-                                           ((s + '; ') if s else '')
-                                           + f'conter-reset: {li_css_counter}')
-
-                            labeller.count += 1
-
-                            # Render embedded HTML text, if necessary
-                            if self._css_fn is None:
-                                label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
-                                label_elem.text = labeller.as_string()
-                                label_elem.tail = li.text
-                                li.text = ''
-                                li.insert(0, label_elem)
-
-                            elif li_css_counter is not None:
-                                li.set('class', li_css_counter)
-
-                            for child_elem in li:
-                                recurse(child_elem)
+                # A labeller does already exist, but a new template has been given
+                del element.attrib[LABEL_DIRECTIVE]
+                self._labeller_stack.remove(labeller)
+                labeller = self._labeller_factory.get(
+                    element_type = element.tag,
+                    template = self._parser.parse(new_template_str),
+                    parent = labeller.parent
+                )
+                self._labeller_stack.append(labeller)
 
 
-                    # This labeller is ending, so remove all labellers dependent on it.
-                    for child_labeller in labeller.children:
-                        try:
-                            labeller_stack.remove(child_labeller)
-                        except ValueError:
-                            pass # Doesn't matter if not in stack
+            if labeller is not None:
+                labeller.count += 1
+                label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
+                label_elem.text = labeller.as_string()
+                label_elem.tail = element.text
+                element.text = ''
+                element.insert(0, label_elem)
 
-                    del labeller_stack[list_index]
-                    # labeller_stack.pop()
+            # Note: we don't recurse into heading elements. If you have <h2><ul>...</ul></h2>,
+            # you get what you deserve.
 
+            if self._previous_h_level > cur_h_level:
+                # Finishing (at least) one heading level, and continuing with a higher- level
+                # heading.
+
+                for i in range(self._previous_h_level, cur_h_level, -1):
+                    if (inner_labeller := self._find_labeller(f'h{i}')) is not None:
+                        self._labeller_stack.remove(inner_labeller)
+
+
+            self._previous_h_level = cur_h_level
+
+
+        # TODO (future):
+        # - number <table><caption>... and <figure><figcaption>...
+        # - provide a way to define new numbering series (e.g., listings, equations, etc.)
+
+        # NOTE: There are other types of lists as well: <menu>/<li> and <dd>/<dt>/<dl>, but numbering these is likely a rarefied use case.
+
+        elif element.tag in {'ul', 'ol'}:
+
+            # self._disable_list_style_type = True
+            if self._css_fn is not None:
+                self._css(f'''
+                    .la-labelled > li {{
+                        list-style-type: none;
+                    }}
+                ''')
+
+            # TODO (future): check for a 'resume' directive, and if found, re-use an existing sibling list labeller.
+
+            # Find the explicit label directive, if any
+            template = None
+            if (template_str := element.get(LABEL_DIRECTIVE)) is not None:
+                del element.attrib[LABEL_DIRECTIVE]
+                template = self._parser.parse(template_str)
+
+            # Otherwise, see if there's a inner template
+            if (template is None and
+                (outer_labeller := self._find_labeller(element.tag)) is not None
+            ):
+                template = outer_labeller.template.inner_template
+
+            # Otherwise, maybe the configuration option is applicable (if this is a top-level list)
+            if template is None and len(self._labeller_stack) == 0:
+                template = self._ul_template if element.tag == 'ul' else self._ol_template
+
+            if template is not None:
+
+                labeller = self._labeller_factory.get(
+                    element_type = element.tag,
+                    template = template, #self._parser.parse(template_str),
+                    parent = self._find_labeller(template.parent_type)
+                )
+                # TODO: catch LabelTemplateException from self._parser.parse()
+
+                list_index = len(self._labeller_stack)
+                self._labeller_stack.append(labeller)
+
+                if self._css_fn is None:
+                    element.set('class', LABELLED_CSS_CLASS)
                 else:
-                    # We're not styling this list, but we must recurse to find other elements.
-                    for child_elem in element:
-                        recurse(child_elem)
+                    # Render CSS logic, if possible
+                    li_css_counter = None
+                    css_counter = labeller.get_css_counter()
+                    element.set('class', f'{LABELLED_CSS_CLASS} {css_counter}')
+                    self._css(f'''
+                        .{css_counter} {{
+                            counter-reset: {css_counter};
+                        }}
+                        .{css_counter} > li {{
+                            counter-increment: {css_counter};
+                        }}
+                        .{css_counter} > li::before {{
+                            content: {labeller.as_css_expr()};
+                        }}
+                    ''')
+
+
+                for li in element:
+                    # Lists generally contain just <li> elements, but it doesn't hurt to check.
+                    if li.tag == 'li':
+
+                        if (new_template_str := li.get(LABEL_DIRECTIVE)) is not None:
+                            del li.attrib[LABEL_DIRECTIVE]
+                            labeller = self._labeller_factory.get(
+                                element_type = element.tag,
+                                template = self._parser.parse(new_template_str),
+                                parent = labeller.parent
+                            )
+                            self._labeller_stack[-1] = labeller
+
+                            if self._css_fn is not None:
+                                li_css_counter = labeller.get_css_counter()
+                                self._css(f'''
+                                    li.{li_css_counter} {{
+                                        counter-increment: {li_css_counter};
+                                    }}
+                                    li.{li_css_counter}::before {{
+                                        content: {labeller.as_css_expr()};
+                                    }}
+                                ''')
+
+                                s = li.get('style')
+                                li.set('style',
+                                        ((s + '; ') if s else '')
+                                        + f'conter-reset: {li_css_counter}')
+
+                        labeller.count += 1
+
+                        # Render embedded HTML text, if necessary
+                        if self._css_fn is None:
+                            label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
+                            label_elem.text = labeller.as_string()
+                            label_elem.tail = li.text
+                            li.text = ''
+                            li.insert(0, label_elem)
+
+                        elif li_css_counter is not None:
+                            li.set('class', li_css_counter)
+
+                        for child_elem in li:
+                            self._recurse(child_elem)
+
+                        # Clear all other labellers that have become dependent on this one.
+                        for child_labeller in labeller.children:
+                            try:
+                                self._labeller_stack.remove(child_labeller)
+                            except ValueError:
+                                pass # Doesn't matter if not in stack
+                        labeller.children.clear()
+
+                del self._labeller_stack[list_index]
 
             else:
+                # We're not styling this list, but we must recurse to find other elements.
                 for child_elem in element:
-                    recurse(child_elem)
-        # end-def
+                    self._recurse(child_elem)
 
-        recurse(root)
+        else:
+            # Non-labellable elements
+            for child_elem in element:
+                self._recurse(child_elem)
 
-        if disable_list_style_type:
-            self._css_fn(f'''
-                .la-label > li {{
-                    list-style-type: none;
-                }}
-            ''')
 
+
+    def run(self, root):
+        self._recurse(root)
         return root
 
 
-LABEL_DEFAULT = 'default'
+_LABEL_DEFAULT = 'default'
+_FN_DEFAULT = lambda: 0
+
 
 class LabelsExtension(markdown.Extension):
     def __init__(self, **kwargs):
@@ -426,12 +393,12 @@ class LabelsExtension(markdown.Extension):
 
         self.config = {
             'css_fn': [
-                lamarkdown.css if p else None,
+                lamarkdown.css if p else _FN_DEFAULT,
                 'Callback function accepting CSS code via a string parameter. This enables CSS-based numbering (for <ol> elements). This may be "None", in which case list labels will be computed at compile-time and embedded in the HTML as plain text.'
             ],
 
             'h_labels': [
-                LABEL_DEFAULT, #'H.1 ,*',
+                _LABEL_DEFAULT, #'H.1 ,*',
                 'Default heading template, to be applied at heading level "h_level".'
             ],
 
@@ -441,12 +408,12 @@ class LabelsExtension(markdown.Extension):
             ],
 
             'ol_labels': [
-                LABEL_DEFAULT, #'1.,(a)',
+                _LABEL_DEFAULT, #'1.,(a)',
                 'Default ordered list template, to be applied starting at the top-most ordered list level.'
             ],
 
             'ul_labels': [
-                LABEL_DEFAULT, #'▪,•,◦,*',
+                _LABEL_DEFAULT, #'▪,•,◦,*',
                 'Default unordered list template, to be applied starting at the top-most unordered list level.'
             ]
         }
@@ -458,17 +425,18 @@ class LabelsExtension(markdown.Extension):
         # provides a convenient way to apply ':label' directives to lists. However, attr_prefix
         # isn't loaded automatically here, because this extension might still be useful without it.
 
+        css_fn = self.getConfig('css_fn')
         h_template = self.getConfig('h_labels')
         ul_template = self.getConfig('ul_labels')
         ol_template = self.getConfig('ol_labels')
 
         proc = LabelsTreeProcessor(
             md,
-            css_fn      = self.getConfig('css_fn'),
-            h_template  = None if h_template == LABEL_DEFAULT else h_template,
+            css_fn      = None if css_fn is _FN_DEFAULT else css_fn,
+            h_template  = None if h_template is _LABEL_DEFAULT else h_template,
             h_level     = self.getConfig('h_level'),
-            ul_template = None if ul_template == LABEL_DEFAULT else ul_template,
-            ol_template = None if ol_template == LABEL_DEFAULT else ol_template,
+            ul_template = None if ul_template is _LABEL_DEFAULT else ul_template,
+            ol_template = None if ol_template is _LABEL_DEFAULT else ol_template,
         )
 
         md.treeprocessors.register(proc, 'la-labels-tree', 6)

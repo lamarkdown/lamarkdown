@@ -13,6 +13,15 @@ class LabelTemplate:
     counter_type: Optional[counter_types.CounterType]
     inner_template: Optional['LabelTemplate']
 
+    def __repr__(self):
+        parent_spec = {'': 'X', 'ol': 'L'}.get(self.parent_type, self.parent_type)
+        inner_spec = (
+            ',*'    if self.inner_template is self
+            else '' if self.inner_template is None
+            else repr(self.inner_template)
+        )
+        return f'{self.prefix}{parent_spec}{self.separator}{self.counter_type.css_id}{self.suffix}{inner_spec}'
+
 
 class LabelTemplateException(Exception): pass
 

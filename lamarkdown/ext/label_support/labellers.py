@@ -29,6 +29,10 @@ class Labeller:
         self._children.append(child)
 
 
+    def reset_children(self):
+        self._children.clear()
+
+
     def _as_string_core(self):
         s = self._template.counter_type.format(self._count)
         return (
@@ -47,7 +51,8 @@ class Labeller:
         else:
             expr = f'counter({self.get_css_counter()}, {self._template.counter_type.css_id})'
             if self._parent is not None:
-                expr = f'{self._parent._as_css_expr_core()} {self._template.separator} {expr}'
+                sep = _as_css_str(self._template.separator)
+                expr = f'{self._parent._as_css_expr_core()} {sep} {expr}'
             return expr
 
 
@@ -62,7 +67,7 @@ class Labeller:
 
 
     def get_css_counter(self):
-        return self._css_id and f'la-label{self._css_id}'
+        return None if self._css_id is None else f'la-label{self._css_id}'
 
     @property
     def element_type(self):
@@ -87,6 +92,9 @@ class Labeller:
     @count.setter
     def count(self, n):
         self._count = n
+
+    def __repr__(self):
+        return f'Labeller({self._element_type}, {self._template}, {self._count}, {self._css_id})'
 
 
 def _as_css_str(string):
@@ -129,6 +137,7 @@ class LabellerFactory:
         labeller.count = count
 
         if parent is not None:
+            print(f'{parent=}, {labeller=}')
             parent.add_child(labeller)
 
         return labeller
