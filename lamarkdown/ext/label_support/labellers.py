@@ -3,14 +3,10 @@ from typing import Optional
 
 
 class Labeller:
-    # TODO: ListCounter needs to have a unique ID, because it needs to create CSS counters and refer back to them.
-    # Also, if we get it to create an entire set of CSS rules (not just a content expression), then it needs IDs
-    # to match those rules to elements.
-
-    # Ideally I want to reuse CSS where possible, rather than duplicating it. Which means:
-    # 1. I need a dict somewhere to store CSS class names (as these are the only(?) things required to be embedded in the HTML.
-    # 2. The dict keys should be... templates, plus some representation of the parent template? i.e., lists containing all ancestor templates plus the current one. (Not necessary to include child templates.)
-
+    '''
+    Tracks and renders labels (particularly counter-based labels, though fixed labels too) for
+    headings, lists and potentially other elements.
+    '''
     def __init__(self, element_type: str,
                        template: LabelTemplate,
                        parent: Optional['Labeller'] = None,
@@ -34,26 +30,28 @@ class Labeller:
 
 
     def _as_string_core(self):
+        if self._template.counter_type is None:
+            return ''
+
         s = self._template.counter_type.format(self._count)
-        return (
-            s if self._parent is None
-            else f'{self._parent._as_string_core()}{self._template.separator}{s}'
-        )
+        if self._parent is None:
+            return s
+
+        return f'{self._parent._as_string_core()}{self._template.separator}{s}'
 
 
     def _as_css_expr_core(self):
+        if self._template.counter_type is None:
+            return ''
+
         if self._css_id is None:
             return _as_css_str(self._as_string_core())
 
-        elif self._template.counter_type is None:
-            return ''
-
-        else:
-            expr = f'counter({self.get_css_counter()}, {self._template.counter_type.css_id})'
-            if self._parent is not None:
-                sep = _as_css_str(self._template.separator)
-                expr = f'{self._parent._as_css_expr_core()} {sep} {expr}'
-            return expr
+        expr = f'counter({self.get_css_class()},{self._template.counter_type.css_id})'
+        if self._parent is not None:
+            sep = _as_css_str(self._template.separator)
+            expr = f'{self._parent._as_css_expr_core()} {sep} {expr}'.strip()
+        return expr
 
 
     def as_string(self):
@@ -63,10 +61,15 @@ class Labeller:
     def as_css_expr(self):
         prefix = _as_css_str(self._template.prefix)
         suffix = _as_css_str(self._template.suffix)
-        return f'{prefix} {self._as_css_expr_core()} {suffix}'
+        return f'{prefix} {self._as_css_expr_core()} {suffix}'.strip()
 
 
-    def get_css_counter(self):
+    def get_css_class(self):
+        '''
+        Name to be used to _both_:
+        (a) identify a container for CSS styling purposes, and
+        (b) identify the CSS counter to keep track of the numbering.
+        '''
         return None if self._css_id is None else f'la-label{self._css_id}'
 
     @property
@@ -113,7 +116,7 @@ class LabellerFactory:
             count: int = 0,
             css: bool = True):
 
-        key_list = [template.counter_type, template.prefix, template.suffix]
+        key_list = [template.counter_type, css, template.prefix, template.suffix]
         cur_parent = parent
         while cur_parent is not None:
             key_list.append(cur_parent.template.counter_type)
@@ -124,7 +127,7 @@ class LabellerFactory:
 
         labeller = self._labellers.get(key)
         if labeller is None:
-            if css is None:
+            if css is False:
                 css_id = None
             else:
                 css_id = self._next_id
@@ -137,7 +140,6 @@ class LabellerFactory:
         labeller.count = count
 
         if parent is not None:
-            print(f'{parent=}, {labeller=}')
             parent.add_child(labeller)
 
         return labeller

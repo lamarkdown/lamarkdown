@@ -55,9 +55,6 @@ TEMPLATE_REGEX = re.compile(fr'''(?x)
     \s*
 ''')
 
-# STATIC_LABELS = {'disc': '•', 'circle': '◦', 'square': '▪'}
-
-
 QUOTED_LITERAL_REGEX = re.compile(f'(?sx){QUOTED_LITERAL}')
 ESCAPED_QUOTES = {'"': re.compile('""'),
                   "'": re.compile("''")}
@@ -95,10 +92,12 @@ class LabelTemplateParser:
 
         counter_type = None
         if (counter_name := match.group('format')) is not None:
-            counter_type = counter_types.get_counter_type(counter_name)
-            if counter_type is None:
+            try:
+                counter_type = counter_types.get_counter_type(counter_name)
+            except KeyError as e:
                 raise LabelTemplateException(
-                    f'Invalid counter type "{counter_name}" in label template "{template_str}"')
+                    f'Invalid counter type "{counter_name}" in label template "{template_str}"'
+                ) from e
 
         template = LabelTemplate(
             prefix         = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix')),

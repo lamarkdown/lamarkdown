@@ -1,23 +1,15 @@
 '''
 # List Label Extension
 
----
+Assigns counter-based (or fixed) labels to headings and/or list items, either by embedding label
+text directly in the HTML (for headings), or by employing CSS properties to render labels.
+
+
+
+
+
 
 ## Configuration options
-
-//Parameters:
-//* h_level
-//* ol_level
-//* inner_h_level
-//* inner_ol_level
-//* counter
-//* counter_list
-//* element
-//* element_list
-//* style_list
-//
-//Applies to all <li> and <hx> elements.
-
 
 h_labels=<template_list>
 h_label_level=1..6 -- heading level at which to apply the h_label template list.
@@ -200,7 +192,8 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     labeller = self._labeller_factory.get(
                         element.tag,
                         template,
-                        parent = self._find_labeller(template.parent_type)
+                        parent = self._find_labeller(template.parent_type),
+                        css = False
                     )
                     self._labeller_stack.append(labeller)
 
@@ -212,7 +205,8 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 labeller = self._labeller_factory.get(
                     element_type = element.tag,
                     template = self._parser.parse(new_template_str),
-                    parent = labeller.parent
+                    parent = labeller.parent,
+                    css = False
                 )
                 self._labeller_stack.append(labeller)
 
@@ -251,9 +245,7 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
             # self._disable_list_style_type = True
             if self._css_fn is not None:
                 self._css(f'''
-                    .la-labelled > li {{
-                        list-style-type: none;
-                    }}
+                    .la-labelled>li{{list-style-type:none;}}
                 ''')
 
             # TODO (future): check for a 'resume' directive, and if found, re-use an existing sibling list labeller.
@@ -290,19 +282,17 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     element.set('class', LABELLED_CSS_CLASS)
                 else:
                     # Render CSS logic, if possible
-                    li_css_counter = None
-                    css_counter = labeller.get_css_counter()
-                    element.set('class', f'{LABELLED_CSS_CLASS} {css_counter}')
+                    li_css_class = None
+                    css_class = labeller.get_css_class()
+                    element.set('class', f'{LABELLED_CSS_CLASS} {css_class}')
+                    if template.counter_type is not None:
+                        self._css(f'''
+                            .{css_class}{{counter-reset:{css_class};}}
+                            .{css_class}>li{{counter-increment:{css_class};}}
+                        ''')
+
                     self._css(f'''
-                        .{css_counter} {{
-                            counter-reset: {css_counter};
-                        }}
-                        .{css_counter} > li {{
-                            counter-increment: {css_counter};
-                        }}
-                        .{css_counter} > li::before {{
-                            content: {labeller.as_css_expr()};
-                        }}
+                        .{css_class}>li::before{{content:{labeller.as_css_expr()};}}
                     ''')
 
 
@@ -320,20 +310,19 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                             self._labeller_stack[-1] = labeller
 
                             if self._css_fn is not None:
-                                li_css_counter = labeller.get_css_counter()
+                                li_css_class = labeller.get_css_class()
+                                if template.counter_type is not None:
+                                    self._css(f'''
+                                        li.{li_css_class}{{counter-increment:{li_css_class};}}
+                                    ''')
                                 self._css(f'''
-                                    li.{li_css_counter} {{
-                                        counter-increment: {li_css_counter};
-                                    }}
-                                    li.{li_css_counter}::before {{
-                                        content: {labeller.as_css_expr()};
-                                    }}
+                                    li.{li_css_class}::before{{content:{labeller.as_css_expr()};}}
                                 ''')
 
                                 s = li.get('style')
                                 li.set('style',
                                         ((s + '; ') if s else '')
-                                        + f'conter-reset: {li_css_counter}')
+                                        + f'counter-reset:{li_css_class}')
 
                         labeller.count += 1
 
@@ -345,8 +334,8 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                             li.text = ''
                             li.insert(0, label_elem)
 
-                        elif li_css_counter is not None:
-                            li.set('class', li_css_counter)
+                        elif li_css_class is not None:
+                            li.set('class', li_css_class)
 
                         for child_elem in li:
                             self._recurse(child_elem)

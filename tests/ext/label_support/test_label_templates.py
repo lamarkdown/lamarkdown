@@ -9,9 +9,9 @@ class LabelTemplatesTestCase(unittest.TestCase):
     def test_parse(self):
         parser = LabelTemplateParser()
 
-        def template(pre, sep, suf, ctype, ptype, child):
+        def template(pre, sep, suf, ctype, ptype, inner):
             return LabelTemplate(prefix = pre, separator = sep, suffix = suf,
-                                 counter_type = ctype, parent_type = ptype, child_template = child)
+                                 counter_type = ctype, parent_type = ptype, inner_template = inner)
 
         for (template_str, expected_template) in [
             # Basic templates
@@ -41,7 +41,7 @@ class LabelTemplatesTestCase(unittest.TestCase):
             ('X"a"a',         template('',       'a',   '',    get_counter_type('a'), '',   None)),
             ('X."a".a',       template('',       '.a.', '',    get_counter_type('a'), '',   None)),
 
-            # Child templates
+            # Inner templates
             ('(a),[1]',             template('(', '', ')',  get_counter_type('a'), None,
                                         template('[', '', ']', get_counter_type('1'), None,
                                             None))),
@@ -56,16 +56,16 @@ class LabelTemplatesTestCase(unittest.TestCase):
                         f'Parsing template "{template_str}"')
 
 
-    def test_parse_child_wildcard(self):
+    def test_parse_inner_wildcard(self):
         parser = LabelTemplateParser()
 
         for template_str in ['a,*', '(1),*', 'X.i,*']:
             template = parser.parse(template_str)
-            assert_that(template.child_template, same_instance(template))
+            assert_that(template.inner_template, same_instance(template))
 
         template = parser.parse('a,(1),X.i,*')
-        assert_that(template.child_template.child_template.child_template,
-                    same_instance(template.child_template.child_template))
+        assert_that(template.inner_template.inner_template.inner_template,
+                    same_instance(template.inner_template.inner_template))
 
 
     def test_parse_error(self):

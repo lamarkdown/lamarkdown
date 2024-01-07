@@ -6,19 +6,14 @@ from unittest.mock import patch
 from hamcrest import *
 
 import markdown
-# import lxml.html
 
 import io
 import re
 import sys
-# import tempfile
 from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
-
-# TODO
-# - test label directive overriding child template
 
 
 class LabelsTestCase(unittest.TestCase):
@@ -26,17 +21,11 @@ class LabelsTestCase(unittest.TestCase):
     def run_markdown(self, markdown_text,
                            more_extensions = [],
                            expect_error = False,
-                           # hook = lambda md: None,
                            **kwargs):
-        # self.progress = mock_progress.MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.labels', *more_extensions],
-            extension_configs = {'la.labels': {
-                # 'progress': self.progress,
-                **kwargs
-            }}
+            extension_configs = {'la.labels': kwargs}
         )
-        # hook(md)
         return md.convert(dedent(markdown_text).strip())
 
 
@@ -55,7 +44,6 @@ class LabelsTestCase(unittest.TestCase):
     '''
 
     def test_default_headings(self):
-        '''Check a simple tree of headings.'''
 
         html = self.run_markdown(self.HEADING_TESTDATA)
 
@@ -79,7 +67,6 @@ class LabelsTestCase(unittest.TestCase):
 
 
     def test_headings_at_h1(self):
-        '''Check a simple tree of headings.'''
 
         html = self.run_markdown(self.HEADING_TESTDATA, h_labels = "H.1 ,*")
 
@@ -102,7 +89,6 @@ class LabelsTestCase(unittest.TestCase):
         )
 
     def test_headings_at_h2(self):
-        '''Check a simple tree of headings.'''
 
         html = self.run_markdown(self.HEADING_TESTDATA, h_labels = "H.1 ,*", h_level = 2)
 
@@ -140,7 +126,6 @@ class LabelsTestCase(unittest.TestCase):
     '''
 
     def test_headings_directive(self):
-        '''Check a simple tree of headings.'''
 
         html = self.run_markdown(
             self.HEADING_DIRECTIVE_TESTDATA,
@@ -185,33 +170,34 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <ol>
-            \s* <li>ItemA
-            \s*     <ol>
-            \s*         <li>ItemAA</li>
-            \s*         <li>ItemAB
-            \s*             <ol>
-            \s*                 <li>ItemABA</li>
-            \s*             </ol>
-            \s*         </li>
-            \s*     </ol>
-            \s* </li>
-            \s* <li>ItemB
-            \s*     <ol>
-            \s*         <li>ItemBA
-            \s*             <ol>
-            \s*                 <li>ItemBAA</li>
-            \s*             </ol>
-            \s*         </li>
-            \s*         <li>ItemBB</li>
-            \s*     </ol>
-            \s* </li>
-            \s* <li>ItemC</li>
-            \s* <li>ItemD</li>
+            \s*   <li>ItemA
+            \s*       <ol>
+            \s*           <li>ItemAA</li>
+            \s*           <li>ItemAB
+            \s*               <ol>
+            \s*                   <li>ItemABA</li>
+            \s*               </ol>
+            \s*           </li>
+            \s*       </ol>
+            \s*   </li>
+            \s*   <li>ItemB
+            \s*       <ol>
+            \s*           <li>ItemBA
+            \s*               <ol>
+            \s*                   <li>ItemBAA</li>
+            \s*               </ol>
+            \s*           </li>
+            \s*           <li>ItemBB</li>
+            \s*       </ol>
+            \s*   </li>
+            \s*   <li>ItemC</li>
+            \s*   <li>ItemD</li>
             \s* </ol>
             \s*
-            ''')
+            '''
+        )
 
 
     def test_ordered_lists(self):
@@ -247,37 +233,6 @@ class LabelsTestCase(unittest.TestCase):
             \s*
             ''')
 
-
-    # TODO: insert actual directives!
-    # test
-    # - basic directive
-    # - child template inheritance
-    # - no inheritance
-    # - overriding inheritance
-    # - changing directives
-
-    # ORDERED_LIST_DIRECTIVE_TESTDATA = r'''
-    #     {::label="(a)"}
-    #     1. ItemA
-    #     2. ItemB
-    #
-    #     P1.
-    #
-    #     {::label="(a)"}
-    #
-    #
-    #         1. ItemAA
-    #         2. ItemAB
-    #
-    #             {::label="(i)"}
-    #             1. ItemABA
-    #     2. ItemB
-    #
-    #     Paragraph.
-    #
-    #     1. ItemC
-    #     2. ItemD
-    # '''
 
     def test_ordered_lists_directive(self):
 
@@ -550,16 +505,252 @@ class LabelsTestCase(unittest.TestCase):
     def test_ordered_lists_css(self):
 
         css = io.StringIO()
-
-        # print(f'{css.write=}')
         html = self.run_markdown(self.ORDERED_LIST_TESTDATA,
                                  ol_labels = 'L.1 ,*',
                                  css_fn = css.write)
 
-        print(f'<style>\n{css.getvalue()}</style>')
-        print(html)
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <ol[ ]class="la-labelled[ ]la-label0">
+            \s* <li>ItemA
+            \s*     <ol[ ]class="la-labelled[ ]la-label1">
+            \s*         <li>ItemAA</li>
+            \s*         <li>ItemAB
+            \s*             <ol[ ]class="la-labelled[ ]la-label2">
+            \s*                 <li>ItemABA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*     </ol>
+            \s* </li>
+            \s* <li>ItemB
+            \s*     <ol[ ]class="la-labelled[ ]la-label1">
+            \s*         <li>ItemBA
+            \s*             <ol[ ]class="la-labelled[ ]la-label2">
+            \s*                 <li>ItemBAA</li>
+            \s*             </ol>
+            \s*         </li>
+            \s*         <li>ItemBB</li>
+            \s*     </ol>
+            \s* </li>
+            \s* <li>ItemC</li>
+            \s* <li>ItemD</li>
+            \s* </ol>
+            \s*
+            ''')
 
-        self.fail()
+        self.assertRegex(
+            css.getvalue(),
+            r'''(?xs)
+            \s* \.la-labelled>li\{      list-style-type:none;                           \}
+            \s* .la-label0\{            counter-reset:la-label0;                        \}
+            \s* .la-label0>li\{         counter-increment:la-label0;                    \}
+            \s* .la-label0>li::before\{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}
+            \s* .la-label1\{            counter-reset:la-label1;                        \}
+            \s* .la-label1>li\{         counter-increment:la-label1;                    \}
+            \s* .la-label1>li::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                counter\(la-label1,decimal\)[ ]"[ ]";   \}
+            \s* .la-label2\{            counter-reset:la-label2;                        \}
+            \s* .la-label2>li\{         counter-increment:la-label2;                    \}
+            \s* .la-label2>li::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                counter\(la-label1,decimal\)[ ]"."[ ]
+                                                counter\(la-label2,decimal\)[ ]"[ ]";   \}
+            '''
+        )
+
+
+    def test_mixed_css(self):
+        '''Interspersed headings and ordered lists, where lists are rendered in CSS, but where
+        heading and list labels interact.'''
+
+        css = io.StringIO()
+        html = self.run_markdown(self.MIXED_TESTDATA,
+                                 h_labels = "X.A,*",
+                                 h_level = 2,
+                                 ol_labels = "X.1,*",
+                                 css_fn = css.write)
+
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <h1>Section1</h1>
+            \s* <ol[ ]class="la-labelled[ ]la-label0">
+            \s*   <li>ItemA</li>
+            \s*   <li>
+            \s*     <p>ItemB</p>
+            \s*     <h2><span[ ]class="la-label">2.A</span>Section2</h2>
+            \s*     <ol[ ]class="la-labelled[ ]la-label1">
+            \s*       <li>
+            \s*         <p>ItemC</p>
+            \s*         <ol[ ]class="la-labelled[ ]la-label2">
+            \s*           <li>
+            \s*             <p>ItemD</p>
+            \s*             <h3><span[ ]class="la-label">2.A.1.1.A</span>Section3</h3>
+            \s*           </li>
+            \s*           <li>
+            \s*             <p>ItemE</p>
+            \s*             <h3><span[ ]class="la-label">2.A.1.2.A</span>Section4</h3>
+            \s*             <h4><span[ ]class="la-label">2.A.1.2.A.A</span>Section5</h4>
+            \s*           </li>
+            \s*         </ol>
+            \s*       </li>
+            \s*     </ol>
+            \s*   </li>
+            \s* </ol>
+            \s*
+            '''
+        )
+
+        self.assertRegex(
+            css.getvalue(),
+            r'''(?xs)
+            \s* \.la-labelled>li\{       list-style-type:none;                                  \}
+            \s* \.la-label0\{            counter-reset:la-label0;                               \}
+            \s* \.la-label0>li\{         counter-increment:la-label0;                           \}
+            \s* \.la-label0>li::before\{ content:counter\(la-label0,decimal\);                  \}
+            \s* \.la-label1\{            counter-reset:la-label1;                               \}
+            \s* \.la-label1>li\{         counter-increment:la-label1;                           \}
+            \s* \.la-label1>li::before\{ content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\);  \}
+            \s* \.la-label2\{            counter-reset:la-label2;                               \}
+            \s* \.la-label2>li\{         counter-increment:la-label2;                           \}
+            \s* \.la-label2>li::before\{ content:"2\.A"[ ]"\."[ ]
+                counter\(la-label1,decimal\)[ ]"\."[ ]counter\(la-label2, decimal\);            \}
+            '''
+        )
+
+
+    UNORDERED_LIST_TESTDATA = r'''
+        * ItemA
+            * ItemAA
+            * ItemAB
+                * ItemABA
+        * ItemB
+            * ItemBA
+                * ItemBAA
+            * ItemBB
+        * ItemC
+        * ItemD
+    '''
+
+
+    def test_unordered_list_default(self):
+
+        html = self.run_markdown(self.UNORDERED_LIST_TESTDATA)
+
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <ul>
+            \s*   <li>ItemA
+            \s*       <ul>
+            \s*           <li>ItemAA</li>
+            \s*           <li>ItemAB
+            \s*               <ul>
+            \s*                   <li>ItemABA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li>ItemB
+            \s*       <ul>
+            \s*           <li>ItemBA
+            \s*               <ul>
+            \s*                   <li>ItemBAA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*           <li>ItemBB</li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li>ItemC</li>
+            \s*   <li>ItemD</li>
+            \s* </ul>
+            \s*
+            '''
+        )
+
+    def test_unordered_list(self):
+
+        html = self.run_markdown(self.UNORDERED_LIST_TESTDATA,
+                                 ul_labels = '@@,:::')
+
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <ul[ ]class="la-labelled">
+            \s*   <li><span[ ]class="la-label">@@</span>ItemA
+            \s*       <ul[ ]class="la-labelled">
+            \s*           <li><span[ ]class="la-label">:::</span>ItemAA</li>
+            \s*           <li><span[ ]class="la-label">:::</span>ItemAB
+            \s*               <ul>
+            \s*                   <li>ItemABA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li><span[ ]class="la-label">@@</span>ItemB
+            \s*       <ul[ ]class="la-labelled">
+            \s*           <li><span[ ]class="la-label">:::</span>ItemBA
+            \s*               <ul>
+            \s*                   <li>ItemBAA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*           <li><span[ ]class="la-label">:::</span>ItemBB</li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li><span[ ]class="la-label">@@</span>ItemC</li>
+            \s*   <li><span[ ]class="la-label">@@</span>ItemD</li>
+            \s* </ul>
+            \s*
+            '''
+        )
+
+
+    def test_unordered_list_css(self):
+
+        css = io.StringIO()
+        html = self.run_markdown(self.UNORDERED_LIST_TESTDATA,
+                                 ul_labels = '@@,:::',
+                                 css_fn = css.write)
+
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <ul[ ]class="la-labelled[ ]la-label0">
+            \s*   <li>ItemA
+            \s*       <ul[ ]class="la-labelled[ ]la-label1">
+            \s*           <li>ItemAA</li>
+            \s*           <li>ItemAB
+            \s*               <ul>
+            \s*                   <li>ItemABA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li>ItemB
+            \s*       <ul[ ]class="la-labelled[ ]la-label1">
+            \s*           <li>ItemBA
+            \s*               <ul>
+            \s*                   <li>ItemBAA</li>
+            \s*               </ul>
+            \s*           </li>
+            \s*           <li>ItemBB</li>
+            \s*       </ul>
+            \s*   </li>
+            \s*   <li>ItemC</li>
+            \s*   <li>ItemD</li>
+            \s* </ul>
+            \s*
+            '''
+        )
+
+        self.assertRegex(
+            css.getvalue(),
+            r'''(?xs)
+            \s* \.la-labelled>li\{list-style-type:none;\}
+            \s* \.la-label0>li::before\{content:"@@";\}
+            \s* \.la-label1>li::before\{content:":::";\}
+            '''
+        )
 
 
 

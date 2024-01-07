@@ -27,6 +27,11 @@ class CounterTypesTestCase(unittest.TestCase):
             (['upper-hexadecimal'], 91,    '5B'),
             (['upper-hexadecimal'], 999,   '3E7'),
 
+            (['decimal-leading-zero'], 1,   '01'),
+            (['decimal-leading-zero'], 9,   '09'),
+            (['decimal-leading-zero'], 91,  '91'),
+            (['decimal-leading-zero'], 999, '999'),
+
             (['a', 'lower-alpha', 'lower-latin'],   1,     'a'),
             (['a', 'lower-alpha', 'lower-latin'],   9,     'i'),
             (['a', 'lower-alpha', 'lower-latin'],   91,    'cm'),
@@ -58,7 +63,7 @@ class CounterTypesTestCase(unittest.TestCase):
                 'lower-greek',
                 ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
                 [(25, 'αα'), (51, 'βγ')]
-            )
+            ),
         ]:
             counter = get_counter_type(name)
             for (value, string) in enumerate(all_symbols, start = 1):
@@ -106,7 +111,7 @@ class CounterTypesTestCase(unittest.TestCase):
 
     def test_additive_counter(self):
         counter = AdditiveCounter('mock_css_id',
-                                  {10: 'x', 9: 'ix', 5: 'v', 4: 'iv', 1: 'i'})
+                                  [(10, 'x'), (9, 'ix'), (5, 'v'), (4, 'iv'), (1, 'i')])
         for (value, string) in [
             (-1,    '-1'), # Fallback
             (0,     '0'),  # Fallback
