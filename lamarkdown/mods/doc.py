@@ -18,15 +18,13 @@ def apply(heading_numbers = True):
         'pymdownx.extra',
 
         # Lamarkdown internal extensions.
-
-        # Note: the package is 'lamarkdown.ext' (hence 'lamarkdown.ext.latex', etc.). However,
-        # 'la' ('la.latex') is nicer. To make that work, we use the '[tool.poetry.plugins]' section
-        # in `pyproject.toml` (equivalent to 'entry points' in other build setups).
         'la.attr_prefix',
         'la.cite',
         'la.eval',
-        'la.markers',
+        'la.labels',
     )
+    # Note: lamarkdown extensions are located in package 'lamarkdown.ext', but the 'la.' prefix is
+    # provided as a shorthand.
 
     def latex_preamble():
         font_size = la.css_vars.get('la-font-size')
@@ -39,7 +37,10 @@ def apply(heading_numbers = True):
                    prepend = la.extendable(la.late(latex_preamble))
     )
 
+    la('la.labels', ol_labels = '1.,(a),(I)')
+
     if heading_numbers:
+        la('la.labels', h_level = 2, h_labels = 'H.1 ,*')
         # la('la.heading_numbers')
         pass # TODO: replace this with the la.list_labels extension
 
@@ -150,7 +151,12 @@ def apply(heading_numbers = True):
         'margin-top: 1.5em;'
     )
 
-    la.css_rule('.la-heading-number', 'margin-right: 1em;')
+    la.css_rule(['h1 > .la-label',
+                 'h2 > .la-label',
+                 'h3 > .la-label',
+                 'h4 > .la-label',
+                 'h5 > .la-label',
+                 'h6 > .la-label'], 'margin-right: 1em;')
 
     la.css_rule('pre', 'line-height: 1.3;')
     la.css_rule('code', 'font-family: var(--la-monospace-font);')
@@ -218,21 +224,14 @@ def apply(heading_numbers = True):
         r'''
         ol {
             width: 100%;
-            counter-reset: list-item;
             padding-left: 0;
             padding-right: 0;
             margin-left: 0;
             margin-right: 0;
-            --la-list-label: counter(list-item, decimal) ". ";
-        }
-
-        ol + :not(ol) {
-            counter-reset: list-item;
         }
 
         ol > li {
             display: table;
-            counter-increment: list-item;
             margin-left: 0;
             margin-right: 0;
             padding-left: 0;
@@ -241,13 +240,13 @@ def apply(heading_numbers = True):
         }
 
         ol > li::before {
-            content: var(--la-list-label);
             display: table-cell;
             width: 1.5em;
             padding-right: 0.5em;
             color: var(--la-number-color);
             font-weight: bold;
         }
+
 
         ol > li > p:first-child {
             /* It seems that, without 'display: table', the <p> child elements of adjacent <li> elements will share their vertical margins, whereas 'display: table' causes those margins to exist separately. Thus, we want to set the bottom margin to zero to avoid too much vertical space. */
@@ -261,108 +260,21 @@ def apply(heading_numbers = True):
         if_selectors = 'ol'
     )
 
-    # DEPRECATED
     la.css(
         r'''
-        .alpha + ol > li::before {
-            content: "(" counter(list-item, lower-alpha) ") ";
+        ol:not(.la-labelled) {
+            counter-reset: list-item;
         }
-        ''',
-        if_selectors = '.alpha + ol'
-    )
 
-    # DEPRECATED
-    la.css(
-        r'''
-        .roman + ol > li::before {
-            content: "(" counter(list-item, lower-roman) ") ";
+        ol:not(.la-labelled) > li {
+            counter-increment: list-item;
         }
-        ''',
-        if_selectors = '.roman + ol'
-    )
 
-    la.css(
-        r'''
-        ol.decimal {
-            counter-reset: la-listitem-decimal;
-        }
-        ol.decimal > li {
-            counter-increment: la-listitem-decimal;
-        }
-        ol.decimal > li::before {
-            content: counters(la-listitem-decimal, ".") ". ";
+        ol:not(.la-labelled) > li::before {
+            content: counter(list-item, decimal) ". ";
         }
         ''',
-        if_selectors = 'ol.decimal'
-    )
-
-    # DEPRECATED
-    la.css(
-        r'''
-        .decimal + ol {
-            counter-reset: la-listitem-decimal;
-        }
-        .decimal + ol > li {
-            counter-increment: la-listitem-decimal;
-        }
-        .decimal + ol > li::before {
-            content: counters(la-listitem-decimal, ".") ". ";
-        }
-        ''',
-        if_selectors = '.decimal + ol'
-    )
-
-    # This is a hack to stop the counters from a previous nested-decimal list 'leaking' into a
-    # subsequent nested-decimal list that happens to be inside a <div>.
-    #
-    # This doesn't fix the more general problem though, only a particular case of it.
-    la.css(
-        r'''
-        ol.decimal ~ :not(ol) ol.decimal {
-            counter-reset: la-listitem-decimal2;
-        }
-        ol.decimal ~ :not(ol) ol.decimal > li {
-            counter-increment: la-listitem-decimal2;
-        }
-        ol.decimal ~ :not(ol) ol.decimal > li::before {
-            content: counters(la-listitem-decimal2, ".") ". ";
-        }
-        ''',
-        if_selectors = 'ol.decimal ~ :not(ol) ol.decimal'
-    )
-
-    # DEPRECATED
-    la.css(
-        r'''
-        .decimal + ol ~ :not(ol) .decimal + ol {
-            counter-reset: la-listitem-decimal2;
-        }
-        .decimal + ol ~ :not(ol) .decimal + ol > li {
-            counter-increment: la-listitem-decimal2;
-        }
-        .decimal + ol ~ :not(ol) .decimal + ol > li::before {
-            content: counters(la-listitem-decimal2, ".") ". ";
-        }
-        ''',
-        if_selectors = '.decimal + ol ~ :not(ol) .decimal + ol'
-    )
-
-    la.css(
-        r'''
-        ol ol.decimal > li::before {
-            width: 3ex;
-        }
-        ''',
-        if_selectors = 'ol ol.decimal'
-    )
-
-    la.css(
-        r'''
-        ol ol.decimal ol.decimal > li::before {
-            width: 4ex;
-        }
-        ''',
-        if_selectors = 'ol ol.decimal ol.decimal'
+        if_selectors = 'ol:not(.la-labelled)'
     )
 
     la.css(

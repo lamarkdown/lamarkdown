@@ -113,7 +113,7 @@ class LabelTemplateParser:
 
         if match_end < len(template_str):
             if template_str[match_end] != ',':
-                raise LabelTemplateException(f'Expected "," at index {error_msg_offset}')
+                raise LabelTemplateException(f'Expected "," at index {error_msg_offset} in template "{template_str}"')
 
             inner_template_str = template_str[match_end + 1:]
             template.inner_template = (

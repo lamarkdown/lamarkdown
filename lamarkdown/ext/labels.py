@@ -2,50 +2,58 @@
 # List Label Extension
 
 Assigns counter-based (or fixed) labels to headings and/or list items, either by embedding label
-text directly in the HTML (for headings), or by employing CSS properties to render labels.
+text directly in the HTML (for headings), or by employing CSS properties to render labels,
+particularly for <ol> and <ul>.
 
+'Label templates' specify what labelling system to use. They can be provided in two ways:
 
+1. By adding the ':label' directive; e.g.:
 
+    ## The Next Section {::label="[1] "}
 
+    {::label="(a) "}
+    1. Item A
+    2. Item B
+    3. Item C
 
-
-## Configuration options
-
-h_labels=<template_list>
-h_label_level=1..6 -- heading level at which to apply the h_label template list.
-ul_labels=<template_list>
-ol_labels=<template_list>
-
-auto_label?? Can we devise a configuration option for applying labels automatically to arbitrary parts of the document tree? Potentially this could be generalised to some other extension, since :label is just an element attribute.
-
-
-
+2. By specifying the configuration options 'h_labels', 'ol_labels' and 'ul_labels', which then
+   apply to the top-most heading, <ol> or <ul> elements, respectively. (By specifying 'h_level',
+   the 'h_labels' template can instead apply to a specific heading level from 1 to 6.)
 
 
 ## Template syntax
 
-template_list := template ( separator template )* [ separator '*' ]
-template = literal* [ [ ('X' | 'L' | 'H' [level] ) literal+ ] format_spec literal* ]
+Label templates can create complex labelling schemes, with minimal specification. The syntax is
+defined as follows:
 
-separator := ',' followed by any amount of whitespace
-literal := unquoted_literal | quoted_literal
-unquoted_literal := any char except whitespace, a-z, A-Z and 0-9
-quoted_literal := '"' ... '"' (FIXME)
-level := any positive integer
+template := template_part ( ',' template_part )* [ ',' '*' ]
+template_part := literal* [ [ ('X' | 'L' | 'H' [level] ) literal+ ] format_spec literal* ]
 
-A template lists consists of one or more comma (/whitespace)-separated templates, optionally ending in a '*'. The first (mandatory) template applies directly to the current list or list element. Subsequent templates apply to successive levels of child lists, _of the same fundamental type_ (sub-lists for lists, and sub-headings for headings). If present, the '*' causes the final template to apply indefinitely to any more deeply-nested lists/headings. (If '*' is omitted, then any lists nested more deeply are outside the scope of this template list.)
+format_spec := any alphanumeric sequence (including '-', but not at the start or end position)
 
-The `format_spec` refers to the numbering/labelling system for a given list or list element. It can be:
+level := an integer from 1 to 6, inclusive
+literal := ( unquoted_literal | quoted_literal )*
+unquoted_literal := any single character _other than_ ',', quotation marks, alphanumeric
+    characters, or '-' if surrounded by alphanumeric characters
+quoted_literal := any sequence of characters surrounded by double or single quotes, and possibly
+    including doubled-up quotes to represent literal quotation marks.
+
+Thus, a template consists of one or more comma-separated parts, optionally ending in a '*'. The first (mandatory) part applies directly to the current list or list element. Subsequent parts apply to successive levels of child lists, _of the same fundamental type_ (nested lists for lists, and sub-headings for headings). If present, the '*' causes the final template to apply indefinitely to any more deeply-nested lists/headings. (If '*' is omitted, then any lists nested more deeply are outside the scope of this template list.)
+
+The `format_spec` refers to the core numbering system for a given list or list element. It can be:
 * `1`, for arabic numerals,
 * `a`/`A`, for lower/uppercase English alphabetic numbering,
 * `i`/`I`, for lower/uppercase Roman numerals,
-* one of various terms accepted by the list-style-type CSS property; e.g., `lower-green`, `armenian`, etc. (Such labels are not necessarily _implemented_ by CSS. In some cases, Lamarkdown will need to calculate the actual numbering itself, and it won't necessarily support all CSS-supported numbering schemes.)
+* one of various terms accepted by the list-style-type CSS property; e.g., `lower-greek`, `armenian`, etc.
 
-For <ul> elements, there's generally no numbering system required, and `format_spec` will generally be either:
-1. Omitted altogether, leaving just the literal prefix; or
-2. Given a value like 'square' or 'circle'.
+(This extension seeks to support _most_ numbering schemes available in CSS.)
 
-Preceding this, if 'X', 'L' or 'H' is given, it refers to the label of the nearest _numbered_ ancestor element. Specifically, X means _any_ such element (though, again, only those with numbering systems, so generally not <ul> elements), L means a list element (almost certainly <ol>), H means any heading element, and H1-H6 mean the corresponding heading level. If such an ancestor element exists, its core label (minus any leading and trailing literals) will be inserted prior to the element's own number, along with an delimiting literal.
+For <ul> elements, there's generally no numbering system required, and `format_spec` can be omitted, so that the entire template consists just of a literal `prefix`.
+
+(This extension _does not_ directly support the CSS terms 'disc', 'circle', 'square', as these can be
+directly represented with literal characters; e.g., '•', '◦', '▪'.)
+
+If `X`, `L` or `H` is given, it refers to the label of the nearest _numbered_ ancestor element. Specifically, `X` means _any_ such element (though, again, only those with numbering systems, so generally not <ul> elements), `L` means a list element (almost certainly <ol>), `H` means any heading element, and `H1`-`H6` mean the corresponding heading level. If such an ancestor element exists, its core label (minus any prefix/suffix literals) will be inserted prior to the element's own number, along with an delimiting literal.
 
 If X, L or H is given, but no such element exists, then no ancestor label will be inserted, _and_ the delimiting literal will be omitted too.
 
@@ -54,61 +62,18 @@ Examples:
 * :label="(X.1),*"
 * :label="1.,(a),(i)"
 
-
-
-* X == parent label, minus prefix and suffix literal content.
-* L == similar to X, but only if the immediate parent is a list (not a heading); otherwise, evaluates to the empty string.
-* H == similar to X, but only if the immediate parent is a heading
-
-For X, L and H, if the corresponding parent label is unavailable, then it is left out, AND the
-joining literal is omitted as well.
-
-
-
-
-## Corner cases and questions
-
-What if list labelling 'skips' a level? Actually, we might decide that it fundamentally cannot; that
-all levels must have labels.
-
-Is it likely that someone would want to reverse the order of labels? If so, we could allow a reversed
-form of the syntax, though it seems unlikely to be needed.
-
-
-## Related directives
-
-:label-resume -- continue the numbering from the previous list _at the same level_. (The previous list may be a sibling element, or it may be an 'nth-cousin', sharing any common ancestor element.)
-
-:label-none -- suppresses any label for the current element, and avoids updating the counter.
-
-:label-skip -- skips 1 counter value if the attribute value is non-numeric. If the attr value is an integer, advances the counter by that amount (_on top of_ the one increment that the counter would normally advance anyway). If the attr value is '=' followed by an integer (or an alphabetic count or roman numeral), then the counter value is set to that number.
-
-
-## Implementation approaches
-
-1. Hard-coded with <span class="la-list-label">. This means the evaluation of actual list labels at compile time.
-
-2. Using CSS properties:
-     2a. 'list-style-type' in combination with @counter rules;
-     2b. 'list-style-type' with just basic built-in styles.
-     2c. CSS classes representing list styles.
-
-3. Using a CSS variable (--la-list-label), in the case that the style overrides the normal CSS list display mechanism. (It can, for instance, use something like 'li::before { content: var(--la-list-label); }'.
-
-* The extension could also, technically do any combination of these at the same time, if there was some need for a fallback, though this is almost certainly unnecessary.
-
-Headings would probably use approach 1 by default (though they could use the others instead, with additional CSS support). Lists would use approach 2 for basic styling, or approach 3 for advanced styling (particularly in combination with m.doc()).
-
-
-
----
-
-Can we write <ol style="display: grid"><li style="display: list-style">...</ol>? And get the best of both worlds?
-
-
-
 '''
 
+
+# TODO:
+#
+# :label-resume -- continue the numbering from the previous list _at the same level_. (The previous list may be a sibling element, or it may be an 'nth-cousin', sharing any common ancestor element.)
+#
+# :label-none -- suppresses any label for the current element, and avoids updating the counter.
+#
+# :label-skip -- skips 1 counter value if the attribute value is non-numeric. If the attr value is an integer, advances the counter by that amount (_on top of_ the one increment that the counter would normally advance anyway). If the attr value is '=' followed by an integer (or an alphabetic count or roman numeral), then the counter value is set to that number.
+
+import lamarkdown
 from lamarkdown.ext.label_support.labellers import Labeller, LabellerFactory
 from lamarkdown.ext.label_support.label_templates import LabelTemplateParser
 
@@ -139,11 +104,14 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self._ol_template = ol_template and self._parser.parse(ol_template)
         self._ul_template = ul_template and self._parser.parse(ul_template)
 
-        # State
+
+    def run(self, root):
         self._labeller_stack = []
         self._previous_h_level = -1
         self._css_done = set()
 
+        self._recurse(root)
+        return root
 
 
     def _find_labeller(self, parent_type: Optional[str]) -> Optional[Labeller]:
@@ -242,7 +210,6 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
         elif element.tag in {'ul', 'ol'}:
 
-            # self._disable_list_style_type = True
             if self._css_fn is not None:
                 self._css(f'''
                     .la-labelled>li{{list-style-type:none;}}
@@ -257,13 +224,12 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 template = self._parser.parse(template_str)
 
             # Otherwise, see if there's a inner template
-            if (template is None and
-                (outer_labeller := self._find_labeller(element.tag)) is not None
-            ):
+            outer_labeller = self._find_labeller(element.tag)
+            if template is None and outer_labeller is not None:
                 template = outer_labeller.template.inner_template
 
             # Otherwise, maybe the configuration option is applicable (if this is a top-level list)
-            if template is None and len(self._labeller_stack) == 0:
+            if template is None and outer_labeller is None:
                 template = self._ul_template if element.tag == 'ul' else self._ol_template
 
             if template is not None:
@@ -362,9 +328,6 @@ class LabelsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
 
 
-    def run(self, root):
-        self._recurse(root)
-        return root
 
 
 _LABEL_DEFAULT = 'default'
@@ -387,7 +350,7 @@ class LabelsExtension(markdown.Extension):
             ],
 
             'h_labels': [
-                _LABEL_DEFAULT, #'H.1 ,*',
+                _LABEL_DEFAULT,
                 'Default heading template, to be applied at heading level "h_level".'
             ],
 
@@ -397,12 +360,12 @@ class LabelsExtension(markdown.Extension):
             ],
 
             'ol_labels': [
-                _LABEL_DEFAULT, #'1.,(a)',
+                _LABEL_DEFAULT,
                 'Default ordered list template, to be applied starting at the top-most ordered list level.'
             ],
 
             'ul_labels': [
-                _LABEL_DEFAULT, #'▪,•,◦,*',
+                _LABEL_DEFAULT,
                 'Default unordered list template, to be applied starting at the top-most unordered list level.'
             ]
         }
