@@ -23,7 +23,7 @@ import threading
 import time
 import traceback
 import webbrowser
-from typing import List
+from typing import Dict, List, Optional, Set
 
 NAME = 'live updating' # For progress/error messages
 
@@ -39,7 +39,7 @@ CONTROL_PANEL_TIMESTAMP_ID = '_lamd_timestamp'
 CONTROL_PANEL_CLEAN_BUTTON_ID = '_lamd_cleanbuild_btn'
 CONTROL_PANEL_MESSAGE_ID = '_lamd_msg'
 
-control_panel_style = re.sub('(\n\s+)+', ' ', fr'''
+control_panel_style = re.sub(r'(\n\s+)+', ' ', fr'''
     <style>
         @media print {{
             #{CONTROL_PANEL_ID} {{ display: none; }}
@@ -78,7 +78,7 @@ control_panel_style = re.sub('(\n\s+)+', ' ', fr'''
             #     font-weight: bold;
             # }}
 
-favicon_data = re.sub('\s+', '', '''
+favicon_data = re.sub(r'\s+', '', '''
     iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABKrAAASqwE7rmhSAAAAGXRFWHRTb2Z0d2F
     yZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAABt9JREFUeJzlm2tsVNUWx3/rTFtACtKKRUAJiQYjjeVVqNRnFUPiEzU+cq
     +RCFckaDQa4wffMfGVGE1EUSt+MNEAEjUa34iaqH0M5RXLjaJiREWFmmqxBcucs/wwHS0zZ5/ZM3OYM8V/cj7MXnuvt
@@ -138,15 +138,14 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                  complete_build_params: List[BuildParams]):
         self._base_build_params = base_build_params
         self._complete_build_params = complete_build_params
-        self._output_docs = {}
+        self._output_docs: Dict[str,OutputDoc] = {}
         self._base_variant = complete_build_params[0].name
 
-        self._server = None
-        self._server_thread = None
+        self._server: Optional[http.server.HTTPServer] = None
+        self._server_thread: Optional[threading.Thread] = None
 
-        self._dependency_files = set()
-        self._dependency_paths = set()
-        self._missing_paths = set()
+        self._dependency_files: Set[str] = set()
+        self._dependency_paths: Set[str] = set()
         self._fs_observer = None
 
         self._update_n = 0
@@ -288,7 +287,8 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     self._base_build_params.progress.warning(
                         NAME, msg = f'Port {try_port} appears to be in use.')
 
-            if port:
+            if port is not None:
+                assert self._server is not None
                 self._base_build_params.progress.progress(
                     NAME,
                     msg = 'Launching server and browser, and monitoring changes to source/build files.',
@@ -395,7 +395,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                 )
 
                 # JS code to poll this server for updates, and reload if an update is detected.
-                update_script = re.sub('(\n\s+)+', ' ', f'''
+                update_script = re.sub(r'(\n\s+)+', ' ', f'''
                     <script>
                         (() => {{
                             let errorCountdown = {ERROR_COUNTDOWN};
@@ -486,7 +486,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
                     </script>
                 ''').strip()
 
-                control_panel = re.sub('(\n\s+)+', ' ', rf'''
+                control_panel = re.sub(r'(\n\s+)+', ' ', rf'''
                     <div id="{CONTROL_PANEL_ID}" data-update-n="{updater_self._update_n}">
                         <div id="{CONTROL_PANEL_TIMESTAMP_ID}"></div>
                         <div id="{CONTROL_PANEL_MESSAGE_ID}"></div>

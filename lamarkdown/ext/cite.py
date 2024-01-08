@@ -15,10 +15,10 @@ from markdown.inlinepatterns import InlineProcessor
 from markdown.preprocessors import Preprocessor
 from markdown.treeprocessors import Treeprocessor
 
-import pybtex.backends.html
-import pybtex.database
-import pybtex.plugin
-import pybtex.style.formatting
+import pybtex.backends.html    # type: ignore
+import pybtex.database         # type: ignore
+import pybtex.plugin           # type: ignore
+import pybtex.style.formatting # type: ignore
 
 import lxml.html
 
@@ -182,7 +182,7 @@ class ModifiedPybtexHtmlBackend(pybtex.backends.html.Backend):
 
 class PybtexTreeProcessor(Treeprocessor):
     def __init__(self, md,
-                       ext: 'PybtexExtension',
+                       ext: 'CiteExtension',
                        bib_parser,
                        bib_style: pybtex.style.formatting.BaseStyle,
                        cited_keys: List[str]):

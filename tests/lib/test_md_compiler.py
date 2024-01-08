@@ -320,7 +320,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
         assert_that(
             self.root.xpath('/html/head/style/text()')[0],
-            is_not(matches_regexp('[^"]/\*|\*/[^"]'))
+            is_not(matches_regexp(r'[^"]/\*|\*/[^"]'))
         )
 
 

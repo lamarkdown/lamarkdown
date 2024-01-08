@@ -1,4 +1,4 @@
-from ..util import mock_progress, html_block_processor
+from ..util.markdown_ext import entry_point_cls
 import lamarkdown.ext
 
 import unittest
@@ -755,15 +755,8 @@ class LabelsTestCase(unittest.TestCase):
 
 
     def test_extension_setup(self):
-        import importlib
-        import importlib.metadata
-
-        module_name, class_name = importlib.metadata.entry_points(
-            group = 'markdown.extensions')['la.labels'].value.split(':', 1)
-        cls = importlib.import_module(module_name).__dict__[class_name]
-
         assert_that(
-            cls,
+            entry_point_cls('la.labels'),
             same_instance(lamarkdown.ext.labels.LabelsExtension))
 
         instance = lamarkdown.ext.labels.makeExtension(h_labels = 'mock_label_template')

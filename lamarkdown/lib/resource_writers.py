@@ -3,8 +3,8 @@ from .progress import Progress
 from .resources import UrlResource, ContentResource
 from . import resources
 
-import fontTools.ttLib
-import fontTools.subset
+import fontTools.ttLib  # type: ignore
+import fontTools.subset # type: ignore
 
 from base64 import b64encode
 import html
@@ -12,7 +12,7 @@ import io
 import mimetypes
 import os
 import re
-from typing import Callable, Iterable, List, Tuple, Union
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 import urllib.parse
 import urllib.request
 
@@ -21,9 +21,9 @@ NAME = 'resource linking' # For progress/error messages
 Converter = Callable[[str,bytes,str],Tuple[bytes,str]]
 
 def make_data_url(url: str,
-                  mime_type: str,
+                  mime_type: Optional[str],
                   build_params: BuildParams,
-                  converter: Converter = None) -> str:
+                  converter: Optional[Converter] = None) -> str:
 
     try:
         _, content_bytes, auto_mime_type = resources.read_url(url,
@@ -69,28 +69,26 @@ class ResourceWriter:
     def write(self, buffer, resource_list: RList):
         raise NotImplementedError
 
+
     def _write_in_order(self, buffer, resource_list: RList):
-        start_content_index = None
-        index = 0
+        content_list: List[ContentResource] = []
+
         for res in resource_list:
             if isinstance(res, UrlResource):
-                if start_content_index is not None:
-                    self._write_content(buffer, resource_list[start_content_index:index])
-                    start_content_index = None
+                if len(content_list) > 0:
+                    self._write_content(buffer, content_list)
+                    content_list.clear()
 
                 self._write_url(buffer, res)
 
             elif isinstance(res, ContentResource):
-                if start_content_index is None:
-                    start_content_index = index
+                content_list.append(res)
 
             else:
                 raise AssertionError
 
-            index += 1
-
-        if start_content_index is not None:
-            self._write_content(buffer, resource_list[start_content_index:])
+        if len(content_list) > 0:
+            self._write_content(buffer, content_list)
 
     def _write_urls_first(self, buffer, resource_list: RList):
         if len(resource_list) == 0: return ''
@@ -288,6 +286,7 @@ class StylesheetWriter(ResourceWriter):
                 if match:
                     g = match.groupdict()
                     url = g.get('url') or g.get('str')
+                    assert url is not None
                     # CSS_URL_REGEX has 'url' and 'str' groups. CSS_IMPORT_REGEX has only 'str'.
 
                     # Translate escapes in original URL
@@ -302,11 +301,14 @@ class StylesheetWriter(ResourceWriter):
 
                     else:
                         url = urllib.parse.urljoin(base_url, url)
-                        type = mimetypes.guess_type(url)[0]
 
-                        if self.build_params.embed_rule(url = url,
-                                                        tag = 'style',
-                                                        **(dict(type = type) if type else {})):
+                        if (type := mimetypes.guess_type(url)[0]) is not None:
+                            embed = self.build_params.embed_rule(
+                                url = url, tag = 'style', type = type)
+                        else:
+                            embed = self.build_params.embed_rule(url = url, tag = 'style')
+
+                        if embed:
                             # Grab the URL content and make a Data URL (checking for cycles).
                             if self._push_url(url):
                                 add_local_dependency(url, self.build_params)
@@ -335,7 +337,7 @@ class StylesheetWriter(ResourceWriter):
             return buf.getvalue()
 
 
-    def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> (bytes, str):
+    def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> Tuple[bytes, str]:
         if mime_type == 'text/css':
             # If we're sure the URL points to a stylesheet, then it may have its own external resources,
             # and we must embed those too.

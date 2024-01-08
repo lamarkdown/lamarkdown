@@ -1,5 +1,6 @@
 from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
+from ..util.markdown_ext import entry_point_cls
 import unittest
 from unittest.mock import patch
 from hamcrest import *
@@ -1279,15 +1280,8 @@ class LatexTestCase(unittest.TestCase):
 
 
     def test_extension_setup(self):
-        import importlib
-        import importlib.metadata
-
-        module_name, class_name = importlib.metadata.entry_points(
-            group = 'markdown.extensions')['la.latex'].value.split(':', 1)
-        cls = importlib.import_module(module_name).__dict__[class_name]
-
         assert_that(
-            cls,
+            entry_point_cls('la.latex'),
             same_instance(lamarkdown.ext.latex.LatexExtension))
 
         instance = lamarkdown.ext.latex.makeExtension(prepend = 'mock_tex_code')

@@ -12,7 +12,7 @@ class ReplacementPatternsTestCase(unittest.TestCase):
 
     class DollarPattern(replacement_patterns.ReplacementPattern):
         def __init__(self):
-            super().__init__('\$([^$]+)\$')
+            super().__init__(r'\$([^$]+)\$')
 
         def handle_match(self, match):
             elem = ElementTree.Element('span', x = '1')
@@ -148,7 +148,7 @@ class ReplacementPatternsTestCase(unittest.TestCase):
     def test_transparent_pattern(self):
         class ElementPattern(replacement_patterns.ReplacementPattern):
             def __init__(self):
-                super().__init__('\$([^$]+)\$', allow_inline_patterns = True)
+                super().__init__(r'\$([^$]+)\$', allow_inline_patterns = True)
 
             def handle_match(self, match):
                 elem = ElementTree.Element('span', x = '1')
@@ -158,7 +158,7 @@ class ReplacementPatternsTestCase(unittest.TestCase):
 
         class StringPattern(replacement_patterns.ReplacementPattern):
             def __init__(self):
-                super().__init__('\$([^$]+)\$', allow_inline_patterns = True)
+                super().__init__(r'\$([^$]+)\$', allow_inline_patterns = True)
 
             def handle_match(self, match):
                 return f'AAA {match.group(1)} BBB'

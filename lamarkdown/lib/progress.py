@@ -10,7 +10,7 @@ import io
 import shutil
 import traceback
 from xml.etree import ElementTree
-from typing import List, Set
+from typing import List, Optional, Set
 
 
 RESET = '\033[0m'
@@ -45,7 +45,7 @@ class Details:
     title: str
     content: str
     show_line_numbers: bool = False
-    context_lines: int = None
+    context_lines: Optional[int] = None
     highlight_lines: Set[int] = field(default_factory = set)
 
 
@@ -247,7 +247,7 @@ class Progress:
         return self.show(ProgressMsg(location, msg, details_list))
 
 
-    def cache_hit(self, location: str, *, resource: str = None):
+    def cache_hit(self, location: str, *, resource: Optional[str] = None):
         obj = ProgressMsg(location,
                           'Using cached value' + (f' for {resource}' if resource else ''))
         return self.show(obj) if self._show_cache_hits else obj

@@ -1,7 +1,9 @@
 from .progress import Progress
 
-import diskcache
+import diskcache # type: ignore
 
+import abc
+import base64
 import email.utils
 import hashlib
 import mimetypes
@@ -69,7 +71,7 @@ def read_url(url: str,
                         # obviously bogus, and we throw that out.)
                         generation_time = email.utils.parsedate_tz(conn.headers.get('date', ''))
                         if generation_time is not None:
-                            elapsed = time.time() - email.utils.mktime_tz(generation_time)
+                            elapsed = int(time.time() - email.utils.mktime_tz(generation_time))
                             if elapsed > 0:
                                 cache_expiry -= elapsed
 
@@ -100,7 +102,8 @@ def read_url(url: str,
             url = f'file:{url}'
 
         try:
-            with urllib.request.urlopen(url, 'rb') as reader:
+            # with urllib.request.urlopen(url, 'rb') as reader:
+            with urllib.request.urlopen(url) as reader:
                 # Using urllib (instead of open()) avoids needing to convert path separators from
                 # / to \ on Windows.
 
@@ -114,7 +117,7 @@ def read_url(url: str,
                            msg = f'Cannot read "{url}"',
                            exception = e,
                            show_traceback = False)
-            return (False, b'', None)
+            return (False, b'', '')
 
 
 
@@ -130,20 +133,29 @@ class ContentResource:
 
 
 class UrlResource:
-    def __init__(self, url: str, to_embed: bool = False, hash: str = None, hash_type: str = None):
-        self.url = _check(url, 'url')
-        self.to_embed = to_embed
-        self.hash = hash
-        self.hash_type = hash_type
+    def __init__(self, url: str, to_embed: bool = False, hash: Optional[Tuple[str,str]] = None):
+        self._url = _check(url, 'url')
+        self._to_embed = to_embed
+        self._hash = hash
 
     def integrity_attr(self):
-        return f' integrity="{self.hash_type}-{self.hash}" crossorigin="anonymous"' if self.hash else ''
+        if self._hash is None:
+            return ''
+        else:
+            hash_type, hash_value = self._hash
+            return f' integrity="{hash_type}-{hash_value}" crossorigin="anonymous"'
+
+    @property
+    def url(self) -> str: return self._url
+
+    @property
+    def to_embed(self) -> bool: return self._to_embed
 
 
 Resource = Union[UrlResource,ContentResource]
 OptResource = Optional[Resource]
 
-class ResourceSpec:
+class ResourceSpec(abc.ABC):
     def __init__(self, xpaths: List[str]):
         self._xpaths = xpaths
 
@@ -151,6 +163,7 @@ class ResourceSpec:
     def xpaths_required(self):
         return self._xpaths
 
+    @abc.abstractmethod
     def make_resource(self, xpaths_found: Set[str],
                             progress: Progress) -> OptResource:
         raise NotImplementedError
@@ -166,16 +179,6 @@ class ContentResourceSpec(ResourceSpec):
         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
         return ContentResource(content) if content else None
 
-# class ContentResourceSpec(ResourceSpec):
-#     def __init__(self, content_spec: Callable[[Set[str]],Optional[str]]
-#                        xpaths_required: List[str] = []):
-#         super().__init__(xpaths_required)
-#         self.content_factory = content_factory
-#
-#     def make_resource(self, xpaths_found: Set[str], progress: Progress) -> OptResource:
-#         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
-#         return ContentResource(content) if content else None
-
 
 class UrlResourceSpec(ResourceSpec):
 
@@ -184,8 +187,7 @@ class UrlResourceSpec(ResourceSpec):
                        base_url: str,
                        cache: diskcache.Cache,
                        embed_fn: Callable[[],bool],
-                       hash_type_fn: Callable[[],Optional[str]],
-                       mime_type: str):
+                       hash_type_fn: Callable[[],Optional[str]]):
 
         super().__init__(xpaths_required)
         self.url_factory = url_factory
@@ -193,7 +195,6 @@ class UrlResourceSpec(ResourceSpec):
         self.cache = cache
         self.embed_fn = embed_fn
         self.hash_type_fn = hash_type_fn
-        self.mime_type = mime_type
 
 
     def make_resource(self, xpaths_found: Set[str],
@@ -218,15 +219,15 @@ class UrlResourceSpec(ResourceSpec):
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both
             # use the same strings 'sha256', 'sha384' and 'sha512'.
             # is_remote, content_bytes, _mime_type = read_url(url, self.base_path, self.cache, progress)
-            is_remote, content_bytes, _, _ = read_url(url, self.cache, progress)
-            hash = b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
+            is_remote, content_bytes, _ = read_url(url, self.cache, progress)
+            hash = base64.b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
 
             if not is_remote:
                 progress.warning(
                     NAME,
                     msg = f'Using hashing on relative URLs is supported but not recommended. The browser may refuse to load the resource when accessing the document from local storage. ("{url}")')
 
-            return UrlResource(url = url, hash = hash, hash_type = hash_type)
+            return UrlResource(url = url, hash = (hash_type, hash))
 
         else:
             return UrlResource(url = url)

@@ -61,7 +61,7 @@ import re
 import subprocess
 import threading
 import time
-from typing import Dict, List, Set, Union
+from typing import Callable, Dict, List, Optional, Set, Union
 from xml.etree import ElementTree
 
 NAME = 'la.latex' # For error messages
@@ -82,7 +82,7 @@ class CommandException(Exception):
 
 def check_run(command: Union[str,List[str]],
               expected_output_file: str,
-              timeout: float = None,
+              timeout: Optional[float] = None,
               **kwargs):
     start_time = time.time_ns()
     command_str = ' '.join(command) if isinstance(command, list) else command
@@ -135,7 +135,8 @@ def check_run(command: Union[str,List[str]],
 
                 elif (time.time() - last_output_time) >= timeout:
                     # Timeout.
-                    popen.stdout.close()
+                    if popen.stdout is not None:
+                        popen.stdout.close()
                     popen.terminate()
                     with output_lock:
                         raise CommandException(
@@ -173,6 +174,20 @@ HTML_COMMENT_RE = re.compile(r'<!--.*?(-->|$)', flags = re.DOTALL)
 ERROR_LINE_NUMBER_RE = re.compile(r'(^|\n)l\.(?P<n>[0-9]+)')
 
 
+def _pdf2svg_correction(svg: str) -> str:
+    '''
+    pdf2svg leaves off the units on width/height, and the default is technically 'px', but the
+    numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
+    '''
+    return re.sub(
+        '<svg[^>]*>',
+        lambda m: re.sub(
+            r'''((width|height)=['"][0-9]+(\.[0-9]+)?)(?=['"])''',
+            r'\1pt',
+            m.group()),
+        svg)
+
+
 class LatexCompiler:
     '''
     Compiles Latex code identified by the preprocessor/replacement processor, converts it to SVG,
@@ -193,17 +208,8 @@ class LatexCompiler:
         'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
     }
 
-    CONVERTER_CORRECTIONS = {
-        # pdf2svg leaves off the units on width/height, and the default is technically 'px', but
-        # the numbers appear to be expressed in 'pt'. This just adds 'pt' to the SVG dimensions.
-        'pdf2svg':
-            lambda svg: re.sub(
-                '<svg[^>]*>',
-                lambda m: re.sub(
-                    r'''((width|height)=['"][0-9]+(\.[0-9]+)?)(?=['"])''',
-                    r'\1pt',
-                    m.group()),
-            svg)
+    CONVERTER_CORRECTIONS: Dict[str,Callable[[str],str]] = {
+        'pdf2svg': _pdf2svg_correction
     }
 
     home_dir = os.path.expanduser('~')
@@ -215,7 +221,7 @@ class LatexCompiler:
         self._md = md
         self._cache_factors = cache_factors
 
-        self._html = {}
+        self._html: Dict[int, str] = {}
         self._instance = 0
 
         self.md = md
@@ -245,7 +251,7 @@ class LatexCompiler:
         self.verbose_errors = verbose_errors
 
 
-    def _generate_html(self, latex, attrs):
+    def _generate_html(self, latex: str, attr: Dict[str,str]) -> str:
         # Run Python Markdown's postprocessors.
 
         # This is important, because Markdown's _pre_processors replace certain constructs,
@@ -381,7 +387,7 @@ class LatexCompiler:
                                            code = latex,
                                            context_lines = None).as_html_str()
 
-        util.set_attributes(element, attrs)
+        util.set_attributes(element, attr)
         return ElementTree.tostring(element, encoding = 'unicode')
 
 
@@ -406,7 +412,7 @@ class LatexCompiler:
         return True # Unchanged
 
 
-    def compile(self, full_doc: str, attr: dict[str,str]):
+    def compile(self, full_doc: str, attr: Dict[str,str]):
         self._instance += 1
         self._html[self._instance] = self._generate_html(full_doc, attr)
         return f'{LATEX_PLACEHOLDER_PREFIX}{self._instance}{ETX}'

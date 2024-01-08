@@ -1,12 +1,14 @@
 from .build_params import BuildParams
+from .progress import Progress
 from . import resources
 
-import cssutils
+import cssutils # type: ignore
 import PIL.Image
 
 import collections
 import io
 import re
+from typing import Optional
 import xml.dom
 from xml.etree import ElementTree
 
@@ -45,13 +47,13 @@ def scale_images(root_element, build_params: BuildParams):
                 _rescale_element(element, scale, content, type, css_parser, progress)
 
 
-def _calc_scale(element, type, build_params) -> bool:
+def _calc_scale(element, type, build_params) -> float:
 
     if 'scale' in element.attrib:
         try:
             local_scale = float(element.get('scale'))
         except ValueError:
-            progress.warning(
+            build_params.progress.warning(
                 NAME,
                 msg = f'Non-numeric value "{element.get("scale")}" given as a scaling factor')
             return 1.0 # Don't scale
@@ -71,10 +73,10 @@ def _calc_scale(element, type, build_params) -> bool:
 
 def _rescale_element(element,
                      scale: float,
-                     content: bytes,
-                     type: str,
+                     content: Optional[bytes],
+                     type: Optional[str],
                      css_parser: cssutils.CSSParser,
-                     build_params: BuildParams):
+                     progress: Progress):
     #
     # 1. Try scaling based directly on the element's width/height CSS properties or HTML attributes.
     #    This is format agnostic. Scale whichever width(s)/height(s) are found.
@@ -100,8 +102,9 @@ def _rescale_element(element,
     # 'calc(5em + 4px)'). We assume non-absolute units are intended to be the 'final say', and no
     # further scaling should be done.
     #
-    # Given that absolute units have been used, they are left unmodified. Conversion is possible but
-    # unnecessary, as the multiplication works equally well in any units.
+    # Given that absolute units have been used, they are left as-is (the units, not the actual
+    # numbers). Conversion to other units is possible, but unnecessary, as the multiplication works
+    # equally well in any units.
     #
     # +------------------------------------------------------------------------------------------+
     # | Aside: technically, units aren't always allowed at all:                                  |
@@ -119,13 +122,13 @@ def _rescale_element(element,
     # element.
     #
     # In (2)(b), units are inherently pixel-based. We assume that browsers will render an X×Y
-    # image at the same size, by default, as when explicitly sized withwidth="<X>px" and/or
+    # image at the same size, by default, as when explicitly sized with width="<X>px" and/or
     # height="<Y>px". (No need to assume that 1px == one physical pixel, and it probably isn't for
     # certain media, particularly print.)
     #
     #
     # FYI: SVG's viewBox attribute
-    # --------------------------
+    # ----------------------------
     #
     # This is irrelevant. It only defines the bounding box in terms of the picture's internal
     # coordinates. (We could use it to identify the aspect ratio, if we wanted to, but we don't need
@@ -140,7 +143,7 @@ def _rescale_element(element,
         try:
             style_decls = css_parser.parseStyle(element.get('style'))
         except xml.dom.SyntaxErr:
-            build_params.progress.warning(
+            progress.warning(
                 NAME,
                 msg = f'Syntax error in style attribute for <{element.tag}> element: "{element.get("style")}"')
         else:
@@ -157,13 +160,13 @@ def _rescale_element(element,
         if 'width' in style_decls or 'height' in style_decls:
             new_style = style_decls.cssText
 
-    spec = _length_value(element, 'width')
+    spec = _length_value(element, 'width', progress)
     if spec:
         if not _scalable(spec): return
         spec.value *= scale
         new_width = spec.cssText
 
-    spec = _length_value(element, 'height')
+    spec = _length_value(element, 'height', progress)
     if spec:
         if not _scalable(spec): return
         spec.value *= scale
@@ -177,8 +180,9 @@ def _rescale_element(element,
         # Scaling all done!
         return
 
-    if element.tag not in ['img', 'source'] or 'src' not in element.attrib:
-        build_params.progress.warning(NAME, msg = 'Cannot identify image dimensions')
+    # if element.tag not in ['img', 'source'] or 'src' not in element.attrib:
+    if element.tag not in ['img', 'source'] or content is None:
+        progress.warning(NAME, msg = 'Cannot identify image dimensions')
         return
 
 
@@ -192,7 +196,7 @@ def _rescale_element(element,
             try:
                 style_decls = css_parser.parseStyle(svg_root.get('style'))
             except xml.dom.SyntaxErr:
-                build_params.progress.warning(
+                progress.warning(
                     NAME,
                     msg = f'Syntax error in style attribute for <{svg_root.tag}> element: "{svg_root.get("style")}"')
             else:
@@ -206,13 +210,13 @@ def _rescale_element(element,
                     if not _scalable(spec): return
                     height = _as_pixel_value(spec, scale)
 
-        spec = _length_value(svg_root, 'width')
+        spec = _length_value(svg_root, 'width', progress)
         if spec:
             if not _scalable(spec): return
             if width is None:
                 width = _as_pixel_value(spec, scale)
 
-        spec = _length_value(svg_root, 'height')
+        spec = _length_value(svg_root, 'height', progress)
         if spec:
             if not _scalable(spec): return
             if height is None:
@@ -231,7 +235,7 @@ def _rescale_element(element,
                 element.set('height', f'{image.height * scale}')
 
         except PIL.UnidentifiedImageError as e:
-            self.progress.warning(NAME, msg = f'Image format unrecognised: {str(s)}')
+            progress.warning(NAME, msg = f'Image format unrecognised: {str(e)}')
 
 
 ABSOLUTE_UNITS = {
@@ -256,13 +260,13 @@ def _as_pixel_value(dimension, scale):
     return str(dimension.value * ABSOLUTE_UNITS[dimension.dimension or 'px'] * scale)
 
 
-def _length_value(element, key: str):
+def _length_value(element, key: str, progress: Progress):
     if key not in element.attrib:
         return None
     try:
         return cssutils.css.value.DimensionValue(element.get(key))
     except xml.dom.SyntaxErr:
-        self.progress.warning(
+        progress.warning(
             NAME,
             msg = f'Syntax error in {key} attribute for <{element.tag}> element: "{element.get(key)}"')
         return None

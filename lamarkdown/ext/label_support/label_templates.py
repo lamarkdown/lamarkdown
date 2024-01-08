@@ -1,7 +1,13 @@
 from . import counter_types
 from dataclasses import dataclass
-import re
 from typing import Optional
+import sys
+
+if sys.version_info < (3, 11):
+    # The 're' module doesn't support possessive quantifiers ('*+', etc.) until Python 3.11.
+    import regex as re
+else:
+    import re
 
 
 @dataclass
@@ -9,7 +15,7 @@ class LabelTemplate:
     prefix: str
     separator: str
     suffix: str
-    parent_type: str
+    parent_type: Optional[str]
     counter_type: Optional[counter_types.CounterType]
     inner_template: Optional['LabelTemplate']
 

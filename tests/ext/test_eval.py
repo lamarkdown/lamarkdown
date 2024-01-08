@@ -1,4 +1,5 @@
 from ..util.mock_progress import MockProgress
+from ..util.markdown_ext import entry_point_cls
 import unittest
 from unittest.mock import patch
 from hamcrest import *
@@ -142,15 +143,8 @@ class EvalTestCase(unittest.TestCase):
 
 
     def test_extension_setup(self):
-        import importlib
-        import importlib.metadata
-
-        module_name, class_name = importlib.metadata.entry_points(
-            group = 'markdown.extensions')['la.eval'].value.split(':', 1)
-        cls = importlib.import_module(module_name).__dict__[class_name]
-
         assert_that(
-            cls,
+            entry_point_cls('la.eval'),
             same_instance(lamarkdown.ext.eval.EvalExtension))
 
         instance = lamarkdown.ext.eval.makeExtension(replace = {'mock': 'replacement'})

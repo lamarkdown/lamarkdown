@@ -9,7 +9,7 @@ build modules.
 from .resources import ResourceSpec
 from .progress import Progress
 from markdown.extensions import Extension
-import diskcache
+import diskcache # type: ignore
 import lxml.etree
 
 from copy import copy, deepcopy
@@ -102,12 +102,12 @@ class Environment(dict):
         return super().__repr__()
 
 
-R = TypeVar('R')
+R = TypeVar('R', covariant = True)
 class Rule(Protocol[R]):
-    def __call__(self, *, url: str,
-                          type: str,
-                          tag: str,
-                          attr: Dict[str,str]) -> R: ...
+    def __call__(self, *, url: str = '',
+                          type: str = '',
+                          tag: str = '',
+                          attr: Dict[str,str] = {}) -> R: ...
 
 # Note: all 'rule' callbacks should accept a '**kwargs' parameter. The actual keyword arguments
 # supplied include _some subset_ of: 'url', 'type' (mime type), 'tag' and 'attr', and possibly

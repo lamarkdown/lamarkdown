@@ -1,3 +1,4 @@
+from ..util.markdown_ext import entry_point_cls
 import lamarkdown.ext
 import lamarkdown.ext.attr_prefix
 
@@ -88,15 +89,8 @@ class AttrPrefixTestCase(unittest.TestCase):
 
 
     def test_extension_setup(self):
-        import importlib
-        import importlib.metadata
-
-        module_name, class_name = importlib.metadata.entry_points(
-            group = 'markdown.extensions')['la.attr_prefix'].value.split(':', 1)
-        cls = importlib.import_module(module_name).__dict__[class_name]
-
         assert_that(
-            cls,
+            entry_point_cls('la.attr_prefix'),
             same_instance(lamarkdown.ext.attr_prefix.AttrPrefixExtension))
 
         instance = lamarkdown.ext.attr_prefix.makeExtension()

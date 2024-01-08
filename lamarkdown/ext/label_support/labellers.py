@@ -1,5 +1,5 @@
 from .label_templates import LabelTemplate
-from typing import Optional
+from typing import List, Optional
 
 
 class Labeller:
@@ -18,7 +18,7 @@ class Labeller:
         self._parent = parent
         self._count = count
         self._css_id = css_id
-        self._children = []
+        self._children: List[Labeller] = []
 
 
     def add_child(self, child: 'Labeller'):
@@ -112,7 +112,7 @@ class LabellerFactory:
     def get(self,
             element_type: str,
             template: LabelTemplate,
-            parent: Labeller = None,
+            parent: Optional[Labeller] = None,
             count: int = 0,
             css: bool = True):
 

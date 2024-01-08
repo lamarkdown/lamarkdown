@@ -351,7 +351,8 @@ class ResourceWritersTestCase(unittest.TestCase):
                         cache           = Mock(),
                         embed_fn        = lambda *a: True,
                         hash_type_fn    = None,
-                        mime_type       = 'text/css')
+                        # mime_type       = 'text/css'
+                    )
                 )
             ]:
                 type(mock_build_params).resource_base_url = PropertyMock(return_value = base_url)

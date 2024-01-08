@@ -10,7 +10,6 @@ import lamarkdown
 from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
 from .progress import Progress
-# from . import resources, resource_writers, lists, images
 from . import resources, resource_writers, images
 
 import lxml.html
@@ -24,14 +23,15 @@ from io import StringIO
 import locale
 import os
 import re
-from typing import Callable, Dict, List, Set
+from typing import Callable, Dict, List, Optional, Set
 from xml.etree import ElementTree
 
 NAME = 'compiling' # For progress/error messages
 
 
 def set_default_build_params(build_parms: BuildParams):
-    lamarkdown.m.doc()
+    # lamarkdown.m.doc()
+    lamarkdown.api.m.doc()
 
 
 def compile(base_build_params: BuildParams):
@@ -49,8 +49,9 @@ def compile(base_build_params: BuildParams):
         if os.path.exists(build_file):
             any_build_modules = True
             module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
-            if module_spec is None:
+            if module_spec is None or module_spec.loader is None:
                 progress.error(NAME, msg = f'Could not load build module "{build_file}"')
+                continue
 
             build_module = importlib.util.module_from_spec(module_spec)
             try:
@@ -89,6 +90,8 @@ def compile(base_build_params: BuildParams):
 def compile_variant(variant: Variant,
                     build_params: BuildParams):
     prev_build_params = BuildParams.current
+    assert prev_build_params is not None
+
     build_params = deepcopy(build_params)
     build_params.set_current()
 
@@ -181,6 +184,14 @@ _parser = lxml.html.HTMLParser(default_doctype = False,
                                remove_blank_text = True,
                                remove_comments = True)
 
+def parse(content_html: Optional[str]) -> Optional[lxml.html.HtmlElement]:
+    buf = StringIO(content_html or '<body></body>')
+    try:
+        return lxml.html.parse(buf, _parser).find('body')
+    except Exception: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
+        return None
+
+
 CSS_VAR_REGEX = re.compile(
     r'''
     (?<![\w-])   # Starts after a non-word/dash char
@@ -203,12 +214,13 @@ def write_html(content_html: str,
         if new_content_html is not None:
             content_html = new_content_html
 
-    buf = StringIO(content_html or '<body></body>')
-    try:
-        root_element = lxml.html.parse(buf, _parser).find('body')
-    except Exception as e: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
-        build_params.progress.error(NAME,
-                                    msg = f'{os.path.basename(build_params.output_file)}: no document created')
+    root_element: lxml.html.HtmlElement
+    if (e := parse(content_html)) is not None:
+        root_element = e
+    else:
+        build_params.progress.error(
+            NAME,
+            msg = f'{os.path.basename(build_params.output_file)}: no document created')
         return
 
     # Run tree hook functions
@@ -217,8 +229,11 @@ def write_html(content_html: str,
         if new_root is not None:
             # Allow hook functions to replace (and return) the whole root element if they want.
             root_element = new_root
+            new_root.itertext
+            root_element.itertext
 
-    # lists.label_lists(root_element, build_params)
+    root_element.itertext
+
     images.scale_images(root_element, build_params)
 
     # Embed external resources, if needed. (Note: stylesheets and scripts are handled separately.
@@ -333,7 +348,7 @@ def write_html(content_html: str,
         {js:s}</body>
         </html>
     '''
-    full_html = re.sub('\n\s*', '\n', full_html_template.strip()).format(
+    full_html = re.sub(r'\n\s*', '\n', full_html_template.strip()).format(
         lang_html = lang_html,
         title_html = f'<title>{title_html}</title>\n' if title_html else '',
         css = css,

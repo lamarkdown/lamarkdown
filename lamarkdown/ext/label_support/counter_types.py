@@ -1,11 +1,11 @@
 import abc
 import io
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class CounterType(abc.ABC):
     def __init__(self, css_id: str,
-                       fallback: 'CounterType' = None,
+                       fallback: Optional['CounterType'] = None,
                        negative = ('-', ''),
                        prefix = '',
                        suffix = '',
@@ -22,7 +22,7 @@ class CounterType(abc.ABC):
         self._pad = pad
         self._eq_extra = eq_extra
 
-        self._cache = {}
+        self._cache: Dict[int, str] = {}
         self._hash = hash((type(self), css_id, fallback, negative,
                           prefix, suffix, range, pad, eq_extra))
 
@@ -59,7 +59,7 @@ class CounterType(abc.ABC):
         return fmt
 
     @abc.abstractmethod
-    def format_impl(self, count) -> str: ...
+    def format_impl(self, count) -> Optional[str]: ...
 
     @property
     def css_id(self): return self._css_id
@@ -95,7 +95,7 @@ class NumericCounter(CounterType):
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
-        digits = []
+        digits: List[str] = []
         n_symbols = len(self._symbols)
         while count > 0:
             digits.insert(0, self._symbols[count % n_symbols])
@@ -112,8 +112,8 @@ class AlphabeticCounter(CounterType):
         super().__init__(css_id, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
-    def format_impl(self, count: int) -> str:
-        digits = []
+    def format_impl(self, count: int) -> Optional[str]:
+        digits: List[str] = []
         n_symbols = len(self._symbols)
         while count > 0:
             digits.insert(0, self._symbols[(count - 1) % n_symbols])
@@ -128,7 +128,7 @@ class AdditiveCounter(CounterType):
         self._symbols = additive_symbols
         self._symbols.sort(reverse = True)
 
-    def format_impl(self, count: int) -> str:
+    def format_impl(self, count: int) -> Optional[str]:
         digits = io.StringIO()
         for weight, symbol in self._symbols:
             while count >= weight:
@@ -143,7 +143,7 @@ class SymbolicCounter(CounterType):
         super().__init__(css_id, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
-    def format_impl(self, count: int) -> str:
+    def format_impl(self, count: int) -> Optional[str]:
         if count == 0: return None
         count -= 1
         n_symbols = len(self._symbols)
@@ -165,7 +165,7 @@ class FixedCounter(CounterType):
         self._symbols = symbols
         self._first = first
 
-    def format_impl(self, count: int) -> str:
+    def format_impl(self, count: int) -> Optional[str]:
         count -= self._first
         return self._symbols[count] if 0 <= count < len(self._symbols) else None
 

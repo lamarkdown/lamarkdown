@@ -5,7 +5,7 @@ The functions here are to be used by build files and extensions.
 '''
 
 from .build_params import BuildParams, ExtendableValue, LateValue, Rule, Variant
-from .resources import ResourceSpec, ContentResourceSpec, UrlResourceSpec
+from .resources import ContentResourceSpec, UrlResourceSpec
 from . import fenced_blocks
 
 from markdown.extensions import Extension
@@ -15,12 +15,13 @@ from lxml.html import HtmlElement
 import importlib
 import os.path
 from typing import *
+from types import ModuleType
 
 
 class BuildParamsException(Exception): pass
 
 ValueFactory = Callable[[Set[str]],Optional[str]]
-ResourceSpec = Union[str,ValueFactory]
+ResourceArg = Union[str,ValueFactory]
 Condition = Union[str,Iterable[str]]
 ResourceInfo = Tuple[List[str],ValueFactory]
 
@@ -30,7 +31,7 @@ def _callable(fn, which = 'argument'):
         raise ValueError(f'{which} expected to be a function/callable, but was {type(fn).__name__} (value {fn})')
 
 
-def _res_values(value: ResourceSpec,
+def _res_values(value: ResourceArg,
                 if_xpaths:    Condition = [],
                 if_selectors: Condition = []) -> ResourceInfo:
 
@@ -49,14 +50,14 @@ def _res_values(value: ResourceSpec,
     xpath_iterable    = [if_xpaths]    if isinstance(if_xpaths,    str) else if_xpaths
     selector_iterable = [if_selectors] if isinstance(if_selectors, str) else if_selectors
 
-    xpaths = []
+    xpaths: List[str] = []
     xpaths.extend(xpath_iterable)
     xpaths.extend(CSSSelector(sel).path for sel in selector_iterable)
 
     return (xpaths, value_factory)
 
 
-def _url_resources(url_list: List[str],
+def _url_resources(url_list: Iterable[str],
                    tag: str,
                    embed: Optional[bool] = None,
                    hash_type: Optional[str] = None,
@@ -64,41 +65,61 @@ def _url_resources(url_list: List[str],
                    **kwargs):
 
     p = BuildParams.current
+    assert p is not None
+
     for url in url_list:
         (xpaths_required, url_factory) = _res_values(url, **kwargs)
 
-        rule_args = {'url': url, 'tag': tag, **({'type': mime_type} if mime_type else {})}
+        if embed is None:
+            if mime_type is None:
+                embed_fn = lambda: p.embed_rule(url = url, tag = tag, attr = {})
+            else:
+                embed_fn = lambda: p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
+        else:
+            embed_fn = lambda: embed
+
+        if hash_type is None:
+            if mime_type is None:
+                hash_type_fn = lambda: p.resource_hash_rule(url = url, tag = tag, attr = {})
+            else:
+                hash_type_fn = lambda: p.resource_hash_rule(url = url, tag = tag, attr = {},
+                                                            type = mime_type)
+        else:
+            hash_type_fn = lambda: hash_type
+
+
         yield UrlResourceSpec(
             xpaths_required = xpaths_required,
             url_factory  = url_factory,
             base_url     = p.resource_base_url,
             cache        = p.fetch_cache,
-            embed_fn     = lambda: embed if embed is not None else p.embed_rule(**rule_args),
-            hash_type_fn = lambda: hash_type if hash_type is not None else \
-                                   p.resource_hash_rule(**rule_args),
-            mime_type    = mime_type
-        )
+            embed_fn     = embed_fn,
+            hash_type_fn = hash_type_fn)
 
 
 def params():
     return BuildParams.current
 
 
-def init_property(getter):
-    # Unittest automatically 'discovers' tests by traversing package/module structures. ApiImpl is
-    # a kind of module, and some of its properties are effectively uninitialised until a global
-    # BuildParams object is created, and this doesn't happen during unit testing.
+def check_build_params(getter):
+    '''
+    @check_build_params decorates getter methods, to make them check whether the global BuildParams
+    object has been initialised.
 
-    # The @init_property decorator causes such properties to be 'NotImplemented' prior to
-    # initialisation, but otherwise work as normal.
+    This is important for unit testing, since 'unittest' unittest automatically discovers tests by
+    traversing package/module structures, and ApiImpl is a kind of module. But the global
+    BuildParams object doesn't exist during unit testing.
+
+    This decorator is also separated out from '@property', because mypy needs '@property' to
+    understand what the properties are.
+    '''
 
     def get(self):
         if BuildParams.current is None:
             return NotImplemented
         return getter(self)
 
-    return property(get)
-
+    return get
 
 
 class BuildModuleDispatcher:
@@ -116,8 +137,14 @@ class BuildModuleDispatcher:
         return apply_fn
 
 
-class ApiImpl(type(__builtins__)):
+class ApiImpl(ModuleType):
     _m = BuildModuleDispatcher()
+
+    def __init__(self):
+        # See https://docs.python.org/3/library/types.html#types.ModuleType
+        super().__init__('lamarkdown')
+        self.__all__ = dir(ApiImpl)
+
 
     @property
     def m(self):
@@ -177,22 +204,26 @@ class ApiImpl(type(__builtins__)):
         _callable(fn)
         return LateValue(fn)
 
-    @init_property
+    @property
+    @check_build_params
     def params(self) -> BuildParams:
         return params()
 
 
-    @init_property
+    @property
+    @check_build_params
     def build_dir(self) -> str:
         return params().build_dir
 
 
-    @init_property
+    @property
+    @check_build_params
     def env(self):
         return params().env
 
 
-    @init_property
+    @property
+    @check_build_params
     def name(self) -> str:
         return params().name
 
@@ -211,7 +242,8 @@ class ApiImpl(type(__builtins__)):
         params().output_namer = lambda t: t
 
 
-    @init_property
+    @property
+    @check_build_params
     def allow_exec(self) -> bool:
         return params().allow_exec
 
@@ -224,8 +256,8 @@ class ApiImpl(type(__builtins__)):
     def fenced_block(self,
                      name: str,
                      formatter: Callable,
-                     validator: Callable = None,
-                     css_class: str = None,
+                     validator: Optional[Callable] = None,
+                     css_class: Optional[str] = None,
                      cached: bool = True,
                      check_exec: bool = False,
                      set_attr: bool = True):
@@ -245,9 +277,9 @@ class ApiImpl(type(__builtins__)):
 
         self('pymdownx.superfences', custom_fences = self.extendable([{
             'name': name,
-            'class': css_class or name,
+            'class': css_class if css_class is not None else name,
             'format': formatter,
-            **({'validator': validator} if validator else {})
+            **({'validator': validator} if validator is not None else {})
         }]))
 
 
@@ -334,30 +366,31 @@ class ApiImpl(type(__builtins__)):
                                                 content_factory = content_factory))
 
 
-    def css(self, content: ResourceSpec, **kwargs):
+    def css(self, content: ResourceArg, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().css.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                 content_factory = content_factory))
 
-    @init_property
+    @property
+    @check_build_params
     def css_vars(self):
         return params().css_vars
 
 
-    def js(self, content: ResourceSpec, **kwargs):
+    def js(self, content: ResourceArg, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                content_factory = content_factory))
 
 
-    def css_files(self, *url_list: List[str], **kwargs):
+    def css_files(self, *url_list: str, **kwargs):
         params().css.extend(_url_resources(url_list,
                                            tag = 'style',
                                            mime_type = 'text/css',
                                            **kwargs))
 
 
-    def js_files(self, *url_list: List[str], **kwargs):
+    def js_files(self, *url_list: str, **kwargs):
         params().js.extend(_url_resources(url_list,
                                           tag = 'script',
                                           mime_type = 'application/javascript',

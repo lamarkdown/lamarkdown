@@ -5,7 +5,7 @@ from . import live
 from .build_params import BuildParams
 from .progress import Progress
 
-import diskcache
+import diskcache # type: ignore
 import platformdirs
 
 import argparse

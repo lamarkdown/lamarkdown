@@ -21,7 +21,7 @@ from xml.etree import ElementTree
 class ImageScalingTestCase(unittest.TestCase):
 
 
-    NUMBER_REGEX = re.compile('[0-9]+(\.[0-9]+)?')
+    NUMBER_REGEX = re.compile(r'[0-9]+(\.[0-9]+)?')
 
     @classmethod
     def setUpClass(cls):
@@ -109,7 +109,7 @@ class ImageScalingTestCase(unittest.TestCase):
 
         # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
         # actual result, so we can then do simple string comparisons rather than parsing the values.
-        WHITESPACE = re.compile('\s+')
+        WHITESPACE = re.compile(r'\s+')
         TRAILING_ZEROS = re.compile(r'(\.[0-9]*?)0+\b')
         TRAILING_ZERO_REPL = r'\1'
 
@@ -300,7 +300,7 @@ class ImageScalingTestCase(unittest.TestCase):
 
         # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
         # actual result, so we can then do simple string comparisons rather than parsing the values.
-        WHITESPACE = re.compile('\s+')
+        WHITESPACE = re.compile(r'\s+')
         TRAILING_ZEROS = re.compile(r'(\.[0-9]*?)0+\b')
         TRAILING_ZERO_REPL = r'\1'
 

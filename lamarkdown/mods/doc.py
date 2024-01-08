@@ -1,5 +1,5 @@
 import lamarkdown as la
-import pymdownx
+import pymdownx # type: ignore
 
 import copy
 from lxml.etree import SubElement
@@ -7,11 +7,11 @@ from lxml.etree import SubElement
 
 def apply(heading_numbers = True):
     la(
-        'admonition', # 'Notes', 'warnings', etc.
+        'admonition',
         'attr_list',
-        'meta',       # Allows for defining metadata in the markdown.
+        'meta',
         'sane_lists',
-        'smarty',     # Auto-replacement of quotes, ellipses and dashes.
+        'smarty',
 
         # 3rd Party: pymdown
         'pymdownx.highlight', # Needed for control over whether 'super-fences' uses Pygments or not
