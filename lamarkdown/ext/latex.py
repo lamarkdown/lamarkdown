@@ -5,8 +5,8 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
 
 (1) Inclusion of an entire Latex document or environment (e.g., to create a PGF/Tikz image).
 
-    Such code will be compiled with an external Latex command, converted to SVG, and embedded in the
-    output HTML. The Latex code must start on a new line, and can either:
+    Such code will be compiled with an external Latex command, converted to SVG, and embedded in
+    the output HTML. The Latex code must start on a new line, and can either:
 
     (a) Be a complete Latex document, which must begin with '\\documentclass' and end with
         '\\end{document}';
@@ -34,8 +34,8 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
     If math="latex", then math code will instead be compiled and converted the same way as in (1),
     just in math mode.
 
-    Processing of math code can also be turned off with math="ignore" (either to restore the literal
-    meaning of '$', or to use an alternate math code processor like pymdownx.arithmatex).
+    Processing of math code can also be turned off with math="ignore" (either to restore the
+    literal meaning of '$', or to use an alternate math code processor like pymdownx.arithmatex).
 '''
 
 
@@ -43,17 +43,12 @@ from lamarkdown.lib.progress import Progress
 from . import util
 from .util import replacement_patterns
 
-from markdown import *
-from markdown.extensions import *
-from markdown.preprocessors import Preprocessor
-from markdown.postprocessors import Postprocessor
-from markdown.util import AtomicString
+import markdown
 
 import latex2mathml.converter
 
 import base64
 import copy
-import glob
 import hashlib
 import io
 import os
@@ -64,7 +59,7 @@ import time
 from typing import Callable, Dict, List, Optional, Set, Union
 from xml.etree import ElementTree
 
-NAME = 'la.latex' # For error messages
+NAME = 'la.latex'  # For error messages
 
 DATA_URI_EMBEDDING = 'data_uri'
 SVG_ELEMENT_EMBEDDING = 'svg_element'
@@ -80,7 +75,7 @@ class CommandException(Exception):
         self.output = output
 
 
-def check_run(command: Union[str,List[str]],
+def check_run(command: Union[str, List[str]],
               expected_output_file: str,
               timeout: Optional[float] = None,
               **kwargs):
@@ -89,11 +84,11 @@ def check_run(command: Union[str,List[str]],
 
     popen = subprocess.Popen(command,
                              shell = isinstance(command, str),
-                             stdin = subprocess.DEVNULL, # Supposed to be non-interactive!
+                             stdin = subprocess.DEVNULL,  # Supposed to be non-interactive!
                              stdout = subprocess.PIPE,
                              stderr = subprocess.STDOUT,
                              encoding = 'utf-8',
-                             bufsize = 1, # line-buffered
+                             bufsize = 1,  # line-buffered
                              **kwargs)
 
     new_output = threading.Event()
@@ -101,8 +96,8 @@ def check_run(command: Union[str,List[str]],
     output_lock = threading.Lock()
 
     def read_stdout():
-        # Reads stdout from the process in a separate thread, so the blocking doesn't interfere with
-        # our timeout monitoring.
+        # Reads stdout from the process in a separate thread, so the blocking doesn't interfere
+        # with our timeout monitoring.
         try:
             for line in iter(popen.stdout.readline, ''):
                 new_output.set()
@@ -143,7 +138,7 @@ def check_run(command: Union[str,List[str]],
                             f'"{command_str}" timed out, after {timeout} secs of no output',
                             output_buf.getvalue())
 
-    assert popen.returncode is not None # The process should be stopped by now.
+    assert popen.returncode is not None  # The process should be stopped by now.
 
     if popen.returncode != 0:
         with output_lock:
@@ -208,7 +203,7 @@ class LatexCompiler:
         'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
     }
 
-    CONVERTER_CORRECTIONS: Dict[str,Callable[[str],str]] = {
+    CONVERTER_CORRECTIONS: Dict[str, Callable[[str], str]] = {
         'pdf2svg': _pdf2svg_correction
     }
 
@@ -230,19 +225,19 @@ class LatexCompiler:
         self.progress = progress
         self.live_update_deps = live_update_deps
 
-        self.tex_cmdline: Union[List[str],str] = (
-            self.TEX_CMDLINES.get(tex) or
-            tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
+        self.tex_cmdline: Union[List[str], str] = (
+            self.TEX_CMDLINES.get(tex)
+            or tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
         )
 
-        self.converter_cmdline: Union[List[str],str] = (
-            self.CONVERTER_CMDLINES.get(pdf_svg_converter) or
-            pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
+        self.converter_cmdline: Union[List[str], str] = (
+            self.CONVERTER_CMDLINES.get(pdf_svg_converter)
+            or pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
         )
 
         self.converter_correction = (
-            self.CONVERTER_CORRECTIONS.get(pdf_svg_converter) or
-            (lambda svg: svg)
+            self.CONVERTER_CORRECTIONS.get(pdf_svg_converter)
+            or (lambda svg: svg)
         )
 
         self.embedding = embedding
@@ -251,7 +246,7 @@ class LatexCompiler:
         self.verbose_errors = verbose_errors
 
 
-    def _generate_html(self, latex: str, attr: Dict[str,str]) -> str:
+    def _generate_html(self, latex: str, attr: Dict[str, str]) -> str:
         # Run Python Markdown's postprocessors.
 
         # This is important, because Markdown's _pre_processors replace certain constructs,
@@ -261,7 +256,7 @@ class LatexCompiler:
         # This is exactly what LatexPreprocessor and LatexPostprocessor do themselves, but now
         # we must invoke the _other_ postprocessors too.
         for post_proc in self._md.postprocessors:
-            if not(isinstance(post_proc, LatexPostprocessor)):
+            if not isinstance(post_proc, LatexPostprocessor):
                 latex = post_proc.run(latex)
 
         # Having done this, we now (again) need to strip out HTML comments, because these (in
@@ -349,7 +344,7 @@ class LatexCompiler:
                 self.live_update_deps.update(dependencies.keys())
             else:
                 dependencies = {}
-                self.progress.warning(NAME, msg = f'Tex command did not create an .fls file')
+                self.progress.warning(NAME, msg = 'Tex command did not create an .fls file')
 
             try:
                 self.progress.progress(
@@ -370,12 +365,16 @@ class LatexCompiler:
                     if element.get('viewBox') in [None, '0 0 0 0']:
                         return self.progress.error(
                             NAME,
-                            msg = f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} or {self.converter_cmdline[0]} failed',
+                            msg = (f'Resulting SVG code is empty -- either {self.tex_cmdline[0]} '
+                                   f'or {self.converter_cmdline[0]} failed'),
                             output = svg_content).as_html_str()
 
                 if self.embedding == DATA_URI_EMBEDDING:
-                    data_uri = f'data:image/svg+xml;base64,{base64.b64encode(svg_content.strip().encode()).decode()}'
-                    element = ElementTree.fromstring(f'<img src="{data_uri}" />')
+                    data = base64.b64encode(svg_content.strip().encode()).decode()
+                    # data_uri = f'data:image/svg+xml;base64,{data}'
+                    # element = ElementTree.fromstring(f'<img src="{data_uri}" />')
+                    element = ElementTree.fromstring(
+                        f'<img src="data:image/svg+xml;base64,{data}" />')
 
                 self.cache[cache_key] = (copy.copy(element), dependencies)
 
@@ -401,29 +400,30 @@ class LatexCompiler:
             return {
                 f: os.stat(f).st_mtime if os.path.exists(f) else None
                 for f in input_files
-                if os.path.commonpath([self.home_dir, f]) == self.home_dir or
-                   os.path.commonpath([cwd, f]) == cwd
+                if (os.path.commonpath([self.home_dir, f]) == self.home_dir
+                    or os.path.commonpath([cwd, f]) == cwd)
             }
 
     def are_deps_unchanged(self, dependencies):
         for f, old_mtime in dependencies.items():
             if old_mtime != (os.stat(f).st_mtime if os.path.exists(f) else None):
-                return False # Changed
-        return True # Unchanged
+                return False  # Changed
+        return True  # Unchanged
 
 
-    def compile(self, full_doc: str, attr: Dict[str,str]):
+    def compile(self, full_doc: str, attr: Dict[str, str]):
         self._instance += 1
         self._html[self._instance] = self._generate_html(full_doc, attr)
         return f'{LATEX_PLACEHOLDER_PREFIX}{self._instance}{ETX}'
 
     @property
-    def html(self): return self._html
+    def html(self):
+        return self._html
 
 
 
-class LatexPreprocessor(Preprocessor):
-    """
+class LatexPreprocessor(markdown.preprocessors.Preprocessor):
+    '''
     The preprocessor identifies and parses Latex block snippets found in the document. Each one is
     passed to LatexCompiler, and marked in the document with a temporary placeholder, awaiting the
     postprocessor.
@@ -433,7 +433,7 @@ class LatexPreprocessor(Preprocessor):
     snippet. This approach encountered some minor but unfortunate limitations; e.g., when placed
     inside a markdown list, the Latex code was prohibited from containing blank lines, because the
     block processor only saw one block at a time.)
-    """
+    '''
 
 
     TEX_END_UNCOMMENTED = r'''
@@ -483,11 +483,12 @@ class LatexPreprocessor(Preprocessor):
         re.VERBOSE | re.DOTALL | re.MULTILINE)
 
 
-    def __init__(self, compiler: LatexCompiler,
-                       prepend: str,
-                       doc_class: str,
-                       doc_class_options: str,
-                       strip_html_comments: bool):
+    def __init__(self,
+                 compiler: LatexCompiler,
+                 prepend: str,
+                 doc_class: str,
+                 doc_class_options: str,
+                 strip_html_comments: bool):
         self.compiler = compiler
         self.prepend = prepend
         self.doc_class = doc_class
@@ -585,11 +586,11 @@ MATH_TEX_RE = rf'''(?xs)
 
 
 class LatexReplacementProcessor(replacement_patterns.ReplacementPattern):
-    """
+    '''
     This replacement processor identifies and parses Latex math snippets. Each one is passed to
     LatexCompiler, and marked in the document with a temporary placeholder, awaiting the
     postprocessor.
-    """
+    '''
 
     def __init__(self,
                  compiler: LatexCompiler,
@@ -625,10 +626,10 @@ class LatexReplacementProcessor(replacement_patterns.ReplacementPattern):
 
 
 class LatexMathMLReplacementProcessor(replacement_patterns.ReplacementPattern):
-    """
+    '''
     This replacement processor also identifies and parses Latex math snippets. For each one, we
     invoke latex2mathml to produce a <math>...</math> element representing the Latex math code.
-    """
+    '''
 
     def __init__(self):
         super().__init__(MATH_TEX_RE)
@@ -651,11 +652,11 @@ class LatexMathMLReplacementProcessor(replacement_patterns.ReplacementPattern):
 
 
 
-class LatexPostprocessor(Postprocessor):
-    """
+class LatexPostprocessor(markdown.postprocessors.Postprocessor):
+    '''
     Searches for the placeholder strings inserted by the preprocessor/replacement processor to
     determine where to substitute the compiled HTML.
-    """
+    '''
 
     def __init__(self, compiler: LatexCompiler):
         self.compiler = compiler
@@ -666,7 +667,7 @@ class LatexPostprocessor(Postprocessor):
             text)
 
 
-class LatexExtension(Extension):
+class LatexExtension(markdown.Extension):
     def __init__(self, **kwargs):
         # Try to get some objects from the current build parameters:
         # (1) the build dir -- the location where we'll execute latex, and where all its
@@ -681,7 +682,7 @@ class LatexExtension(Extension):
             from lamarkdown.lib.build_params import BuildParams
             p = BuildParams.current
         except ModuleNotFoundError:
-            pass # Use default defaults
+            pass  # Use default defaults
 
         self.config = {
             'build_dir': [
@@ -698,19 +699,30 @@ class LatexExtension(Extension):
             ],
             'live_update_deps': [
                 p.live_update_deps if p else set(),
-                'A set into which the extension will record the names of any local, external files that the given Tex code depends on (not including the Tex installation itself).'
+                'A set into which the extension will record the names of any local, external '
+                'files that the given Tex code depends on (not including the Tex installation '
+                'itself).'
             ],
             'tex': [
                 'xelatex',
-                'Program used to compile .tex files to PDF files. Generally, this should be a complete command-line containing the strings "in.tex" and "out.pdf" (which will be replaced with the real names as needed). However, it can also be simply "pdflatex" or "xelatex", in which case pre-defined command-lines for those commands will be used.'
+                'Program used to compile .tex files to PDF files. Generally, this should be a '
+                'complete command-line containing the strings "in.tex" and "out.pdf" (which will '
+                'be replaced with the real names as needed). However, it can also be simply '
+                '"pdflatex" or "xelatex", in which case pre-defined command-lines for those '
+                'commands will be used.'
             ],
             'pdf_svg_converter': [
                 'dvisvgm',
-                'Program used to convert PDF files (produced by Tex) to SVG files to be embedded in the HTML output. Generally, this should be a complete command-line containing the strings "in.pdf" and "out.svg" (which will be replaced with the real names as needed). However, it can also be simply  "dvisvgm", "pdf2svg" or "inkscape", in which case pre-defined command-lines for those commands will be used.'
+                'Program used to convert PDF files (produced by Tex) to SVG files to be embedded '
+                'in the HTML output. Generally, this should be a complete command-line containing '
+                'the strings "in.pdf" and "out.svg" (which will be replaced with the real names '
+                'as needed). However, it can also be simply  "dvisvgm", "pdf2svg" or "inkscape", '
+                'in which case pre-defined command-lines for those commands will be used.'
             ],
             'embedding': [
                 DATA_URI_EMBEDDING,
-                f'Either "{DATA_URI_EMBEDDING}" or "{SVG_ELEMENT_EMBEDDING}", specifying how the SVG data will be attached to the HTML document.'
+                f'Either "{DATA_URI_EMBEDDING}" or "{SVG_ELEMENT_EMBEDDING}", specifying how the '
+                'SVG data will be attached to the HTML document.'
             ],
             'prepend': [
                 '',
@@ -726,19 +738,33 @@ class LatexExtension(Extension):
             ],
             'strip_html_comments': [
                 True,
-                r'Considers "<!--...-->" to be a comment, and removes them before compiling with Latex. Latex would (in most cases) interpret these sequences as ordinary characters, whereas in markdown they would normally be (effectively) ignored. If you need to write a literal "<!--", you can do so by inserting "{}" between the characters. (This option does not affect normal Tex "%" comments.)'
+                'Considers "<!--...-->" to be a comment, and removes them before compiling with '
+                'Latex. Latex would (in most cases) interpret these sequences as ordinary '
+                'characters, whereas in markdown they would normally be (effectively) ignored. If '
+                'you need to write a literal "<!--", you can do so by inserting "{}" between the '
+                'characters. (This option does not affect normal Tex "%" comments.)'
             ],
             'timeout': [
                 3,
-                r'Time (secs) before the tex command will be terminated, once it stops outputting messages.'
+                'Time (secs) before the tex command will be terminated, once it stops outputting '
+                'messages.'
             ],
             'verbose_errors': [
                 False,
-                r'If True, then everything the Tex command writes to stdout will be included in any error messages. If False (the default), the extension will try to detect the start of any actual Tex error message, and only output that.'
+                'If True, then everything the Tex command writes to stdout will be included in any '
+                'error messages. If False (the default), the extension will try to detect the '
+                'start of any actual Tex error message, and only output that.'
             ],
             'math': [
                 MATH_MATHML,
-                rf'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex math code. The options are "{MATH_IGNORE}", "{MATH_LATEX}" or "{MATH_MATHML}" (the default). For "{MATH_IGNORE}", math code is left untouched by this extension. Use this to avoid conflicts if, for instance, you\'re using another extension (like pymdownx.arithmatex) to handle them. For "{MATH_LATEX}", math code is compiled in essentially the same way as \begin{{}}...\end{{}} blocks (but in math mode). For "{MATH_MATHML}", math code is converted to MathML <math> elements, to be rendered by the browser.'
+                'How to handle $...$ and $$...$$ sequences, which are assumed to contain Latex '
+                f'math code. The options are "{MATH_IGNORE}", "{MATH_LATEX}" or "{MATH_MATHML}" '
+                f'(the default). For "{MATH_IGNORE}", math code is left untouched by this '
+                'extension. Use this to avoid conflicts if, for instance, you\'re using another '
+                f'extension (like pymdownx.arithmatex) to handle them. For "{MATH_LATEX}", math '
+                r'code is compiled in essentially the same way as \begin{}...\end{} blocks (but '
+                f'in math mode). For "{MATH_MATHML}", math code is converted to MathML <math> '
+                'elements, to be rendered by the browser.'
             ],
         }
         super().__init__(**kwargs)

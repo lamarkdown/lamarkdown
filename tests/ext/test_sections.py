@@ -1,7 +1,7 @@
 from ..util.markdown_ext import entry_point_cls
 import unittest
 from unittest.mock import patch
-from hamcrest import *
+from hamcrest import assert_that, instance_of, is_, same_instance
 
 import lamarkdown.ext
 import markdown
@@ -11,6 +11,7 @@ import sys
 from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
+
 
 class SectionsTestCase(unittest.TestCase):
 
@@ -52,7 +53,7 @@ class SectionsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?x)
+            r'''(?x)
             \s* <section>
             \s* <h1>Heading</h1>
             \s* </section>
@@ -151,7 +152,7 @@ class SectionsTestCase(unittest.TestCase):
 
             self.assertRegex(
                 html,
-                fr'''(?x)
+                r'''(?x)
                 \s* <section>
                 \s* <p>Paragraph1</p>
                 \s* </section>

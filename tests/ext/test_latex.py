@@ -3,7 +3,9 @@ from ..util.mock_cache import MockCache
 from ..util.markdown_ext import entry_point_cls
 import unittest
 from unittest.mock import patch
-from hamcrest import *
+from hamcrest import (all_of, assert_that, contains_exactly, contains_inanyorder, contains_string,
+                      empty, has_entries, has_properties, has_property, instance_of, is_, not_,
+                      not_none, same_instance, string_contains_in_order)
 
 import lamarkdown.ext.latex
 import markdown
@@ -15,9 +17,9 @@ import re
 import sys
 import tempfile
 from textwrap import dedent
-from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
+
 
 class LatexTestCase(unittest.TestCase):
     def setUp(self):
@@ -88,10 +90,11 @@ class LatexTestCase(unittest.TestCase):
         self.tmp_dir_context.__exit__(None, None, None)
 
 
-    def run_markdown(self, markdown_text: str,
-                           extra_extensions: list = [],
-                           expect_error: bool = False,
-                           **kwargs):
+    def run_markdown(self,
+                     markdown_text: str,
+                     extra_extensions: list = [],
+                     expect_error: bool = False,
+                     **kwargs):
         self.progress = MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.latex', *extra_extensions],
@@ -109,13 +112,13 @@ class LatexTestCase(unittest.TestCase):
 
 
     def assert_tex_regex(self, regex, file_index = ''):
-        # with open(f'{self.tex_file[:-4]}{file_index or ""}.tex', 'r') as reader:
-
         with open(f'{self.tex_file}{file_index or ""}', 'r') as reader:
             tex = reader.read()
 
-        self.assertRegex(tex, regex,
-            f'generated Tex code (#{file_index or 0}) does not match expected pattern\n---actual tex---\n{tex}\n---expected pattern---\n{dedent(regex).strip()}')
+        self.assertRegex(
+            tex, regex,
+            f'generated Tex code (#{file_index or 0}) does not match expected pattern\n---actual '
+            f'tex---\n{tex}\n---expected pattern---\n{dedent(regex).strip()}')
 
     @property
     def mock_svg_b64(self):
@@ -147,8 +150,8 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
@@ -175,8 +178,8 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
@@ -209,8 +212,8 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
@@ -237,8 +240,8 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
@@ -266,8 +269,8 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
 
         img_tag = re.search('<img[^>]+>', html).group(0)
         self.assertIn('alt="alt text"', img_tag)
@@ -301,13 +304,17 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
     def test_html_comments(self):
-        '''Check that HTML comments don't stuff up the parsing. This is complicated (on the production side) by the fact that Python Markdown appears to do its own substitution trick on HTML comments, but not all of them; perhaps only those where the <!-- and --> appear on separate lines.'''
+        '''
+        Check that HTML comments don't stuff up the parsing. This is complicated (on the production
+        side) by the fact that Python Markdown appears to do its own substitution trick on HTML
+        comments, but not all of them; perhaps only those where the <!-- and --> appear on separate
+        lines.'''
 
         html = self.run_markdown(
             r'''
@@ -334,14 +341,17 @@ class LatexTestCase(unittest.TestCase):
             \s* $
         ''')
 
-        self.assertIn(f'<p>Paragraph1</p>', html)
-        self.assertIn(f'<p>Paragraph2</p>', html)
+        self.assertIn('<p>Paragraph1</p>', html)
+        self.assertIn('<p>Paragraph2</p>', html)
         self.assertIn(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}', html)
 
 
     def test_block_commented_out(self, **kwargs):
-        'Check that an entire Latex snippet is ignored if it occurs entirely within an HTML comment.'
-        html = self.run_markdown(
+        '''
+        Check that an entire Latex snippet is ignored if it occurs entirely within an HTML comment.
+        '''
+
+        self.run_markdown(
             r'''
             Paragraph1 <!--
 
@@ -363,23 +373,24 @@ class LatexTestCase(unittest.TestCase):
     # embedding Latex code in HTML comments *may or may not* make it visible to the latex
     # extension code. There's no definitive expectation on what should happen here.
 
-    #def test_block_not_commented_out(self):
-        #html = self.run_markdown(
-            #r'''
-            #Paragraph1
-            #<!--
-
-            #\begin{document}
-                #Latex code
-            #\end{document}  -->
-
-            #Paragraph2
-            #''',
-            #strip_html_comments = False)
-
-        #self.assertTrue(
-            #os.path.isfile(self.tex_file),
-            #'The .tex file should have been created. Though the Latex code was commented out, the comments should have been disregarded.')
+    # def test_block_not_commented_out(self):
+    #     html = self.run_markdown(
+    #         r'''
+    #         Paragraph1
+    #         <!--
+    #
+    #         \begin{document}
+    #             Latex code
+    #         \end{document}  -->
+    #
+    #         Paragraph2
+    #         ''',
+    #         strip_html_comments = False)
+    #
+    #     self.assertTrue(
+    #         os.path.isfile(self.tex_file),
+    #         'The .tex file should have been created. Though the Latex code was commented out,'
+    #         'the comments should have been disregarded.')
 
 
     def test_html_comments_off(self):
@@ -409,7 +420,11 @@ class LatexTestCase(unittest.TestCase):
 
 
     def test_embedded_in_paragraph(self):
-        'Previously, when the extension used a BlockProcessor, it would only identify Latex snippets starting in a new block; effectively a new paragraph.'
+        '''
+        Previously, when the extension used a BlockProcessor, it would only identify Latex snippets
+        starting in a new block; effectively a new paragraph.
+        '''
+
         html = self.run_markdown(
             r'''
             Text1
@@ -430,13 +445,17 @@ class LatexTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-             r'<p>Text1\s*'
-             + re.escape(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}" />')
-             + r'\s*Text2</p>')
+            r'<p>Text1\s*'
+            + re.escape(f'<img src="data:image/svg+xml;base64,{self.mock_svg_b64}" />')
+            + r'\s*Text2</p>')
 
 
     def test_embedded_in_list(self):
-        '''Previously, when the extension used a BlockProcessor, Latex snippets embedded in lists couldn't contain blank lines.'''
+        '''
+        Previously, when the extension used a BlockProcessor, Latex snippets embedded in lists
+        couldn't contain blank lines.
+        '''
+
         html = self.run_markdown(
             r'''
             * List item 1
@@ -474,7 +493,8 @@ class LatexTestCase(unittest.TestCase):
             \s* <li> \s* <p> List[ ]item[ ]1 \s* </p> \s* </li>
             \s* <li>
             \s* <p> List[ ]item[ ]2 \s* </p>
-            \s* <p> <img[ ]src="data:image/svg\+xml;base64,{re.escape(self.mock_svg_b64)}" \s* /? > \s* </p>
+            \s* <p> <img[ ]src="data:image/svg\+xml;base64,{re.escape(self.mock_svg_b64)}"
+                \s* /? > \s* </p>
             \s* <p> Trailing[ ]paragraph \s* </p>
             \s* </li>
             \s* <li> \s* <p> List[ ]item[ ]3 \s* </p> \s* </li>
@@ -484,7 +504,11 @@ class LatexTestCase(unittest.TestCase):
 
 
     def test_embedding_as_svg_element(self):
-        '''Check that we can embed SVG content using an <svg> element (not just an <img> element with a data URL).'''
+        '''
+        Check that we can embed SVG content using an <svg> element (not just an <img> element with
+        a data URL).
+        '''
+
         html = self.run_markdown(
             r'''
             Paragraph1
@@ -497,13 +521,12 @@ class LatexTestCase(unittest.TestCase):
             ''',
             embedding = 'svg_element')
 
-        self.assertRegex(html,
-             r'<svg[^>]*><text[^>]*>mock</text></svg>')
+        self.assertRegex(html, r'<svg[^>]*><text[^>]*>mock</text></svg>')
 
 
     def test_latex_options(self):
         '''Check that the 'prepend', 'doc_class' and 'doc_class_options' config options work.'''
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             Paragraph1
 
@@ -531,7 +554,7 @@ class LatexTestCase(unittest.TestCase):
 
     def test_prepend_full_doc(self):
         '''Check that the 'prepend' option works on a full document.'''
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             Paragraph1
 
@@ -581,15 +604,16 @@ class LatexTestCase(unittest.TestCase):
             ''')
 
         for i in [0, 1, 2]:
-            self.assert_tex_regex(fr'''(?x)
+            self.assert_tex_regex(
+                fr'''(?x)
                 ^\s* \\documentclass (\[\])? \{{standalone\}}
                 \s* ( \\usepackage \{{tikz\}} )?
                 \s* \\begin \{{document\}}
                 \s* Latex[ ]code[ ]{i}
                 \s* \\end \{{document\}}
                 \s* $
-            ''',
-            file_index = i)
+                ''',
+                file_index = i)
 
         for i in [1, 2, 3, 4]:
             self.assertIn(f'<p>Paragraph{i}</p>', html)
@@ -601,7 +625,10 @@ class LatexTestCase(unittest.TestCase):
 
 
     def test_multiple_cached(self):
-        '''Check that, when processing multiple identical Latex snippets, we use the cache rather than re-compiling redundantly.'''
+        '''
+        Check that, when processing multiple identical Latex snippets, we use the cache rather than
+        re-compiling redundantly.
+        '''
 
         html = self.run_markdown(
             r'''
@@ -722,7 +749,7 @@ class LatexTestCase(unittest.TestCase):
                     f.write('mock')
             '''))
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             \begin{document}
                 Latex code
@@ -757,7 +784,7 @@ class LatexTestCase(unittest.TestCase):
         # Ensures that the mock compiler doesn't buffer its output.
         os.environ["PYTHONUNBUFFERED"] = "1"
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             \begin{document}
                 Latex code
@@ -851,7 +878,7 @@ class LatexTestCase(unittest.TestCase):
             # Our mock 'tex' compiler can be trivial in this case
             writer.write('\n')
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             \begin{document}
                 Latex code
@@ -872,7 +899,7 @@ class LatexTestCase(unittest.TestCase):
             # Our mock 'tex' compiler can be trivial in this case
             writer.write('\n')
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             \begin{document}
                 Latex code
@@ -894,14 +921,14 @@ class LatexTestCase(unittest.TestCase):
         for mock_svg_code in [
             '\n',
 
-            fr'''
+            r'''
             import sys
             mock_svg_file = sys.argv[2]
             with open(mock_svg_file, 'w') as f:
                 f.write('<svg></svg>')
             ''',
 
-            fr'''
+            r'''
             import sys
             mock_svg_file = sys.argv[2]
             with open(mock_svg_file, 'w') as f:
@@ -911,7 +938,7 @@ class LatexTestCase(unittest.TestCase):
             with open(self.mock_pdf2svg_command, 'w') as f:
                 f.write(dedent(mock_svg_code))
 
-            html = self.run_markdown(
+            self.run_markdown(
                 r'''
                 \begin{document}
                     Latex code
@@ -934,7 +961,7 @@ class LatexTestCase(unittest.TestCase):
 
         mock_cache = MockCache(store = False)
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             \begin{document}
                 Latex code
@@ -1139,7 +1166,7 @@ class LatexTestCase(unittest.TestCase):
             math = 'mathml')
 
         assert_that(
-            lxml.html.fromstring(html).xpath(f'//math/text()'),
+            lxml.html.fromstring(html).xpath('//math/text()'),
             contains_exactly('math0-inline', 'math1-inline', 'math2-inline',
                              'math3-block', 'math4-block', 'math5-block'))
 

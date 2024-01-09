@@ -9,14 +9,15 @@ build modules.
 from .resources import ResourceSpec
 from .progress import Progress
 from markdown.extensions import Extension
-import diskcache # type: ignore
-import lxml.etree
+import diskcache  # type: ignore
 
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
-from typing import *
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Protocol, Set, TypeVar
 
-class ResourceError(Exception): pass
+
+class ResourceError(Exception):
+    pass
 
 
 class LateValue:
@@ -35,7 +36,7 @@ class ExtendableValue:
         self.extend(init_part)
 
     def extend(self, new_part):
-        if isinstance(new_part, self.__class__):
+        if isinstance(new_part, type(self)):
             # Extend with another extendable
             self._value_parts.extend(new_part._value_parts)
         else:
@@ -67,7 +68,8 @@ class ExtendableValue:
                 val.update(part)
 
             else:
-                raise TypeError(f'Expected "expandable" value of type str, list, dict or set, but received {val.__class__}')
+                raise TypeError('Expected "expandable" value of type str, list, dict or set, but '
+                                f'received {type(val)}')
 
         return val
 
@@ -75,7 +77,7 @@ class ExtendableValue:
 @dataclass
 class Variant:
     name: str
-    build_fn: Callable[[],None]
+    build_fn: Callable[[], None]
 
     def __eq__(self, other):
         return self.name == other.name
@@ -96,35 +98,44 @@ class Environment(dict):
         return new_env
 
     def __repr__(self):
-        return '...' # To avoid cluttering error messages too much.
+        return '...'  # To avoid cluttering error messages too much.
 
     def repr(self):
         return super().__repr__()
 
 
 R = TypeVar('R', covariant = True)
+
+
 class Rule(Protocol[R]):
-    def __call__(self, *, url: str = '',
-                          type: str = '',
-                          tag: str = '',
-                          attr: Dict[str,str] = {}) -> R: ...
+    def __call__(self, *,
+                 url: str = '',
+                 type: str = '',
+                 tag: str = '',
+                 attr: Dict[str, str] = {}) -> R:
+        ...
+
 
 # Note: all 'rule' callbacks should accept a '**kwargs' parameter. The actual keyword arguments
 # supplied include _some subset_ of: 'url', 'type' (mime type), 'tag' and 'attr', and possibly
 # others in the future.
 
+
 def default_embed_rule(type: str = '', tag: str = '', **kwargs) -> bool:
     return not (
-        tag in ('audio', 'video', 'iframe') or
-        type.startswith('audio/') or
-        type.startswith('video/')
+        tag in ('audio', 'video', 'iframe')
+        or type.startswith('audio/')
+        or type.startswith('video/')
     )
+
 
 def default_resource_hash_rule(**kwargs) -> Optional[str]:
     return None
 
+
 def default_scale_rule(**kwargs) -> float:
     return 1.0
+
 
 def default_output_namer(target):
     return target
@@ -151,20 +162,20 @@ class BuildParams:
     name:                 str                        = ''
     variant_name_sep:     str                        = '_'
     variants:             List[Variant]              = field(default_factory=list)
-    _named_extensions:    Dict[str,Dict[str,Any]]    = field(default_factory=dict)
+    _named_extensions:    Dict[str, Dict[str, Any]]  = field(default_factory=dict)
     obj_extensions:       List[Extension]            = field(default_factory=list)
     tree_hooks:           List[Callable]             = field(default_factory=list)
     html_hooks:           List[Callable]             = field(default_factory=list)
     font_codepoints:      Set[int]                   = field(default_factory=set)
-    css_vars:             Dict[str,str]              = field(default_factory=dict)
+    css_vars:             Dict[str, str]             = field(default_factory=dict)
     css:                  List[ResourceSpec]         = field(default_factory=list)
     js:                   List[ResourceSpec]         = field(default_factory=list)
     resource_base_url:    str                        = ''
     embed_rule:           Rule[bool]                 = default_embed_rule
     resource_hash_rule:   Rule[Optional[str]]        = default_resource_hash_rule
     scale_rule:           Rule[float]                = default_scale_rule
-    env:                  Dict[str,Any]              = field(default_factory=Environment)
-    output_namer:         Callable[[str],str]        = default_output_namer
+    env:                  Dict[str, Any]             = field(default_factory=Environment)
+    output_namer:         Callable[[str], str]       = default_output_namer
     allow_exec:           bool                       = False
     live_update_deps:     Set[str]                   = field(default_factory=set)
 
@@ -185,12 +196,11 @@ class BuildParams:
 
     @property
     def resource_xpaths(self) -> Set[str]:
-        '''
-        The set of all XPath expressions specified by all CSS/JS resources.
-        '''
-        return {xpath for res_list in (self.css, self.js)
-                      for res in res_list
-                      for xpath in res.xpaths_required}
+        'The set of all XPath expressions specified by all CSS/JS resources.'
+        return {xpath
+                for res_list in (self.css, self.js)
+                for res in res_list
+                for xpath in res.xpaths_required}
 
     @property
     def named_extensions(self):

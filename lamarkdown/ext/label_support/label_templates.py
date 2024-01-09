@@ -26,10 +26,12 @@ class LabelTemplate:
             else '' if self.inner_template is None
             else repr(self.inner_template)
         )
-        return f'{self.prefix}{parent_spec}{self.separator}{self.counter_type.css_id}{self.suffix}{inner_spec}'
+        return (f'{self.prefix}{parent_spec}{self.separator}{self.counter_type.css_id}'
+                f'{self.suffix}{inner_spec}')
 
 
-class LabelTemplateException(Exception): pass
+class LabelTemplateException(Exception):
+    pass
 
 
 QUOTED_LITERAL = r'''
@@ -64,6 +66,7 @@ TEMPLATE_REGEX = re.compile(fr'''(?x)
 QUOTED_LITERAL_REGEX = re.compile(f'(?sx){QUOTED_LITERAL}')
 ESCAPED_QUOTES = {'"': re.compile('""'),
                   "'": re.compile("''")}
+
 
 def _repl_literal(match) -> str:
     quote = match.group()[0]
@@ -106,11 +109,11 @@ class LabelTemplateParser:
                 ) from e
 
         template = LabelTemplate(
-            prefix         = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix')),
-            separator      = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('separator') or ''),
-            suffix         = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('suffix') or ''),
-            parent_type    = parent_type,
-            counter_type   = counter_type,
+            prefix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix')),
+            separator    = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('separator') or ''),
+            suffix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('suffix') or ''),
+            parent_type  = parent_type,
+            counter_type = counter_type,
             inner_template = None
         )
 
@@ -119,7 +122,8 @@ class LabelTemplateParser:
 
         if match_end < len(template_str):
             if template_str[match_end] != ',':
-                raise LabelTemplateException(f'Expected "," at index {error_msg_offset} in template "{template_str}"')
+                raise LabelTemplateException(
+                    f'Parse error at index {error_msg_offset} in label template "{template_str}"')
 
             inner_template_str = template_str[match_end + 1:]
             template.inner_template = (

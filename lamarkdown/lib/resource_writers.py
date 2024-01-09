@@ -1,10 +1,9 @@
 from .build_params import BuildParams
-from .progress import Progress
 from .resources import UrlResource, ContentResource
 from . import resources
 
-import fontTools.ttLib  # type: ignore
-import fontTools.subset # type: ignore
+import fontTools.ttLib   # type: ignore
+import fontTools.subset  # type: ignore
 
 from base64 import b64encode
 import html
@@ -16,9 +15,11 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 import urllib.parse
 import urllib.request
 
-NAME = 'resource linking' # For progress/error messages
+NAME = 'resource linking'  # For progress/error messages
 
-Converter = Callable[[str,bytes,str],Tuple[bytes,str]]
+Converter = Callable[[str, bytes, str], Tuple[bytes, str]]
+RList = List[Union[UrlResource, ContentResource]]
+
 
 def make_data_url(url: str,
                   mime_type: Optional[str],
@@ -31,7 +32,7 @@ def make_data_url(url: str,
                                                               build_params.progress)
     except Exception as e:
         build_params.progress.error(NAME, msg = url, exception = e)
-        return f'data:;base64,'
+        return 'data:;base64,'
 
     else:
         mime_type = mime_type or auto_mime_type
@@ -47,9 +48,6 @@ def add_local_dependency(url: str, build_params: BuildParams):
         build_params.live_update_deps.add(
             os.path.abspath(urllib.request.url2pathname(parsed_url.path)))
 
-
-
-RList = List[Union[UrlResource,ContentResource]]
 
 class ResourceWriter:
     def __init__(self, build_params: BuildParams):
@@ -91,7 +89,8 @@ class ResourceWriter:
             self._write_content(buffer, content_list)
 
     def _write_urls_first(self, buffer, resource_list: RList):
-        if len(resource_list) == 0: return ''
+        if len(resource_list) == 0:
+            return ''
 
         content_resource_list = []
         for res in resource_list:
@@ -129,8 +128,9 @@ class StylesheetWriter(ResourceWriter):
         )
         (?P=quote)
     '''
-    # FYI: the syntax (?!(?P=quote)) is a negative lookahead backreference. That is, the next character
-    # must not be the <quote> character. Then [^\\\n] consumes that character, whatever it is.
+    # FYI: the syntax (?!(?P=quote)) is a negative lookahead backreference. That is, the next
+    # character must not be the <quote> character. Then [^\\\n] consumes that character, whatever
+    # it is.
 
     CSS_STRING_REGEX = re.compile(fr'(?xs){CSS_STRING_REGEX_BASE}')
     CSS_URL_REGEX = re.compile(fr'''(?xs)
@@ -150,18 +150,19 @@ class StylesheetWriter(ResourceWriter):
         )
         \s*\)
 
-        # Find and discard trailing 'format()' declaration. (It's not useful for embedded data URLs,
-        # and if we're changing font formats from ttf to woff2, it's not going to be correct either.)
+        # Find and discard trailing 'format()' declaration. (It's not useful for embedded data
+        # URLs, and if we're changing font formats from ttf to woff2, it's not going to be correct
+        # either.)
         (
             \s* format \( [^)]* \)
         )?
     ''')
 
-    # CSS @import can be written either '@import "..."' or '@import url(...)'. We're only matching the
-    # former here, because we can handle all 'url(...)' constructs via CSS_URL_REGEX.
+    # CSS @import can be written either '@import "..."' or '@import url(...)'. We're only matching
+    # the former here, because we can handle all 'url(...)' constructs via CSS_URL_REGEX.
     #
-    # Also, we're only matching the _start_ of an @import rule, which can contain other notation after
-    # the URL.
+    # Also, we're only matching the _start_ of an @import rule, which can contain other notation
+    # after the URL.
     CSS_IMPORT_REGEX = re.compile(fr'''(?xs)
         @import
         \s*
@@ -270,14 +271,14 @@ class StylesheetWriter(ResourceWriter):
 
                 str_match = self.CSS_STRING_REGEX.match(css)
                 if str_match:
-                    buf.write(str_match.group()) # Retain the actual string in the output
+                    buf.write(str_match.group())  # Retain the actual string in the output
                     css = css[str_match.end():]
                     continue
 
                 # Normalise
                 newline_match = self.CSS_NEWLINE_REGEX.match(css)
                 if newline_match:
-                    buf.write('\n') # One newline only
+                    buf.write('\n')  # One newline only
                     css = css[newline_match.end():]
                     continue
 
@@ -322,8 +323,9 @@ class StylesheetWriter(ResourceWriter):
                                   .replace('\n', '\\\n'))
 
                         if match.group().startswith('@import'):
-                            buf.write(f'@import "{url}"') # Don't terminate with ';', because we
-                                                          # haven't taken ';' from the input yet.
+                            # Don't terminate with ';', because we haven't taken ';' from the input
+                            # yet.
+                            buf.write(f'@import "{url}"')
                         else:
                             buf.write(f'url("{url}")')
 
@@ -339,8 +341,8 @@ class StylesheetWriter(ResourceWriter):
 
     def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> Tuple[bytes, str]:
         if mime_type == 'text/css':
-            # If we're sure the URL points to a stylesheet, then it may have its own external resources,
-            # and we must embed those too.
+            # If we're sure the URL points to a stylesheet, then it may have its own external
+            # resources, and we must embed those too.
             content_bytes = self._embed(base_url, content_bytes.decode(errors = 'ignore')).encode()
 
         elif mime_type in ['font/ttf', 'font/otf']:
@@ -355,11 +357,11 @@ class StylesheetWriter(ResourceWriter):
                          content_bytes,
                          frozenset(self.build_params.font_codepoints))
             if cache_key in self.build_params.build_cache:
-                self.build_params.progress.cache_hit(NAME, resource = f'font conversion/subsetting')
+                self.build_params.progress.cache_hit(NAME, resource = 'font conversion/subsetting')
                 content_bytes = self.build_params.build_cache[cache_key]
 
             else:
-                self.build_params.progress.progress(NAME, msg = f'Converting and subsetting font')
+                self.build_params.progress.progress(NAME, msg = 'Converting and subsetting font')
                 subsetter = fontTools.subset.Subsetter()
                 subsetter.populate(unicodes = self.build_params.font_codepoints)
 

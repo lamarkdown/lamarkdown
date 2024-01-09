@@ -1,6 +1,7 @@
 import lamarkdown as la
 from ..lib import fenced_blocks
 
+
 def apply():
     for cmd in ['dot', 'neato', 'circo', 'fdp', 'osage', 'patchwork', 'sfdp', 'twopi']:
         la.fenced_block(f'graphviz-{cmd}', la.command_formatter([cmd, '-Tsvg']))

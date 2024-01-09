@@ -3,25 +3,25 @@ import lamarkdown.ext
 
 import unittest
 from unittest.mock import patch
-from hamcrest import *
+from hamcrest import assert_that, instance_of, is_, same_instance
 
 import markdown
 
 import io
-import re
 import sys
 from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 
-
 class LabelsTestCase(unittest.TestCase):
 
-    def run_markdown(self, markdown_text,
-                           more_extensions = [],
-                           expect_error = False,
-                           **kwargs):
+    def run_markdown(self,
+                     markdown_text,
+                     more_extensions = [],
+                     expect_error = False,
+                     **kwargs):
+
         md = markdown.Markdown(
             extensions = ['la.labels', *more_extensions],
             extension_configs = {'la.labels': kwargs}
@@ -49,7 +49,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1>Section[ ]1</h1>
             \s* <h2>Section[ ]1.1</h2>
             \s* <h2>Section[ ]1.2</h2>
@@ -72,7 +72,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1><span[ ]class="la-label">1[ ]</span>Section[ ]1</h1>
             \s* <h2><span[ ]class="la-label">1.1[ ]</span>Section[ ]1.1</h2>
             \s* <h2><span[ ]class="la-label">1.2[ ]</span>Section[ ]1.2</h2>
@@ -94,7 +94,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1>Section[ ]1</h1>
             \s* <h2><span[ ]class="la-label">1[ ]</span>Section[ ]1.1</h2>
             \s* <h2><span[ ]class="la-label">2[ ]</span>Section[ ]1.2</h2>
@@ -134,7 +134,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1>Section[ ]1</h1>
             \s* <h2>Section[ ]1.1</h2>
             \s* <h2><span[ ]class="la-label">1.</span>Section[ ]1.2</h2>
@@ -205,7 +205,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <ol[ ]class="la-labelled">
             \s* <li><span[ ]class="la-label">1[ ]</span>ItemA
             \s*     <ol[ ]class="la-labelled">
@@ -248,7 +248,7 @@ class LabelsTestCase(unittest.TestCase):
 
                 2. ItemB
                 ''',
-                fr'''(?xs)
+                r'''(?xs)
                 \s* <ol[ ]class="la-labelled">
                 \s*   <li><span[ ]class="la-label">-a-</span>
                 \s*     <p>ItemA</p>
@@ -276,7 +276,7 @@ class LabelsTestCase(unittest.TestCase):
 
                             1. ItemD
                 ''',
-                fr'''(?xs)
+                r'''(?xs)
                 \s* <ol[ ]class="la-labelled">
                 \s*   <li><span[ ]class="la-label">-a-</span>
                 \s*     <p>ItemA</p>
@@ -310,7 +310,7 @@ class LabelsTestCase(unittest.TestCase):
 
                             1. ItemD
                 ''',
-                fr'''(?xs)
+                r'''(?xs)
                 \s* <ol[ ]class="la-labelled">
                 \s*   <li><span[ ]class="la-label">-a-</span>
                 \s*     <p>ItemA</p>
@@ -345,7 +345,7 @@ class LabelsTestCase(unittest.TestCase):
 
                             1. ItemD
                 ''',
-                fr'''(?xs)
+                r'''(?xs)
                 \s* <ol[ ]class="la-labelled">
                 \s*   <li><span[ ]class="la-label">-a-</span>
                 \s*     <p>ItemA</p>
@@ -380,7 +380,7 @@ class LabelsTestCase(unittest.TestCase):
 
                 1. ItemD
                 ''',
-                fr'''(?xs)
+                r'''(?xs)
                 \s* <ol[ ]class="la-labelled">
                 \s*   <li><span[ ]class="la-label">-a-</span>ItemA</li>
                 \s*   <li><span[ ]class="la-label">-1-</span>ItemB</li>
@@ -431,7 +431,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1>Section1</h1>
             \s* <ol>
             \s*   <li>ItemA</li>
@@ -471,7 +471,7 @@ class LabelsTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?xs)
+            r'''(?xs)
             \s* <h1>Section1</h1>
             \s* <ol[ ]class="la-labelled">
             \s*   <li><span[ ]class="la-label">1</span>ItemA</li>
@@ -501,7 +501,6 @@ class LabelsTestCase(unittest.TestCase):
         )
 
 
-    # TODO: test CSS labelling
     def test_ordered_lists_css(self):
 
         css = io.StringIO()
@@ -560,8 +559,10 @@ class LabelsTestCase(unittest.TestCase):
 
 
     def test_mixed_css(self):
-        '''Interspersed headings and ordered lists, where lists are rendered in CSS, but where
-        heading and list labels interact.'''
+        '''
+        Interspersed headings and ordered lists, where lists are rendered in CSS, but where
+        heading and list labels interact.
+        '''
 
         css = io.StringIO()
         html = self.run_markdown(self.MIXED_TESTDATA,

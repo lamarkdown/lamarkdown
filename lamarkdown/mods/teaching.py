@@ -1,5 +1,6 @@
 import lamarkdown as la
 
+
 def apply():
     la('admonition')
 
@@ -48,8 +49,8 @@ def apply():
         if_selectors = '.inline[nmarks]'
     )
 
-    la.css_vars['la-answer-border-color'] = '#c000c0';
-    la.css_vars['la-answer-background'] = '#ffe0ff';
+    la.css_vars['la-answer-border-color'] = '#c000c0'
+    la.css_vars['la-answer-background'] = '#ffe0ff'
     la.css_rule(
         '.admonition.answer',
         '''

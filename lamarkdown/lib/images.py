@@ -2,17 +2,16 @@ from .build_params import BuildParams
 from .progress import Progress
 from . import resources
 
-import cssutils # type: ignore
+import cssutils  # type: ignore
 import PIL.Image
 
 import collections
 import io
-import re
 from typing import Optional
 import xml.dom
 from xml.etree import ElementTree
 
-NAME = 'images' # Progress/error messages
+NAME = 'images'  # Progress/error messages
 
 
 def scale_images(root_element, build_params: BuildParams):
@@ -56,7 +55,7 @@ def _calc_scale(element, type, build_params) -> float:
             build_params.progress.warning(
                 NAME,
                 msg = f'Non-numeric value "{element.get("scale")}" given as a scaling factor')
-            return 1.0 # Don't scale
+            return 1.0  # Don't scale
         del element.attrib['scale']
     else:
         local_scale = 1.0
@@ -145,16 +144,19 @@ def _rescale_element(element,
         except xml.dom.SyntaxErr:
             progress.warning(
                 NAME,
-                msg = f'Syntax error in style attribute for <{element.tag}> element: "{element.get("style")}"')
+                msg = (f'Syntax error in style attribute for <{element.tag}> element: '
+                       f'"{element.get("style")}"'))
         else:
             if 'width' in style_decls:
                 spec = style_decls.getProperty('width').propertyValue[0]
-                if not _scalable(spec): return
+                if not _scalable(spec):
+                    return
                 spec.value *= scale
 
             if 'height' in style_decls:
                 spec = style_decls.getProperty('height').propertyValue[0]
-                if not _scalable(spec): return
+                if not _scalable(spec):
+                    return
                 spec.value *= scale
 
         if 'width' in style_decls or 'height' in style_decls:
@@ -162,19 +164,26 @@ def _rescale_element(element,
 
     spec = _length_value(element, 'width', progress)
     if spec:
-        if not _scalable(spec): return
+        if not _scalable(spec):
+            return
         spec.value *= scale
         new_width = spec.cssText
 
     spec = _length_value(element, 'height', progress)
     if spec:
-        if not _scalable(spec): return
+        if not _scalable(spec):
+            return
         spec.value *= scale
         new_height = spec.cssText
 
-    if new_style:  element.set('style',  new_style)
-    if new_width:  element.set('width',  new_width)
-    if new_height: element.set('height', new_height)
+    if new_style:
+        element.set('style', new_style)
+
+    if new_width:
+        element.set('width', new_width)
+
+    if new_height:
+        element.set('height', new_height)
 
     if new_style or new_width or new_height:
         # Scaling all done!
@@ -198,27 +207,32 @@ def _rescale_element(element,
             except xml.dom.SyntaxErr:
                 progress.warning(
                     NAME,
-                    msg = f'Syntax error in style attribute for <{svg_root.tag}> element: "{svg_root.get("style")}"')
+                    msg = (f'Syntax error in style attribute for <{svg_root.tag}> element: '
+                           f'"{svg_root.get("style")}"'))
             else:
                 if 'width' in style_decls:
                     spec = style_decls.getProperty('width').propertyValue[0]
-                    if not _scalable(spec): return
+                    if not _scalable(spec):
+                        return
                     width = _as_pixel_value(spec, scale)
 
                 if 'height' in style_decls:
                     spec = style_decls.getProperty('height').propertyValue[0]
-                    if not _scalable(spec): return
+                    if not _scalable(spec):
+                        return
                     height = _as_pixel_value(spec, scale)
 
         spec = _length_value(svg_root, 'width', progress)
         if spec:
-            if not _scalable(spec): return
+            if not _scalable(spec):
+                return
             if width is None:
                 width = _as_pixel_value(spec, scale)
 
         spec = _length_value(svg_root, 'height', progress)
         if spec:
-            if not _scalable(spec): return
+            if not _scalable(spec):
+                return
             if height is None:
                 height = _as_pixel_value(spec, scale)
 
@@ -228,7 +242,7 @@ def _rescale_element(element,
         if height is not None:
             element.set('height', height)
 
-    else: # Raster image
+    else:  # Raster image
         try:
             with PIL.Image.open(io.BytesIO(content)) as image:
                 element.set('width', f'{image.width * scale}')
@@ -239,21 +253,23 @@ def _rescale_element(element,
 
 
 ABSOLUTE_UNITS = {
-    'cm': 96.0 / 2.54,       # ≈ 37.8
-    'mm': 96.0 / 25.4,       # ≈ 3.78
-    'q':  96.0 / 25.4 / 4.0, # ≈ 0.945
-    'in': 96.0,              # = 96
-    'pc': 96.0 / 6.0,        # = 16
-    'pt': 96.0 / 72.0,       # ≈ 1.33
-    'px': 1.0,               # = 1
+    'cm': 96.0 / 2.54,        # ≈ 37.8
+    'mm': 96.0 / 25.4,        # ≈ 3.78
+    'q':  96.0 / 25.4 / 4.0,  # ≈ 0.945
+    'in': 96.0,               # = 96
+    'pc': 96.0 / 6.0,         # = 16
+    'pt': 96.0 / 72.0,        # ≈ 1.33
+    'px': 1.0,                # = 1
 }
+
 
 def _scalable(obj) -> bool:
     return (
         isinstance(obj, cssutils.css.DimensionValue)
-        and (obj.dimension is None or
-             obj.dimension.lower() in ABSOLUTE_UNITS)
+        and (obj.dimension is None
+             or obj.dimension.lower() in ABSOLUTE_UNITS)
     )
+
 
 def _as_pixel_value(dimension, scale):
     assert isinstance(dimension, cssutils.css.DimensionValue)
@@ -268,7 +284,8 @@ def _length_value(element, key: str, progress: Progress):
     except xml.dom.SyntaxErr:
         progress.warning(
             NAME,
-            msg = f'Syntax error in {key} attribute for <{element.tag}> element: "{element.get(key)}"')
+            msg = (f'Syntax error in {key} attribute for <{element.tag}> element: '
+                   f'"{element.get(key)}"'))
         return None
 
 
@@ -286,7 +303,8 @@ def disentangle_svgs(root_element):
                 while True:
                     new_id = f'{orig_id}_{i}'
                     i += 1
-                    if new_id not in all_original_ids: break
+                    if new_id not in all_original_ids:
+                        break
                 id_element.set('id', new_id)
                 id_map[orig_id] = new_id
 

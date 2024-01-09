@@ -3,12 +3,15 @@ from .build_params import BuildParams
 import io
 import os.path
 import subprocess
-from typing import *
+from typing import Dict, List, Protocol
 from xml.etree import ElementTree
 
+
 class Formatter(Protocol):
-    def __call__(self, source: str, language: str, css_class: str, options: Dict, md,
-                       *, classes = [], id_value = '', attrs = {}, **kwargs): ...
+    def __call__(self,
+                 source: str, language: str, css_class: str, options: Dict, md,
+                 *, classes = [], id_value = '', attrs = {}, **kwargs):
+        ...
 
 
 def command_formatter(build_params: BuildParams,
@@ -46,8 +49,8 @@ def caching_formatter(build_params: BuildParams,
                       base_formatter: Formatter) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
-            # We don't include kwargs in the cache_key, because it's just metadata (id/class/attrs),
-            # and shouldn't affect the generation of the HTML.
+            # We don't include kwargs in the cache_key, because it's just metadata
+            # (id/class/attrs), and shouldn't affect the generation of the HTML.
             cache_key = (source, language, css_class, tuple(sorted((options or {}).items())))
 
             result = build_params.build_cache.get(cache_key)
@@ -60,8 +63,9 @@ def caching_formatter(build_params: BuildParams,
 
             return result
 
-        except Exception as e: # Not expecting an exception, but any internal errors will be
-                               # swallowed by pymdownx.superfences.
+        except Exception as e:
+            # Not expecting an exception, but any internal errors will be swallowed by
+            # pymdownx.superfences.
             return build_params.progress.error(name, exception = e).as_html_str()
 
     return formatter
@@ -74,7 +78,7 @@ def exec_formatter(build_params: BuildParams,
         if not build_params.allow_exec:
             return build_params.progress.error(
                 name,
-                msg = f'The "allow_exec" option is False, so we cannot execute code.'
+                msg = 'The "allow_exec" option is False, so we cannot execute code.'
             ).as_html_str()
 
         return base_formatter(source, language, css_class, options, md, **kwargs)
@@ -119,14 +123,14 @@ def attr_formatter(base_formatter: Formatter) -> Formatter:
 
 
 def matplotlib_formatter(build_params: BuildParams) -> Formatter:
-    NAME = 'matplotlib' # Progress/error messages
+    NAME = 'matplotlib'  # Progress/error messages
 
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
             # Matplotlib _isn't_ a core dependency of Lamarkdown, so we (try to) import it locally.
-            build_params.progress.progress(NAME, msg = f'running code...')
+            build_params.progress.progress(NAME, msg = 'running code...')
             import matplotlib.pyplot as plot
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             build_params.progress.error(
                 NAME,
                 msg = 'Module not found; you may need to run "pip install matplotlib"'
@@ -136,7 +140,7 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
                 exec(source, build_params.env)
                 buf = io.BytesIO()
                 plot.savefig(buf, format = 'svg')
-                plot.clf() # Clear the current figure (so we start from a clean slate next time)
+                plot.clf()  # Clear the current figure (so we start from a clean slate next time)
                 return buf.getvalue().decode()
             except Exception as e:
                 return build_params.progress.error(NAME, exception = e).as_html_str()
@@ -146,7 +150,7 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
 
 def r_plot_formatter(build_params: BuildParams) -> Formatter:
 
-    NAME = 'R' # Progress/error messages
+    NAME = 'R'  # Progress/error messages
 
     base_formatter = command_formatter(build_params, ['R', '-q', '-s'])
 
@@ -179,4 +183,3 @@ def r_plot_formatter(build_params: BuildParams) -> Formatter:
             return build_params.progress.error(NAME, exception = e).as_html_str()
 
     return formatter
-

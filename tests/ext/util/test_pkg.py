@@ -1,6 +1,6 @@
 from lamarkdown.ext import util
 import unittest
-from hamcrest import *
+from hamcrest import all_of, assert_that, instance_of, is_, none, not_
 
 import markdown
 

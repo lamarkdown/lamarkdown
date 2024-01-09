@@ -1,9 +1,12 @@
-from hamcrest import *
+from hamcrest import (all_of, any_of, contains_exactly, described_as,
+                      has_entries, has_properties, matches_regexp, none)
+
 
 def space():
     return described_as("␣", any_of(none(), matches_regexp(r'\s*')))
 
-def is_element(tag, attrib, text, *children, tail = space()):
+
+def is_element(tag, attrib, text, *children, tail=space()):
     attr_str = ''.join(f' {k}="{v}"' for k, v in attrib.items())
     description = f'<{tag}{attr_str}>{text or ""}{"..." if children else ""}</{tag}>'
 
@@ -12,5 +15,5 @@ def is_element(tag, attrib, text, *children, tail = space()):
         all_of(
             described_as(
                 description,
-                has_properties(tag = tag, attrib = has_entries(attrib), text = text, tail = tail)),
+                has_properties(tag=tag, attrib=has_entries(attrib), text=text, tail=tail)),
             contains_exactly(*children)))

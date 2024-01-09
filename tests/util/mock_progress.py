@@ -1,6 +1,7 @@
 import traceback
 import xml.etree.ElementTree
 
+
 class MockProgressException(Exception):
     pass
 
@@ -9,14 +10,17 @@ class MockMsg:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    def as_dom_element(self, *a, **l):
+    def as_dom_element(self, *a, **_l):
         return xml.etree.ElementTree.Element('mock msg')
 
-    def as_html_str(self, *a, **l):
+    def as_html_str(self, *a, **_l):
         return '<mock msg>'
 
-    def __str__(self): return str(self.__dict__)
-    def __repr__(self): return repr(self.__dict__)
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __repr__(self):
+        return repr(self.__dict__)
 
 
 class MockProgress:
@@ -27,30 +31,30 @@ class MockProgress:
         self.warning_messages = []
         self.error_messages = []
 
-    def progress(self, location, *, msg, advice = None):
+    def progress(self, location, *, msg, advice=None):
         assert isinstance(location, str) and location != ''
         assert isinstance(msg, str) and msg != ''
         assert advice is None or (isinstance(advice, str) and advice != '')
 
-        self.progress_messages.append(m := MockMsg(location = location, msg = msg, advice = advice))
+        self.progress_messages.append(m := MockMsg(location=location, msg=msg, advice=advice))
         return m
 
-    def cache_hit(self, location, *, resource = None):
+    def cache_hit(self, location, *, resource=None):
         assert isinstance(location, str) and location != ''
         assert resource is None or (isinstance(resource, str) and resource != '')
 
-        self.cache_messages.append(m := MockMsg(location = location, resource = resource))
+        self.cache_messages.append(m := MockMsg(location=location, resource=resource))
         return m
 
     def warning(self, location, *, msg):
         assert isinstance(location, str) and location != ''
         assert isinstance(msg, str) and msg != ''
 
-        self.warning_messages.append(m := MockMsg(location = location, msg = msg))
+        self.warning_messages.append(m := MockMsg(location=location, msg=msg))
         return m
 
-    def error(self, location, *, msg = None, exception = None, show_traceback = False,
-              output = None, code = None, highlight_lines = None, context_lines = None):
+    def error(self, location, *, msg=None, exception=None, show_traceback=False,
+              output=None, code=None, highlight_lines=None, context_lines=None):
 
         assert isinstance(location, str) and location != ''
         assert msg is None or (isinstance(msg, str) and msg != '')
@@ -63,9 +67,9 @@ class MockProgress:
 
         if self._expect_error:
             self.error_messages.append(m := MockMsg(
-                location = location, msg = msg, exception = exception,
-                show_traceback = show_traceback, output = output, code = code,
-                highlight_lines = highlight_lines, context_lines = context_lines))
+                location=location, msg=msg, exception=exception,
+                show_traceback=show_traceback, output=output, code=code,
+                highlight_lines=highlight_lines, context_lines=context_lines))
             return m
 
         else:
@@ -80,8 +84,8 @@ class MockProgress:
                 print(code)
             raise MockProgressException(f'{location}: {msg}: {exception}')
 
-    def get_errors(self, *a, **k): return []
+    def get_errors(self, *a, **k):
+        return []
 
     def __eq__(self, other):
         return isinstance(other, MockProgress)
-

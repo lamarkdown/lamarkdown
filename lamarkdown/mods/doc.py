@@ -1,5 +1,5 @@
 import lamarkdown as la
-import pymdownx # type: ignore
+import pymdownx  # noqa: F401
 
 import copy
 from lxml.etree import SubElement
@@ -14,17 +14,17 @@ def apply(heading_numbers = True):
         'smarty',
 
         # 3rd Party: pymdown
-        'pymdownx.highlight', # Needed for control over whether 'super-fences' uses Pygments or not
+        'pymdownx.highlight',  # Needed to control whether 'super-fences' uses Pygments or not
         'pymdownx.extra',
 
         # Lamarkdown internal extensions.
+        # (Note: lamarkdown extensions are located in package 'lamarkdown.ext', but the 'la.'
+        # prefix is provided as a shorthand.)
         'la.attr_prefix',
         'la.cite',
         'la.eval',
         'la.labels',
     )
-    # Note: lamarkdown extensions are located in package 'lamarkdown.ext', but the 'la.' prefix is
-    # provided as a shorthand.
 
     def latex_preamble():
         font_size = la.css_vars.get('la-font-size')
@@ -32,23 +32,17 @@ def apply(heading_numbers = True):
             return rf'\KOMAoptions{{fontsize={font_size}}}'
         return ''
 
-
-    la('la.latex', doc_class_options = la.extendable('class=scrreprt', join=','),
-                   prepend = la.extendable(la.late(latex_preamble))
-    )
+    la('la.latex',
+        doc_class_options = la.extendable('class=scrreprt', join=','),
+        prepend = la.extendable(la.late(latex_preamble)))
 
     la('la.labels', ol_labels = '1.,(a),(I)')
-
     if heading_numbers:
         la('la.labels', h_level = 2, h_labels = 'H.1 ,*')
-        # la('la.heading_numbers')
-        pass # TODO: replace this with the la.list_labels extension
 
-    la('toc', toc_depth = '2-6', title = 'Contents') # Table of contents for H2 - H6 elements.
-    # Note:
-    # * The user can choose NOT to have a table-of-contents just by omitting '[TOC]'
-    # * The user can also re-configure the 'toc' extension simply by calling
-    #   la.extension('toc', ...).
+    # Table of contents for H2 - H6 elements.
+    # (Note: the user can choose NOT to have a table-of-contents just by omitting '[TOC]'.)
+    la('toc', toc_depth = '2-6', title = 'Contents')
 
     la.m.plots()
 
@@ -89,7 +83,8 @@ def apply(heading_numbers = True):
             la.css_vars[name] = value
 
     la.css_files(
-        'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather&family=Inconsolata:wght@500'
+        'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&'
+        'family=Merriweather&family=Inconsolata:wght@500'
     )
 
     la.css(r'''
@@ -249,7 +244,10 @@ def apply(heading_numbers = True):
 
 
         ol > li > p:first-child {
-            /* It seems that, without 'display: table', the <p> child elements of adjacent <li> elements will share their vertical margins, whereas 'display: table' causes those margins to exist separately. Thus, we want to set the bottom margin to zero to avoid too much vertical space. */
+            /* It seems that, without 'display: table', the <p> child elements of adjacent <li>
+               elements will share their vertical margins, whereas 'display: table' causes those
+               margins to exist separately. Thus, we want to set the bottom margin to zero to avoid
+               too much vertical space. */
             margin-top: 0;
         }
 
@@ -364,7 +362,8 @@ def apply(heading_numbers = True):
         if_selectors = '.la-toc'
     )
 
-    la.css(r'''
+    la.css(
+        r'''
         #la-bibliography {
             display: grid;
             width: 100%;
@@ -390,7 +389,7 @@ def apply(heading_numbers = True):
         doc_element = SubElement(doc_area, 'div',
                                  attrib={
                                      'id': 'la-doc',
-                                     'tabindex': '0', # Supports keyboard focus
+                                     'tabindex': '0',  # Supports keyboard focus
                                  })
 
         for doc_child in root:

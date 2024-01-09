@@ -4,7 +4,7 @@
 Build files need only 'import lamarkdown'.
 '''
 
-from .lib.api_impl import ApiImpl #, ValueFactory, ResourceSpec, Condition, ResourceInfo
+from .lib.api_impl import ApiImpl
 import sys
 
 # Actual API implementation is an ApiImpl instance (inheriting from 'module').

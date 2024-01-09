@@ -15,10 +15,10 @@ from markdown.inlinepatterns import InlineProcessor
 from markdown.preprocessors import Preprocessor
 from markdown.treeprocessors import Treeprocessor
 
-import pybtex.backends.html    # type: ignore
-import pybtex.database         # type: ignore
-import pybtex.plugin           # type: ignore
-import pybtex.style.formatting # type: ignore
+import pybtex.backends.html     # type: ignore
+import pybtex.database          # type: ignore
+import pybtex.plugin            # type: ignore
+import pybtex.style.formatting  # type: ignore
 
 import lxml.html
 
@@ -28,14 +28,16 @@ import re
 from typing import List
 from xml.etree import ElementTree
 
-NAME = 'la.cite' # For progress/error messages
+NAME = 'la.cite'  # For progress/error messages
 
 _CITE_ATTR = 'la-cite-b45be3e01f92cfad8895fc09a1dddc91'
 
 
 # TODO:
 # * investigate https://github.com/brechtm/citeproc-py (a citation style language (CSL) processor)
-#   - I think this is how we get long-form citations that specify the authors' names (similar to the Latex natbib package), and/or non-parenthetical references (the equivalent of \citet{...})
+#   - I think this is how we get long-form citations that specify the authors' names (similar to
+#     the Latex natbib package), and/or non-parenthetical references (the equivalent of
+#     \citet{...})
 #   - It may also influence how/whether we integrate referencing into the footnote system
 
 
@@ -61,6 +63,7 @@ _CITE_ATTR = 'la-cite-b45be3e01f92cfad8895fc09a1dddc91'
 # (For reference, the BibTex format -- including allowed citation key characters -- is
 # described here: https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod.
 # However, I feel it's best to emulate Pandoc/RMarkdown for this purpose.)
+
 
 CITE_REGEX = r'''
     (?<! \w ) # Require '@' to come after a non-word character, so as to avoid matching
@@ -88,12 +91,12 @@ CITE_REGEX_COMPILED = re.compile(f'(?x){CITE_REGEX}')
 
 
 class MetadataPreprocessor(Preprocessor):
-    """
+    '''
     Handles directives in the document's metadata, specifically:
     'bibliography' -- specifies additional reference database files; and
     'nocite' -- lists references to be added to the bibliography regardless of whether they're
     actual cited in-text.
-    """
+    '''
 
     def __init__(self, md, ext, bib_parser, cited_keys: List[str]):
         super().__init__(md)
@@ -127,7 +130,7 @@ class MetadataPreprocessor(Preprocessor):
                         NAME,
                         msg = f'Cite key "{key}" (specified in "nocite") not found in database')
 
-        return lines # Unmodified
+        return lines  # Unmodified
 
 
 class CitationInlineProcessor(InlineProcessor):
@@ -142,7 +145,9 @@ class CitationInlineProcessor(InlineProcessor):
         cite_elem.text = group_match.group('pre')
         cite_elem.set(_CITE_ATTR, '1')
 
-        def a1(text): cite_elem.text += text
+        def a1(text):
+            cite_elem.text += text
+
         append_last = a1
 
         any_valid_citations = False
@@ -156,7 +161,9 @@ class CitationInlineProcessor(InlineProcessor):
                 span.set(_CITE_ATTR, '1')
                 span.tail = cite_match.group('post')
 
-                def a2(text): span.tail += text
+                def a2(text):
+                    span.tail += text
+
                 append_last = a2
 
             else:
@@ -181,11 +188,12 @@ class ModifiedPybtexHtmlBackend(pybtex.backends.html.Backend):
 
 
 class PybtexTreeProcessor(Treeprocessor):
-    def __init__(self, md,
-                       ext: 'CiteExtension',
-                       bib_parser,
-                       bib_style: pybtex.style.formatting.BaseStyle,
-                       cited_keys: List[str]):
+    def __init__(self,
+                 md,
+                 ext: 'CiteExtension',
+                 bib_parser,
+                 bib_style: pybtex.style.formatting.BaseStyle,
+                 cited_keys: List[str]):
         super().__init__(md)
         self.ext = ext
 
@@ -274,14 +282,18 @@ class PybtexTreeProcessor(Treeprocessor):
                     dd[-1].tail += ' '
 
                 if n_cites == 1:
-                    back_link = lxml.etree.SubElement(dd, 'a', attrib = {'href': f'#la-cite:{label}-1'})
+                    back_link = lxml.etree.SubElement(
+                        dd, 'a',
+                        attrib = {'href': f'#la-cite:{label}-1'})
                     back_link.text = '↩'
 
                 else:
                     span = lxml.etree.SubElement(dd, 'span')
                     span.text = '↩ '
                     for i in range(1, n_cites + 1):
-                        back_link = lxml.etree.SubElement(span, 'a', attrib = {'href': f'#la-cite:{label}-{i}'})
+                        back_link = lxml.etree.SubElement(
+                            span, 'a',
+                            attrib = {'href': f'#la-cite:{label}-{i}'})
                         back_link.text = str(i)
                         back_link.tail = ' '
                     back_link.tail = ''
@@ -289,6 +301,7 @@ class PybtexTreeProcessor(Treeprocessor):
         # Determine where to put the bibliography -- the element containing the 'place_marker'
         # text -- or (if not found) at the end of the document.
         placeholder = self.ext.getConfig('place_marker')
+
         def find_biblio_root(elem):
             if len(elem) == 0:
                 if elem.text == placeholder:
@@ -346,7 +359,7 @@ class CiteExtension(markdown.Extension):
             from lamarkdown.lib.build_params import BuildParams
             p = BuildParams.current
         except ModuleNotFoundError:
-            pass # Use default defaults
+            pass  # Use default defaults
 
         self.config = {
             'progress': [
@@ -355,11 +368,13 @@ class CiteExtension(markdown.Extension):
             ],
             'live_update_deps': [
                 p.live_update_deps if p else set(),
-                'An updatable set of files that should be monitored for changes during live updating.'
+                'An updatable set of files that should be monitored for changes during live '
+                'updating.'
             ],
             'file': [
                 'references.bib',
-                'A string, or list of strings, containing the filename(s) of Bibtex-formatted reference lists.'
+                'A string, or list of strings, containing the filename(s) of Bibtex-formatted '
+                'reference lists.'
             ],
             'references': [
                 '',
@@ -407,7 +422,9 @@ class CiteExtension(markdown.Extension):
             ],
             'hyperlinks': [
                 'both',
-                'Must be "both" (the default), "forward", "back" or "none", indicating whether to create hyperlinks from citation to reference (forward/both) and from reference back to citation(s) (back/both).'
+                'Must be "both" (the default), "forward", "back" or "none", indicating whether to '
+                'create hyperlinks from citation to reference (forward/both) and from reference '
+                'back to citation(s) (back/both).'
             ]
         }
         super().__init__(**kwargs)
@@ -430,7 +447,8 @@ class CiteExtension(markdown.Extension):
             files.append(io.StringIO(ref_str))
 
         # Pybtex reference database parser.
-        bib_parser_cls = pybtex.plugin.find_plugin('pybtex.database.input', self.getConfig('format'))
+        bib_parser_cls = pybtex.plugin.find_plugin('pybtex.database.input',
+                                                   self.getConfig('format'))
         bib_parser = bib_parser_cls(
             encoding = self.getConfig('encoding'),
             min_crossrefs = self.getConfig('min_crossrefs'))
@@ -438,8 +456,8 @@ class CiteExtension(markdown.Extension):
         # Parse files one by one.
         for file in files:
             if (self.getConfig('ignore_missing_file')
-                and isinstance(file, str)
-                and not os.path.exists(file)):
+                    and isinstance(file, str)
+                    and not os.path.exists(file)):
                 continue
 
             try:
@@ -448,7 +466,8 @@ class CiteExtension(markdown.Extension):
                 self.getConfig('progress').error(NAME, exception = e)
 
         # Pybtex formatter -- creates the document reference list.
-        bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting', self.getConfig('style'))
+        bib_style_cls = pybtex.plugin.find_plugin('pybtex.style.formatting',
+                                                  self.getConfig('style'))
         bib_style = bib_style_cls(
             label_style      = self.getConfig('label_style') or None,
             name_style       = self.getConfig('name_style') or None,

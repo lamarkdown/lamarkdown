@@ -7,11 +7,12 @@ class Labeller:
     Tracks and renders labels (particularly counter-based labels, though fixed labels too) for
     headings, lists and potentially other elements.
     '''
-    def __init__(self, element_type: str,
-                       template: LabelTemplate,
-                       parent: Optional['Labeller'] = None,
-                       count: int = 0,
-                       css_id: Optional[int] = None):
+    def __init__(self,
+                 element_type: str,
+                 template: LabelTemplate,
+                 parent: Optional['Labeller'] = None,
+                 count: int = 0,
+                 css_id: Optional[int] = None):
 
         self._element_type = element_type.lower()
         self._template = template
@@ -143,4 +144,3 @@ class LabellerFactory:
             parent.add_child(labeller)
 
         return labeller
-

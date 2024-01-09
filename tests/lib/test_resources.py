@@ -6,13 +6,9 @@ from unittest.mock import patch, Mock, PropertyMock
 
 import base64
 import email.utils
-import io
 import os
 import tempfile
-from textwrap import dedent
-from xml.etree import ElementTree
 
-import subprocess
 
 class ResourcesTestCase(unittest.TestCase):
 
@@ -103,9 +99,9 @@ class ResourcesTestCase(unittest.TestCase):
                      'aa,max-age=0,bb'},                 (True, content, mime), None),
 
             (200,   {'cache-control':
-                       'aa,max-age=1,bb'},               (True, content, mime), 1),
+                     'aa,max-age=1,bb'},                 (True, content, mime), 1),
             (200,   {'cache-control':
-                       'aa,no-store,max-age=1,bb'},      (True, content, mime), None),
+                     'aa,no-store,max-age=1,bb'},        (True, content, mime), None),
 
             (200,   {'cache-control': 'aa,max-age=1,bb',
                      'date': fd(1_000_000_000)},         (True, content, mime), 1),
@@ -132,5 +128,3 @@ class ResourcesTestCase(unittest.TestCase):
             else:
                 cache.set.assert_called_with(url, (content, mime), expire = exp_cache_time)
             cache.reset_mock()
-
-

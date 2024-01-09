@@ -3,9 +3,9 @@ from ..util.mock_cache import MockCache
 from lamarkdown.lib import build_params, live, md_compiler
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from hamcrest import *
+from hamcrest import (assert_that, contains_exactly, empty, equal_to, has_key, is_not)
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -41,7 +41,7 @@ class LiveTestCase(unittest.TestCase):
             browser_opts = webdriver.firefox.options.Options()
             browser_opts.add_argument('--headless')
             browser = webdriver.Firefox(options = browser_opts)
-            update_n = [0] # Singleton list, just to let wait_for_update() modify the value
+            update_n = [0]  # Singleton list, just to let wait_for_update() modify the value
 
             def find_attr(selector, attr):
                 return [elem.get_attribute(attr)
@@ -58,7 +58,8 @@ class LiveTestCase(unittest.TestCase):
                             str(update_n[0])))
                 except TimeoutException as e:
                     raise AssertionError(
-                        f'Timeout - document not refreshed after {timeout_secs} seconds: {msg}') from e
+                        f'Timeout - document not refreshed after {timeout_secs} seconds: {msg}'
+                    ) from e
 
             with open('doc.md', 'w') as f:
                 f.write(dedent('''
@@ -223,7 +224,7 @@ class LiveTestCase(unittest.TestCase):
                     f.write('AA')
                 wait_for_update(f'Restored {extra_file_a}')
                 os.rename('subdir_a', 'subdir_a1')
-                wait_for_update(f'Renamed subdir_a/ to subdir_a1/')
+                wait_for_update('Renamed subdir_a/ to subdir_a1/')
 
 
                 # Test variants
@@ -274,7 +275,8 @@ class LiveTestCase(unittest.TestCase):
                     '''))
 
                 wait_for_update(
-                    'Modified build_a.py to specify variants A and B, with sub-variants A1, A2, B1 and B2')
+                    'Modified build_a.py to specify variants A and B, '
+                    'with sub-variants A1, A2, B1 and B2')
 
                 urls = find_attr(f'#{live.CONTROL_PANEL_ID} a', 'href')
                 assert_that(
@@ -357,12 +359,13 @@ class LiveTestCase(unittest.TestCase):
                     return (conn.status, conn.read())
 
             try:
-                time.sleep(0.1) # Wait for server to come up
+                time.sleep(0.1)  # Wait for server to come up
 
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/index.html')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/doesntexist')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/doesntexist/doesntexist')
+                from urllib.request import HTTPError as Err
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/index.html')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/doesntexist')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/doesntexist/doesntexist')
 
                 new_complete_build_params = [copy.copy(base_build_params)]
                 new_complete_build_params[0].name = 'new_name'
@@ -371,12 +374,12 @@ class LiveTestCase(unittest.TestCase):
                 # Trigger recompile
                 with open('doc.md', 'w') as f:
                     f.write('Mock markdown!')
-                time.sleep(0.1) # Wait for updater to recompile
+                time.sleep(0.1)  # Wait for updater to recompile
 
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/index.html')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/doesntexist')
-                self.assertRaisesRegex(urllib.request.HTTPError, '404', load, 'doesntexist/doesntexist/doesntexist')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/index.html')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/doesntexist')
+                self.assertRaisesRegex(Err, '404', load, 'doesntexist/doesntexist/doesntexist')
 
             finally:
                 updater.shutdown()

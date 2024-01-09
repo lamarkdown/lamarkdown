@@ -1,12 +1,13 @@
 from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
-from lamarkdown.lib import md_compiler, build_params, resources
+from lamarkdown.lib import md_compiler, build_params
 
 import unittest
 from unittest.mock import patch
-from hamcrest import *
+from hamcrest import (assert_that, contains_exactly, contains_string, empty,
+                      equal_to_ignoring_whitespace, has_entries, has_items, instance_of, is_,
+                      is_not, matches_regexp, not_, only_contains, same_instance)
 
-import markdown
 import lxml
 import cssutils
 
@@ -60,14 +61,18 @@ class MdCompilerTestCase(unittest.TestCase):
         self.full_html = lxml.html.tostring(self.root, with_tail = False, encoding = 'unicode')
 
         # We probably want to just check the whole <body> element at once though.
-        self.body_html = lxml.html.tostring(self.root.find('body'), with_tail = False, encoding = 'unicode')
+        self.body_html = lxml.html.tostring(self.root.find('body'),
+                                            with_tail = False,
+                                            encoding = 'unicode')
 
 
-    def run_md_compiler(self, markdown = '',
-                              build = None,
-                              build_defaults = True,
-                              is_live = False,
-                              recover = False):
+    def run_md_compiler(self,
+                        markdown = '',
+                        build = None,
+                        build_defaults = True,
+                        is_live = False,
+                        recover = False):
+
         doc_file   = os.path.join(self.tmp_dir, 'testdoc.md')
         build_file = os.path.join(self.tmp_dir, 'testbuild.py')
         build_dir  = os.path.join(self.tmp_dir, 'build')
@@ -77,7 +82,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
         if build is not None:
             with open(build_file, 'w') as writer:
-                 writer.write(dedent(build))
+                writer.write(dedent(build))
 
         build_files = [build_file] if build else []
         build_cache = MockCache()
@@ -180,9 +185,9 @@ class MdCompilerTestCase(unittest.TestCase):
         build defaults (unlike the bare-bones test_basic()), it indirectly invokes quite a lot of
         Lamarkdown.
         """
-        mock_read_url.side_effect = lambda url,*a,**k: (False,
-                                                        b'mock content',
-                                                        mimetypes.guess_type(url))
+        mock_read_url.side_effect = lambda url, *a, **k: (False,
+                                                          b'mock content',
+                                                          mimetypes.guess_type(url))
         self.run_md_compiler(
             r'''
             # Heading
@@ -255,7 +260,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
     def test_css(self):
         self.run_md_compiler(
-            markdown =  r'''
+            markdown = r'''
                 # Heading
 
                 Paragraph1
@@ -266,8 +271,8 @@ class MdCompilerTestCase(unittest.TestCase):
                 la.css(r"h2 { background: green; }")
 
                 # Testing selectors: 'h3' should not match (there's no '### Sub-sub-heading' in the
-                # markdown document), but 'h1' should. Note: we're testing the 'if_selector' parameter.
-                # The 'h3' at the start of the CSS is irrelevant to our test.
+                # markdown document), but 'h1' should. Note: we're testing the 'if_selector'
+                # parameter. The 'h3' at the start of the CSS is irrelevant to our test.
 
                 la.css(r"h3 { background: yellow; }",  if_selectors = ["h3"])
                 la.css(r"h3 { background: yellow; }",  if_selectors = "h3")
@@ -279,8 +284,8 @@ class MdCompilerTestCase(unittest.TestCase):
                 la.css(r"h4 { background: yellow; }",  if_xpaths = "//h5")
                 la.css(r"h4 { background: orange; }",  if_xpaths = ["//h5", "//h1"])
 
-                # Testing rule creation with pre-selected selectors. "li" and "span" don't match, but
-                # "p" does.
+                # Testing rule creation with pre-selected selectors. "li" and "span" don't match,
+                # but "p" does.
 
                 la.css_rule(["li", "p", "span"], r"color: red")
 
@@ -360,7 +365,8 @@ class MdCompilerTestCase(unittest.TestCase):
         # Create mock .css and .js files. Lamarkdown *might* check that these exist, but it
         # shouldn't matter what they contain.
         for f in ['cssfile.css', 'jsfile.js']:
-            with open(os.path.join(self.tmp_dir, f), 'w'): pass
+            with open(os.path.join(self.tmp_dir, f), 'w'):
+                pass
 
         for code in [
             # Ensure that stylesheets and scripts are not embedded.
@@ -443,8 +449,13 @@ class MdCompilerTestCase(unittest.TestCase):
         # A trivially-small .gif and .wav file. We need to know the file content, because we'll be
         # checking for it (base64 encoded).
 
-        gif_bytes = b'GIF87a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
-        wav_bytes = b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'
+        # gif_bytes = b'GIF87a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'  # noqa: E501
+        # wav_bytes = b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00'  # noqa: E501
+
+        gif_bytes = (b'GIF87a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00'
+                     b'\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+        wav_bytes = (b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X'
+                     b'\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00')
 
         with open(os.path.join(self.tmp_dir, 'image.gif'), 'wb') as f:
             f.write(gif_bytes)
@@ -543,7 +554,7 @@ class MdCompilerTestCase(unittest.TestCase):
                     import lamarkdown as la
                     la.scale(lambda attr={}, **k: float(attr["size"]) if "size" in attr else 2)
                 ''',
-                recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
+                recover = True  # Apparently lxml/libxml doesn't like the <svg> tag?
             )
 
             # <{tag} id="a">: scale by 2
@@ -571,7 +582,7 @@ class MdCompilerTestCase(unittest.TestCase):
                 <svg><defs><g id="alpha" /><g id="beta" /></svg>
             ''',
             build_defaults = False,
-            recover = True # Apparently lxml/libxml doesn't like the <svg> tag?
+            recover = True  # Apparently lxml/libxml doesn't like the <svg> tag?
         )
 
         new_ids = collections.Counter(self.root.xpath('//@id'))
@@ -801,7 +812,7 @@ class MdCompilerTestCase(unittest.TestCase):
 
                 Paragraph
                 ''',
-            build = fr'''
+            build = r'''
                 import lamarkdown as la
                 import markdown
 
@@ -821,5 +832,3 @@ class MdCompilerTestCase(unittest.TestCase):
         assert_that(
             self.root.xpath('//div/text()')[0],
             is_('Extension'))
-
-

@@ -5,7 +5,6 @@ Logging/error handling infrastructure.
 from markdown.util import AtomicString
 
 from dataclasses import dataclass, field
-import html
 import io
 import shutil
 import traceback
@@ -56,7 +55,8 @@ class Message:
         self._details_list = details_list
 
     def print(self):
-        print(f'{self.LOCATION_COLOUR}{self.TAG}{self._location}:{RESET} {self.MSG_COLOUR}{self._msg}{RESET}')
+        print(f'{self.LOCATION_COLOUR}{self.TAG}{self._location}:{RESET} '
+              f'{self.MSG_COLOUR}{self._msg}{RESET}')
 
         terminal_width = shutil.get_terminal_size(fallback = (80, 40)).columns
         inner_width = terminal_width - 6
@@ -73,15 +73,26 @@ class Message:
                 text_width = inner_width - LINE_NUMBER_WIDTH - 1
 
                 for line_number, start_of_line, line in wrap(details.content.rstrip(), text_width):
-                    if (details.context_lines is not None and
-                        details.highlight_lines and
-                        all(abs(line_number - hl) > details.context_lines
+                    if (details.context_lines is not None
+                        and details.highlight_lines
+                        and all(
+                            abs(line_number - hl) > details.context_lines
                             for hl in details.highlight_lines)):
                         continue
 
-                    n_str = str(line_number).rjust(LINE_NUMBER_WIDTH) if start_of_line else (' ' * LINE_NUMBER_WIDTH)
-                    hl_str = HIGHLIGHT_COLOUR if line_number in details.highlight_lines else ""
-                    print(f'  │{LINE_NUMBER_COLOUR}{n_str}{RESET}  {hl_str}{line}{" " * (text_width - len(line))}{RESET} │')
+                    # if start_of_line:
+                    #     n_str = str(line_number).rjust(LINE_NUMBER_WIDTH)
+                    # else:
+                    #     n_str = ' ' * LINE_NUMBER_WIDTH
+
+                    n_str = (
+                        str(line_number).rjust(LINE_NUMBER_WIDTH)
+                        if start_of_line
+                        else (' ' * LINE_NUMBER_WIDTH))
+
+                    hl_str = HIGHLIGHT_COLOUR if line_number in details.highlight_lines else ''
+                    print(f'  │{LINE_NUMBER_COLOUR}{n_str}{RESET}  '
+                          f'{hl_str}{line}{" " * (text_width - len(line))}{RESET} │')
 
             else:
                 for _, _, line in wrap(details.content.rstrip(), inner_width):
@@ -96,10 +107,12 @@ class ProgressMsg(Message):
     MSG_COLOUR = ''
     TAG = ''
 
+
 class WarningMsg(Message):
     LOCATION_COLOUR = '\033[33;1m'
     MSG_COLOUR = '\033[37;1m'
     TAG = '[!] '
+
 
 class ErrorMsg(Message):
     LOCATION_COLOUR = '\033[31;1m'
@@ -172,24 +185,30 @@ class ErrorMsg(Message):
     def as_html_str(self) -> str:
 
         buf = io.StringIO()
-        buf.write(f'''
-            <details style="{self.PANEL_STYLE}">\
-            <summary style="{self.MSG_STYLE}"><span style="{self.LOCATION_STYLE}">[!!] {self._location}:</span>
-            {self._msg}</summary>''')
+        buf.write(
+            f'<details style="{self.PANEL_STYLE}">'
+            f'<summary style="{self.MSG_STYLE}"><span style="{self.LOCATION_STYLE}">'
+            f'[!!] {self._location}:</span>{self._msg}</summary>')
 
         for details in self._details_list:
 
             if details.show_line_numbers:
                 buf.write(f'<div style="{self.GRID_LISTING_STYLE}">')
 
-                for line_number, line in enumerate(details.content.rstrip().splitlines(), start = 1):
-                    if (details.context_lines is not None and
-                        details.highlight_lines and
-                        all(abs(line_number - hl) > details.context_lines
+                for line_number, line in enumerate(
+                        details.content.rstrip().splitlines(), start = 1):
+
+                    if (details.context_lines is not None
+                        and details.highlight_lines
+                        and all(
+                            abs(line_number - hl) > details.context_lines
                             for hl in details.highlight_lines)):
                         continue
 
-                    hl_str = ('; ' + self.HIGHLIGHT_STYLE) if line_number in details.highlight_lines else ''
+                    hl_str = (
+                        ('; ' + self.HIGHLIGHT_STYLE)
+                        if line_number in details.highlight_lines
+                        else '')
                     buf.write(f'<div style="{self.LINE_NUMBER_STYLE}">{line_number}</div>')
                     buf.write(f'<div style="{self.LINE_STYLE}{hl_str}">{line}</div>')
 
@@ -212,10 +231,13 @@ class ErrorMsg(Message):
     def as_dom_element(self) -> ElementTree.Element:
         elem = ElementTree.fromstring(self.as_html_str())
 
-        if elem.text: elem.text = AtomicString(elem.text)
+        if elem.text:
+            elem.text = AtomicString(elem.text)
         for sub_elem in elem.iter():
-            if sub_elem.text: sub_elem.text = AtomicString(sub_elem.text)
-            if sub_elem.tail: sub_elem.tail = AtomicString(sub_elem.tail)
+            if sub_elem.text:
+                sub_elem.text = AtomicString(sub_elem.text)
+            if sub_elem.tail:
+                sub_elem.tail = AtomicString(sub_elem.tail)
 
         return elem
 
@@ -261,7 +283,9 @@ class Progress:
               output = None, code = None, highlight_lines = set(), context_lines = 6):
         details_list = []
         if exception:
-            msg = f'{msg}: {str(exception)} ({exception.__class__.__name__})' if msg else str(exception)
+            msg = (
+                f'{msg}: {str(exception)} ({exception.__class__.__name__})'
+                if msg else str(exception))
             if show_traceback:
                 details_list.append(Details('Traceback', ''.join(traceback.format_exc())))
 
@@ -276,10 +300,10 @@ class Progress:
                 highlight_lines = {traceback.extract_tb(exception.__traceback__)[-1].lineno}
 
             details_list.append(Details('Code',
-                                   code,
-                                   show_line_numbers = True,
-                                   highlight_lines = highlight_lines or set(),
-                                   context_lines = context_lines))
+                                code,
+                                show_line_numbers = True,
+                                highlight_lines = highlight_lines or set(),
+                                context_lines = context_lines))
 
         return self.show(ErrorMsg(location, msg, details_list))
 
@@ -290,4 +314,3 @@ class Progress:
 
     def clear_errors(self):
         self._errors.clear()
-

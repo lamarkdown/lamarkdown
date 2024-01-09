@@ -1,4 +1,6 @@
-from lamarkdown.ext.label_support.counter_types import *
+from lamarkdown.ext.label_support.counter_types import (
+    get_counter_type, AdditiveCounter, AlphabeticCounter, CyclicCounter, FixedCounter,
+    NumericCounter, SymbolicCounter)
 import unittest
 
 
@@ -61,7 +63,8 @@ class CounterTypesTestCase(unittest.TestCase):
         for (name, all_symbols, other_samples) in [
             (
                 'lower-greek',
-                ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
+                ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π',
+                 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
                 [(25, 'αα'), (51, 'βγ')]
             ),
         ]:
@@ -97,8 +100,8 @@ class CounterTypesTestCase(unittest.TestCase):
     def test_alphabetic_counter(self):
         counter = AlphabeticCounter('mock_css_id', 'abcde')
         for (value, string) in [
-            (-1,    '-1'), # Fallback
-            (0,     '0'),  # Fallback
+            (-1,    '-1'),  # Fallback
+            (0,     '0'),   # Fallback
             (1,     'a'),
             (2,     'b'),
             (5,     'e'),
@@ -113,8 +116,8 @@ class CounterTypesTestCase(unittest.TestCase):
         counter = AdditiveCounter('mock_css_id',
                                   [(10, 'x'), (9, 'ix'), (5, 'v'), (4, 'iv'), (1, 'i')])
         for (value, string) in [
-            (-1,    '-1'), # Fallback
-            (0,     '0'),  # Fallback
+            (-1,    '-1'),  # Fallback
+            (0,     '0'),   # Fallback
             (1,     'i'),
             (2,     'ii'),
             (3,     'iii'),
@@ -135,8 +138,8 @@ class CounterTypesTestCase(unittest.TestCase):
     def test_symbolic_counter(self):
         counter = SymbolicCounter('mock_css_id', 'abcde')
         for (value, string) in [
-            (-1,    '-1'), # Fallback
-            (0,     '0'),  # Fallback
+            (-1,    '-1'),  # Fallback
+            (0,     '0'),   # Fallback
             (1,     'a'),
             (2,     'b'),
             (5,     'e'),
@@ -151,8 +154,8 @@ class CounterTypesTestCase(unittest.TestCase):
     def test_cyclic_counter(self):
         counter = CyclicCounter('mock_css_id', 'abcde')
         for (value, string) in [
-            (-1,    '-1'), # Fallback
-            (0,     '0'),  # Fallback
+            (-1,    '-1'),  # Fallback
+            (0,     '0'),   # Fallback
             (1,     'a'),
             (2,     'b'),
             (5,     'e'),
@@ -167,16 +170,16 @@ class CounterTypesTestCase(unittest.TestCase):
     def test_fixed_counter(self):
         counter = FixedCounter('mock_css_id', 'abcde')
         for (value, string) in [
-            (-1,    '-1'), # Fallback
-            (0,     '0'),  # Fallback
+            (-1,    '-1'),  # Fallback
+            (0,     '0'),   # Fallback
             (1,     'a'),
             (2,     'b'),
             (3,     'c'),
             (4,     'd'),
             (5,     'e'),
-            (6,     '6'), # Fallback
-            (7,     '7'), # Fallback
-            (10,    '10'), # Fallback
-            (11,    '11'), # Fallback
+            (6,     '6'),   # Fallback
+            (7,     '7'),   # Fallback
+            (10,    '10'),  # Fallback
+            (11,    '11'),  # Fallback
         ]:
             self.assertEqual(string, counter.format(value))

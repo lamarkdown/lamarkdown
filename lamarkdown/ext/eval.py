@@ -34,14 +34,13 @@ of the form $`...` (or $``...``, etc). There are two approaches to doing this:
 
 from .util import replacement_patterns
 
-from lamarkdown.lib.progress import Progress, ErrorMsg
+from lamarkdown.lib.progress import Progress
 from markdown.extensions import Extension
-import re
 from xml.etree import ElementTree
 
 import datetime
 
-NAME = 'la.eval' # For error messages
+NAME = 'la.eval'  # For error messages
 
 DEFAULT_REPLACEMENTS = {
     'date':     lambda: str(datetime.date.today()),
@@ -49,7 +48,8 @@ DEFAULT_REPLACEMENTS = {
 }
 
 
-EVAL_REGEX = rf'\$(?P<bt>`+)(?P<code>.*?)(?P=bt)'
+EVAL_REGEX = r'\$(?P<bt>`+)(?P<code>.*?)(?P=bt)'
+
 
 class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
     def __init__(self, progress, replace, allow_exec, env):
@@ -71,7 +71,7 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
                 except Exception as e:
                     element = self.progress.error(
                         NAME,
-                        msg = f'Exception while evaluating la.eval replacement function',
+                        msg = 'Exception while evaluating la.eval replacement function',
                         exception = e,
                         code = code
                     ).as_dom_element()
@@ -92,7 +92,9 @@ class EvalReplacementProcessor(replacement_patterns.ReplacementPattern):
         else:
             return self.progress.error(
                 NAME,
-                msg = f'Unrecognised label - no available replacement value. (Note: the eval extension\'s "allow_exec" option is set to False, so the text will not be executed as code.)',
+                msg = ('Unrecognised label - no available replacement value. (Note: the eval '
+                       'extension\'s "allow_exec" option is set to False, so the text will not be '
+                       'executed as code.)'),
                 code = code
             ).as_dom_element()
 
@@ -124,7 +126,8 @@ class EvalExtension(Extension):
             ],
             'allow_exec': [
                 p.allow_exec if p else False,
-                'Whether or not to execute raw Python code (if the text does not match any fixed replacements).'
+                'Whether or not to execute raw Python code (if the text does not match any fixed '
+                'replacements).'
             ],
             'env': [
                 dict(p.env) if p else {},

@@ -17,11 +17,11 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Documentation",
     "Topic :: Text Processing :: Markup :: Markdown"
 ]
@@ -33,14 +33,12 @@ lamd = "lamarkdown.lib.lamd:main"
 "la.attr_prefix"     = "lamarkdown.ext.attr_prefix:AttrPrefixExtension"
 "la.cite"            = "lamarkdown.ext.cite:CiteExtension"
 "la.eval"            = "lamarkdown.ext.eval:EvalExtension"
-# "la.heading_numbers" = "lamarkdown.ext.heading_numbers:HeadingNumbersExtension"
 "la.latex"           = "lamarkdown.ext.latex:LatexExtension"
 "la.labels"          = "lamarkdown.ext.labels:LabelsExtension"
-"la.markers"         = "lamarkdown.ext.markers:MarkersExtension"
 "la.sections"        = "lamarkdown.ext.sections:SectionsExtension"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 markdown = "^3.3.7"
 lxml = "^4.9.0"
 cssselect = "^1.1.0"
@@ -56,6 +54,7 @@ cssutils = "^2.4.2"
 pillow = "^9.4.0"
 latex2mathml = "^3.75.1"
 platformdirs = "^3.1.1"
+regex = { version = "^2023.12.25", markers = "python_version < '3.11'" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.2"
@@ -66,3 +65,9 @@ coverage = "^7.2.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.mypy.overrides]]
+module = [
+    "pymdownx",
+]
+ignore_missing_imports = true

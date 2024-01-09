@@ -1,7 +1,8 @@
-from lamarkdown import *
+import lamarkdown as la
+
 
 def apply(pageHeight = 1200, element_id = 'la-doc'):
-    css(fr'''
+    la.css(fr'''
         @media screen {{
             #{element_id} {{
                 position: relative;
@@ -24,9 +25,9 @@ def apply(pageHeight = 1200, element_id = 'la-doc'):
                 display: none;
             }}
         }}
-    ''')
+    ''')  # noqa: F405
 
-    js(fr'''
+    la.js(fr'''
         (() =>
         {{
             const pageHeight = {pageHeight};
@@ -51,4 +52,4 @@ def apply(pageHeight = 1200, element_id = 'la-doc'):
                 t += pageHeight;
             }}
         }})()
-    ''')
+    ''')  # noqa: F405

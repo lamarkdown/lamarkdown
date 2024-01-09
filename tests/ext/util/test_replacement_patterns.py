@@ -2,7 +2,7 @@ from lamarkdown.ext.util import replacement_patterns
 from tests.util import html_block_processor
 
 import unittest
-from hamcrest import *
+from hamcrest import assert_that, empty, contains_exactly, contains_string, has_properties
 import markdown
 
 from xml.etree import ElementTree
@@ -50,7 +50,8 @@ class ReplacementPatternsTestCase(unittest.TestCase):
             ),
             (
                 'hello $so$$me$<span>-</span>$te$...$xt$ world',
-                'hello <span x="1">so</span><span x="1">me</span><span>-</span><span x="1">te</span>...<span x="1">xt</span> world'
+                'hello <span x="1">so</span><span x="1">me</span><span>-</span><span x="1">te'
+                '</span>...<span x="1">xt</span> world'
             ),
 
             # Other patterns _can't_ match inside a replacement pattern
@@ -169,7 +170,8 @@ class ReplacementPatternsTestCase(unittest.TestCase):
         for pattern, expected_html in [
             (
                 ElementPattern,
-                '<em>hello</em> <span x="1"><em>some</em> <code>text</code></span> <code>world</code>'
+                '<em>hello</em> <span x="1"><em>some</em> <code>text</code></span> '
+                '<code>world</code>'
             ),
             (
                 StringPattern,

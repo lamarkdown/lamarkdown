@@ -1,7 +1,8 @@
-from lamarkdown.ext.label_support.label_templates import *
-from lamarkdown.ext.label_support.counter_types import *
+from lamarkdown.ext.label_support.label_templates import (LabelTemplate, LabelTemplateParser,
+                                                          LabelTemplateException)
+from lamarkdown.ext.label_support.counter_types import get_counter_type
 import unittest
-from hamcrest import *
+from hamcrest import assert_that, equal_to, same_instance
 
 
 class LabelTemplatesTestCase(unittest.TestCase):
@@ -42,14 +43,16 @@ class LabelTemplatesTestCase(unittest.TestCase):
             ('X."a".a',       template('',       '.a.', '',    get_counter_type('a'), '',   None)),
 
             # Inner templates
-            ('(a),[1]',             template('(', '', ')',  get_counter_type('a'), None,
-                                        template('[', '', ']', get_counter_type('1'), None,
-                                            None))),
+            ('(a),[1]',
+                template('(', '', ')',  get_counter_type('a'), None,
+                         template('[', '', ']', get_counter_type('1'), None,
+                                  None))),
 
-            ('(H.a),[L:1],{X;i}',   template('(', '.', ')',  get_counter_type('a'), 'h',
-                                        template('[', ':', ']', get_counter_type('1'), 'ol',
-                                            template('{', ';', '}', get_counter_type('i'), '',
-                                                None)))),
+            ('(H.a),[L:1],{X;i}',
+                template('(', '.', ')',  get_counter_type('a'), 'h',
+                         template('[', ':', ']', get_counter_type('1'), 'ol',
+                                  template('{', ';', '}', get_counter_type('i'), '',
+                                           None)))),
         ]:
             assert_that(parser.parse(template_str),
                         equal_to(expected_template),
@@ -74,6 +77,7 @@ class LabelTemplatesTestCase(unittest.TestCase):
         for template_str in ['invalid-counter', 'a.a', 'X.a.a', 'a"']:
             try:
                 template = parser.parse(template_str)
-                self.fail(f'Parsing "{template_str}" should have raised LabelTemplateException, but produced template "{template}" instead')
+                self.fail(f'Parsing "{template_str}" should have raised LabelTemplateException, '
+                          f'but produced template "{template}" instead')
             except LabelTemplateException:
                 pass

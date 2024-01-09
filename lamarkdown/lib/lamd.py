@@ -5,14 +5,13 @@ from . import live
 from .build_params import BuildParams
 from .progress import Progress
 
-import diskcache # type: ignore
+import diskcache  # type: ignore
 import platformdirs
 
 import argparse
 import os
 import os.path
 import re
-import time
 
 DIRECTORY_BUILD_FILE = 'md_build.py'
 
@@ -54,43 +53,68 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog        = 'lamd',
-        description = 'Compile .md (markdown) files to .html using the Python Markdown library. See README.md for key details.',
+        description = ('Compile .md (markdown) files to .html using the Python Markdown library. '
+                       'See README.md for key details.'),
         formatter_class = argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('-v', '--version', action='version', version=f'Lamarkdown {VERSION}\n(fetch cache: {fetch_cache_dir})')
+    parser.add_argument(
+        '-v', '--version', action = 'version',
+        version = f'Lamarkdown {VERSION}\n(fetch cache: {fetch_cache_dir})')
 
-    parser.add_argument('input', metavar='INPUT.md', type=readable_file_type,
-                        help='Input markdown (.md) file')
+    parser.add_argument(
+        'input', metavar = 'INPUT.md', type = readable_file_type,
+        help = 'Input markdown (.md) file')
 
-    parser.add_argument('-o', '--output', metavar='OUTPUT.html', type=str,
-                        help='Output HTML file. (By default, this is based on the input filename.)')
+    parser.add_argument(
+        '-o', '--output', metavar = 'OUTPUT.html', type = str,
+        help = 'Output HTML file. (By default, this is based on the input filename.)')
 
-    parser.add_argument('-b', '--build', metavar='BUILD.py', type=readable_file_type, action='append',
-                        help='Manually specify a build (.py) file, which itself specifies extensions (to Python-Markdown), CSS, JavaScript, etc.')
+    parser.add_argument(
+        '-b', '--build', metavar = 'BUILD.py', type = readable_file_type, action = 'append',
+        help = ('Manually specify a build (.py) file, which itself specifies extensions (to '
+                'Python-Markdown), CSS, JavaScript, etc.'))
 
-    parser.add_argument('-B', '--no-auto-build-files', action='store_true',
-                        help='Suppresses build file auto-detection, so that only build files specified with -b/--build will be loaded. Lamarkdown will not automatically read "md_build.py" or "<source>.py" in this case.')
+    parser.add_argument(
+        '-B', '--no-auto-build-files', action = 'store_true',
+        help = ('Suppresses build file auto-detection, so that only build files specified with '
+                '-b/--build will be loaded. Lamarkdown will not automatically read "md_build.py" '
+                'or "<source>.py" in this case.'))
 
-    parser.add_argument('-e', '--allow-exec', action='store_true',
-                        help='Allows execution of code from a markdown document, if/when requested (not just from the build files).')
+    parser.add_argument(
+        '-e', '--allow-exec', action = 'store_true',
+        help = ('Allows execution of code from a markdown document, if/when requested (not just '
+                'from the build files).'))
 
-    parser.add_argument('-D', '--no-build-defaults', action='store_true',
-                        help='Suppresses the automatic default settings in case no build files exist. Has no effect if any build files are found and read.')
+    parser.add_argument(
+        '-D', '--no-build-defaults', action = 'store_true',
+        help = ('Suppresses the automatic default settings in case no build files exist. Has no '
+                'effect if any build files are found and read.'))
 
-    parser.add_argument('--clean', action='store_true',
-                        help='Clear the build cache before compiling the document.')
+    parser.add_argument(
+        '--clean', action = 'store_true',
+        help = 'Clear the build cache before compiling the document.')
 
-    parser.add_argument('-l', '--live', action='store_true',
-                        help='Keep running, recompile automatically when source changes are detected, and serve the resulting file from a local web server.')
+    parser.add_argument(
+        '-l', '--live', action = 'store_true',
+        help = ('Keep running, recompile automatically when source changes are detected, and '
+                'serve the resulting file from a local web server.'))
 
-    parser.add_argument('--address', metavar='IP_HOST|"any"', type=str,
-                        help='In live mode, have the server listen at the given address, or all addresses if "any" is specified. By default, the server listens only on 127.0.0.1 (loopback). *USE WITH CAUTION!* Do not use this option to expose the built-in web server to the public internet, or other untrusted parties. (Upload the output HTML file to a proper production web server for that.)')
+    parser.add_argument(
+        '--address', metavar = 'IP_HOST|"any"', type = str,
+        help = ('In live mode, have the server listen at the given address, or all addresses if '
+                '"any" is specified. By default, the server listens only on 127.0.0.1 (loopback). '
+                '*USE WITH CAUTION!* Do not use this option to expose the built-in web server to '
+                'the public internet, or other untrusted parties. (Upload the output HTML file to '
+                'a proper production web server for that.)'))
 
-    parser.add_argument('--port', metavar='PORT[-PORT]', type=port_range_type,
-                        help=f'In live mode, listen on the first available port in this range. By default, this is {live.DEFAULT_PORT_RANGE.start}-{live.DEFAULT_PORT_RANGE.stop}.')
+    parser.add_argument(
+        '--port', metavar = 'PORT[-PORT]', type = port_range_type,
+        help = ('In live mode, listen on the first available port in this range. By default, this '
+                f'is {live.DEFAULT_PORT_RANGE.start}-{live.DEFAULT_PORT_RANGE.stop}.'))
 
-    parser.add_argument('-W', '--no-browser', action='store_true',
-                        help='Do not automatically launch a web browser when starting live mode with -l/--live.')
+    parser.add_argument(
+        '-W', '--no-browser', action = 'store_true',
+        help = 'Do not automatically launch a web browser when starting live mode with -l/--live.')
 
 
     args = parser.parse_args()
@@ -123,13 +147,13 @@ def main():
     base_build_params = BuildParams(
         src_file = src_file,
         target_file = target_file,
-        build_files =
+        build_files = (
             (args.build or []) if args.no_auto_build_files
             else [
                 os.path.join(src_dir, DIRECTORY_BUILD_FILE),
                 os.path.join(src_dir, base_name + '.py'),
                 *(args.build or [])
-            ],
+            ]),
         build_dir = build_dir,
         build_defaults = not args.no_build_defaults,
         build_cache = diskcache.Cache(build_cache_dir),
@@ -147,7 +171,10 @@ def main():
     complete_build_params = md_compiler.compile(base_build_params)
 
     if args.live:
-        address = live.ANY_ADDRESS if args.address == 'any' else (args.address or live.LOOPBACK_ADDRESS)
+        address = (
+            live.ANY_ADDRESS
+            if args.address == 'any'
+            else (args.address or live.LOOPBACK_ADDRESS))
         port_range = args.port or live.DEFAULT_PORT_RANGE
 
         live.LiveUpdater(

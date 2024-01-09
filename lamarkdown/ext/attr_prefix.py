@@ -21,6 +21,7 @@ _ATTR_PREFIX_ATTR = 'la-attr-prefix-af9812f46b7201769eaf0d1a97f5a369'
 
 ATTR_PREFIX_RE = re.compile(rf'(?x){util.ATTR}\s*(\n|$)')
 
+
 class AttrPrefixBlockProcessor(markdown.blockprocessors.BlockProcessor):
     def __init__(self, md_parser):
         super().__init__(md_parser)

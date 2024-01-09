@@ -4,24 +4,24 @@ import lamarkdown.ext.attr_prefix
 
 import unittest
 from unittest.mock import patch
-from hamcrest import *
-from ..util.hamcrest_elements import *
+from hamcrest import assert_that, contains_exactly, instance_of, same_instance
+from ..util.hamcrest_elements import space, is_element
 
 import markdown
 import lxml.html
 
 import sys
 from textwrap import dedent
-from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
 
 class AttrPrefixTestCase(unittest.TestCase):
 
-    def run_markdown(self, markdown_text,
-                           hook = lambda md: None,
-                           **kwargs):
+    def run_markdown(self,
+                     markdown_text,
+                     hook = lambda md: None,
+                     **kwargs):
         md = markdown.Markdown(
             extensions = ['la.attr_prefix']
         )
@@ -47,12 +47,15 @@ class AttrPrefixTestCase(unittest.TestCase):
             lxml.html.fromstring(html),
             contains_exactly(
                 is_element('h1', {}, 'Heading'),
-                is_element('ol', {'class': 'classX', 'id': 'idY', 'attrz': 'value'}, space(),
-                    is_element('li', {}, space(),
+                is_element(
+                    'ol', {'class': 'classX', 'id': 'idY', 'attrz': 'value'}, space(),
+                    is_element(
+                        'li', {}, space(),
                         is_element('p', {}, 'Item1'),
                         is_element('p', {'class': 'classA'}, 'Some text')
                     ),
-                    is_element('li', {}, space(),
+                    is_element(
+                        'li', {}, space(),
                         is_element('p', {}, 'Item2')
                     )
                 )
@@ -71,13 +74,16 @@ class AttrPrefixTestCase(unittest.TestCase):
             ('{:#idA}', {'id': 'idA'}),
             ('{:attr-a=valueA}', {'attr-a': 'valueA'}),
             ('{:attr-a="valueA"}', {'attr-a': 'valueA'}),
-            ('{:#idA .classA attr-a=valueA}', {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
+            ('{:#idA .classA attr-a=valueA}',
+                {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
 
-            ('{:#idA}\n{:.classA}\n{attr-a=valueA}', {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
+            ('{:#idA}\n{:.classA}\n{attr-a=valueA}',
+                {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
             ('{:#idA}\n{#idB}\n{ #idC}', {'id': 'idA'}),
             ('{:.classA}\n{.classB}\n{ .classC}', {'class': 'classC classB classA'}),
 
-            ('{:#idA}\n\n{:.classA}\n\n{attr-a=valueA}', {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
+            ('{:#idA}\n\n{:.classA}\n\n{attr-a=valueA}',
+                {'id': 'idA', 'class': 'classA', 'attr-a': 'valueA'}),
             ('{:#idA}\n\n{#idB}\n\n{ #idC}', {'id': 'idA'}),
             ('{:.classA}\n\n{.classB}\n\n{ .classC}', {'class': 'classC classB classA'}),
         ]:

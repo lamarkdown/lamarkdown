@@ -2,10 +2,11 @@ import importlib
 import sys
 from typing import Tuple
 
+
 def entry_point_cls(name: str) -> Tuple[str, str]:
 
     if sys.version_info >= (3, 10):
-        entry_point = importlib.metadata.entry_points(group = 'markdown.extensions')[name]
+        entry_point = importlib.metadata.entry_points(group='markdown.extensions')[name]
 
     else:
         entry_point = next(

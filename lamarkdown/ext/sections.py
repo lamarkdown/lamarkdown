@@ -16,13 +16,13 @@ element. If a divider appears before any other content, then it *won't* create a
 from . import util
 
 import markdown
-from markdown.extensions.attr_list import AttrListTreeprocessor
 
 import copy
 import re
 from xml.etree import ElementTree
 
 _SEPARATOR_ATTR = 'la-sections-b25e560abe34c46aff67f5681e21a6a84eb10012'
+
 
 class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
     """
@@ -33,7 +33,6 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
 
     def __init__(self, md_parser, separator):
         super().__init__(md_parser)
-        # self._regex = re.compile('^[ ]*' + re.escape(separator) + r'([ ]*\n)*(\n[ ]*\{(?P<attr>[^}]*)\}\s*)?$')
         self._regex = re.compile(fr'(?x)^[ ]*{re.escape(separator)}([ ]*\n)?({util.ATTR})?\s*$')
 
     def test(self, parent, block):
@@ -41,7 +40,7 @@ class SectionBlockProcessor(markdown.blockprocessors.BlockProcessor):
         return self._match
 
     def run(self, parent, blocks):
-        blocks.pop(0) # We don't actually need the block, but we have to discard it.
+        blocks.pop(0)  # We don't actually need the block, but we have to discard it.
         elem = ElementTree.SubElement(parent, 'div', {_SEPARATOR_ATTR: '1'})
         util.set_attributes(elem, self._match)
 
@@ -84,7 +83,10 @@ class SectionTreeProcessor(markdown.treeprocessors.Treeprocessor):
 class SectionsExtension(markdown.Extension):
     def __init__(self, **kwargs):
         self.config = {
-            'separator': ['---', 'Sections will be divided by this string (which must be its own top-level block).'],
+            'separator': [
+                '---',
+                'Sections will be divided by this string (which must be its own top-level block).'
+            ],
         }
         super().__init__(**kwargs)
 

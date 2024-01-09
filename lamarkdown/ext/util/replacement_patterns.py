@@ -28,7 +28,6 @@ other replacement processors replacing anything inside them, but which then perm
 
 from . import opaque_tree
 import markdown
-from markdown.treeprocessors import Treeprocessor
 
 import re
 from xml.etree import ElementTree
@@ -75,7 +74,8 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
         ch_index = 0
         while element.text:
             new_element, match = self._find_first_pattern(element.text, ch_index, all_patterns)
-            if new_element is None: break
+            if new_element is None:
+                break
 
             ch_index = match.end(0)
             prefix = element.text[:match.start(0)]
@@ -84,7 +84,7 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
             if isinstance(new_element, str):
                 element.text = f'{prefix}{new_element}{suffix}'
 
-            else: # isinstance(new_element, Element):
+            else:  # isinstance(new_element, Element):
                 element.insert(0, new_element)
                 element.text = prefix or None
                 new_element.tail = suffix or None
@@ -97,8 +97,10 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
         ch_index = 0
         prev_subelement = element[elem_index]
         while prev_subelement.tail:
-            new_element, match = self._find_first_pattern(prev_subelement.tail, ch_index, all_patterns)
-            if new_element is None: break
+            new_element, match = self._find_first_pattern(prev_subelement.tail,
+                                                          ch_index, all_patterns)
+            if new_element is None:
+                break
 
             ch_index = match.end(0)
             prefix = prev_subelement.tail[:match.start(0)]
@@ -107,7 +109,7 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
             if isinstance(new_element, str):
                 prev_subelement.tail = f'{prefix}{new_element}{suffix}'
 
-            else: # isinstance(new_element, Element):
+            else:  # isinstance(new_element, Element):
                 elem_index += 1
                 element.insert(elem_index, new_element)
 
@@ -133,7 +135,8 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
                         match = pattern.compiled_re.match(text, ch_index)
                         if match:
                             new_element = pattern.handle_match(match)
-                            if isinstance(new_element, ElementTree.Element) and not pattern.allow_inline_patterns:
+                            if (isinstance(new_element, ElementTree.Element)
+                                    and not pattern.allow_inline_patterns):
                                 opaque_tree(new_element)
                             return new_element, match
                 escaped = False

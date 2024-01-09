@@ -13,39 +13,54 @@ from lxml.cssselect import CSSSelector
 from lxml.html import HtmlElement
 
 import importlib
-import os.path
-from typing import *
+from typing import Callable, Iterable, List, Optional, Set, Tuple, TypeVar, Union
 from types import ModuleType
 
 
-class BuildParamsException(Exception): pass
+class BuildParamsException(Exception):
+    pass
 
-ValueFactory = Callable[[Set[str]],Optional[str]]
-ResourceArg = Union[str,ValueFactory]
-Condition = Union[str,Iterable[str]]
-ResourceInfo = Tuple[List[str],ValueFactory]
+
+ValueFactory = Callable[[Set[str]], Optional[str]]
+ResourceArg = Union[str, ValueFactory]
+Condition = Union[str, Iterable[str]]
+ResourceInfo = Tuple[List[str], ValueFactory]
 
 
 def _callable(fn, which = 'argument'):
     if not callable(fn):
-        raise ValueError(f'{which} expected to be a function/callable, but was {type(fn).__name__} (value {fn})')
+        raise ValueError(f'{which} expected to be a function/callable, but was '
+                         f'"{type(fn).__name__}" (value {fn})')
 
 
 def _res_values(value: ResourceArg,
                 if_xpaths:    Condition = [],
                 if_selectors: Condition = []) -> ResourceInfo:
 
-    value_factory: ValueFactory
+    # value_factory: ValueFactory
 
-    if callable(value):
-        value_factory = value
-    elif if_xpaths or if_selectors:
-        # If a literal value is given as well as one or more XPath expressions, we'll produce that
-        # value if any of the expressions are found.
-        value_factory = lambda subset_found: value if subset_found else None
-    else:
-        # If a literal value is given with no XPaths, then we'll produce that value unconditionally.
-        value_factory = lambda _: value
+    # if callable(value):
+    #     value_factory = value
+    # elif if_xpaths or if_selectors:
+    #     # If a literal value is given as well as one or more XPath expressions, we'll produce
+    #     # that value if any of the expressions are found.
+    #     value_factory = lambda subset_found: value if subset_found else None
+    # else:
+    #     # If a literal value is given with no XPaths, then we'll produce that value
+    #     # unconditionally.
+    #     value_factory = lambda _: value
+
+    def value_factory(subset_found: Set[str]) -> Optional[str]:
+        if callable(value):
+            return value(subset_found)
+        elif if_xpaths or if_selectors:
+            # If a literal value is given as well as one or more XPath expressions, we'll produce
+            # that value if any of the expressions are found.
+            return value if subset_found else None
+        else:
+            # If a literal value is given with no XPaths, then we'll produce that value
+            # unconditionally.
+            return value
 
     xpath_iterable    = [if_xpaths]    if isinstance(if_xpaths,    str) else if_xpaths
     selector_iterable = [if_selectors] if isinstance(if_selectors, str) else if_selectors
@@ -69,23 +84,47 @@ def _url_resources(url_list: Iterable[str],
 
     for url in url_list:
         (xpaths_required, url_factory) = _res_values(url, **kwargs)
+        #
+        # if embed is None:
+        #     if mime_type is None:
+        #         def embed_fn():
+        #             return p.embed_rule(url = url, tag = tag, attr = {})
+        #     else:
+        #         def embed_fn():
+        #             return p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
+        # else:
+        #     def embed_fn():
+        #         return embed
+        #
+        # if hash_type is None:
+        #     if mime_type is None:
+        #         def hash_type_fn():
+        #             return p.resource_hash_rule(url = url, tag = tag, attr = {})
+        #     else:
+        #         def hash_type_fn():
+        #             return p.resource_hash_rule(url = url, tag = tag, attr = {},
+        #                                                     type = mime_type)
+        # else:
+        #     def hash_type_fn():
+        #         return hash_type
 
-        if embed is None:
-            if mime_type is None:
-                embed_fn = lambda: p.embed_rule(url = url, tag = tag, attr = {})
+        def embed_fn():
+            if embed is None:
+                if mime_type is None:
+                    return p.embed_rule(url = url, tag = tag, attr = {})
+                else:
+                    return p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
             else:
-                embed_fn = lambda: p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
-        else:
-            embed_fn = lambda: embed
+                return embed
 
-        if hash_type is None:
-            if mime_type is None:
-                hash_type_fn = lambda: p.resource_hash_rule(url = url, tag = tag, attr = {})
+        def hash_type_fn():
+            if hash_type is None:
+                if mime_type is None:
+                    return p.resource_hash_rule(url = url, tag = tag, attr = {})
+                else:
+                    return p.resource_hash_rule(url = url, tag = tag, attr = {}, type = mime_type)
             else:
-                hash_type_fn = lambda: p.resource_hash_rule(url = url, tag = tag, attr = {},
-                                                            type = mime_type)
-        else:
-            hash_type_fn = lambda: hash_type
+                return hash_type
 
 
         yield UrlResourceSpec(
@@ -126,7 +165,7 @@ class BuildModuleDispatcher:
     def __getattr__(self, name):
         try:
             mod = importlib.import_module(f'lamarkdown.mods.{name}')
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             raise AttributeError(f'No such build module - {name}')
 
         try:
@@ -150,7 +189,7 @@ class ApiImpl(ModuleType):
     def m(self):
         return self._m
 
-    def __call__(self, *extensions: Union[str,Extension], **config):
+    def __call__(self, *extensions: Union[str, Extension], **config):
         if len(extensions) == 0:
             raise ValueError('Must supply at least one extension')
 
@@ -163,7 +202,8 @@ class ApiImpl(ModuleType):
         for e in extensions:
             if isinstance(e, Extension):
                 if len(config) > 0:
-                    raise ValueError('Cannot give config values to an already-instantiated Extension')
+                    raise ValueError(
+                        'Cannot give config values to an already-instantiated Extension')
 
                 p.obj_extensions.append(e)
                 ret_config = None
@@ -233,7 +273,7 @@ class ApiImpl(ModuleType):
         params().name = name
 
 
-    def target(self, fn: Callable[[str],str]):
+    def target(self, fn: Callable[[str], str]):
         _callable(fn)
         params().output_namer = fn
 
@@ -307,7 +347,8 @@ class ApiImpl(ModuleType):
         if selector is None and xpath is None:
             raise ValueError('Must specify at least one argument')
 
-        hook = lambda elem: elem.getparent().remove(elem)
+        def hook(elem):
+            elem.getparent().remove(elem)
 
         if selector is not None:
             self.with_selector(selector, hook)
@@ -318,14 +359,16 @@ class ApiImpl(ModuleType):
 
     def with_selector(self,
                       selector: str,
-                      fn: Callable[[HtmlElement],None]):
+                      fn: Callable[[HtmlElement], None]):
         self.with_xpath(CSSSelector(selector).path, fn)
 
 
     def with_xpath(self,
                    xpath: str,
-                   fn: Callable[[HtmlElement],None]):
+                   fn: Callable[[HtmlElement], None]):
+
         _callable(fn)
+
         def hook(root):
             for element in root.xpath(xpath):
                 fn(element)
@@ -333,13 +376,13 @@ class ApiImpl(ModuleType):
 
 
     def with_tree(self,
-                  fn: Callable[[HtmlElement],Optional[HtmlElement]]):
+                  fn: Callable[[HtmlElement], Optional[HtmlElement]]):
         _callable(fn)
         params().tree_hooks.append(fn)
 
 
     def with_html(self,
-                  fn: Callable[[str],Optional[str]]):
+                  fn: Callable[[str], Optional[str]]):
         _callable(fn)
         params().html_hooks.append(fn)
 
@@ -359,7 +402,8 @@ class ApiImpl(ModuleType):
         xpath_to_sel = {CSSSelector(sel).path: sel for sel in selectors}
 
         def content_factory(found: Set[str]) -> Optional[str]:
-            if not found: return None
+            if not found:
+                return None
             return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
 
         params().css.append(ContentResourceSpec(xpaths_required = list(xpath_to_sel.keys()),
@@ -397,7 +441,8 @@ class ApiImpl(ModuleType):
                                           **kwargs))
 
     R = TypeVar('R')
-    RuleSpec = Union[R,Rule[R]]
+    RuleSpec = Union[R, Rule[R]]
+
 
     def embed(self, embed_spec: RuleSpec[bool]):
         p = params()
@@ -408,7 +453,8 @@ class ApiImpl(ModuleType):
             p.embed_rule = embed_spec
 
         else:
-            raise ValueError(f'"embed_spec" expected to be a bool, or a fn(str,str,str)->bool, but was {embed_spec.__class__} ({embed_spec}).')
+            raise ValueError('"embed_spec" expected to be a bool, or a fn(str,str,str)->bool, but '
+                             f'was "{type(embed_spec).__name__}" ({embed_spec}).')
 
 
     def resource_hash_type(self, hash_spec: Rule[Optional[str]]):
@@ -420,7 +466,9 @@ class ApiImpl(ModuleType):
             p.resource_hash_rule = hash_spec
 
         else:
-            raise ValueError(f'"hash_spec" expected to be None, "sha256", "sha384", "sha512", or a fn(str,str,str)->str (returning one of these), but was {hash_spec.__class__} ({hash_spec}).')
+            raise ValueError('"hash_spec" expected to be None, "sha256", "sha384", "sha512", or '
+                             'a fn(str,str,str)->str (returning one of these), but was '
+                             f'"{type(hash_spec).__name__}" ({hash_spec}).')
 
 
     def scale(self, scale_spec: RuleSpec[float]):
@@ -432,5 +480,5 @@ class ApiImpl(ModuleType):
             p.scale_rule = scale_spec
 
         else:
-            raise ValueError(f'"scale_spec" expected to be a number, or a fn(str,str,str)->float, but was {scale_spec.__class__} ({scale_spec}).')
-
+            raise ValueError('"scale_spec" expected to be a number, or a fn(str,str,str)->float, '
+                             f'but was "{type(scale_spec).__name__}" ({scale_spec}).')

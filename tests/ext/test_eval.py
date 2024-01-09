@@ -2,7 +2,7 @@ from ..util.mock_progress import MockProgress
 from ..util.markdown_ext import entry_point_cls
 import unittest
 from unittest.mock import patch
-from hamcrest import *
+from hamcrest import assert_that, contains_exactly, has_property, instance_of, is_, same_instance
 
 import lamarkdown.ext
 import markdown
@@ -14,17 +14,14 @@ from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
+
 class EvalTestCase(unittest.TestCase):
 
     def run_markdown(self, markdown_text, expect_error = False, **kwargs):
         self.progress = MockProgress(expect_error)
         md = markdown.Markdown(
             extensions = ['la.eval'],
-            extension_configs = {'la.eval':
-            {
-                'progress': self.progress,
-                **kwargs
-            }}
+            extension_configs = {'la.eval': {'progress': self.progress, **kwargs}}
         )
         return md.convert(dedent(markdown_text).strip())
 
@@ -60,7 +57,7 @@ class EvalTestCase(unittest.TestCase):
 
             self.assertRegex(
                 html,
-                fr'''(?x)
+                r'''(?x)
                 <p>Sometext[ ]
                 <span>
                 test[ ]replacement
@@ -80,7 +77,7 @@ class EvalTestCase(unittest.TestCase):
 
         self.assertRegex(
             html,
-            fr'''(?x)
+            r'''(?x)
             <p>Sometext[ ]
             <span>
             333
@@ -113,9 +110,10 @@ class EvalTestCase(unittest.TestCase):
         self.assertIn('triple delimiter', html)
 
     def test_repl_error(self):
-        def error_fn(): raise Exception
+        def error_fn():
+            raise Exception
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             Sometext $`xyz` sometext
             ''',
@@ -129,7 +127,7 @@ class EvalTestCase(unittest.TestCase):
 
 
     def test_eval_error(self):
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             Sometext $`[][0]` sometext
             ''',

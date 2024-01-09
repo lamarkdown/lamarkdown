@@ -8,9 +8,9 @@ This is where we invoke Python Markdown, but also:
 
 import lamarkdown
 from .build_params import BuildParams, Variant
-from .resources import ResourceSpec, Resource, ContentResource, ContentResourceSpec
+from .resources import ResourceSpec, Resource, ContentResource
 from .progress import Progress
-from . import resources, resource_writers, images
+from . import resource_writers, images
 
 import lxml.html
 import markdown
@@ -23,10 +23,9 @@ from io import StringIO
 import locale
 import os
 import re
-from typing import Callable, Dict, List, Optional, Set
-from xml.etree import ElementTree
+from typing import Dict, List, Optional, Set
 
-NAME = 'compiling' # For progress/error messages
+NAME = 'compiling'  # For progress/error messages
 
 
 def set_default_build_params(build_parms: BuildParams):
@@ -143,7 +142,7 @@ def invoke_python_markdown(build_params: BuildParams):
     build_params.progress.progress(
         NAME, msg = f'running Python Markdown for {os.path.basename(build_params.output_file)}')
     content_html = ''
-    meta: Dict[str,List[str]] = {}
+    meta: Dict[str, List[str]] = {}
 
     try:
         with open(build_params.src_file, 'r') as src:
@@ -154,7 +153,9 @@ def invoke_python_markdown(build_params: BuildParams):
     else:
         try:
             md = markdown.Markdown(
-                extensions = build_params.obj_extensions + list(build_params.named_extensions.keys()),
+                extensions = (
+                    build_params.obj_extensions
+                    + list(build_params.named_extensions.keys())),
                 extension_configs = build_params.named_extensions
             )
 
@@ -184,11 +185,13 @@ _parser = lxml.html.HTMLParser(default_doctype = False,
                                remove_blank_text = True,
                                remove_comments = True)
 
+
 def parse(content_html: Optional[str]) -> Optional[lxml.html.HtmlElement]:
     buf = StringIO(content_html or '<body></body>')
     try:
         return lxml.html.parse(buf, _parser).find('body')
-    except Exception: # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
+    except Exception:
+        # Unfortunately lxml raises 'AssertionError', which I don't want to catch explicitly.
         return None
 
 
@@ -200,8 +203,9 @@ CSS_VAR_REGEX = re.compile(
     ''',         # Also matches greedily, so we don't need a negative lookahead.
     re.VERBOSE)
 
+
 def write_html(content_html: str,
-               meta: Dict[str,List[str]],
+               meta: Dict[str, List[str]],
                build_params: BuildParams):
 
     build_params.progress.progress(
@@ -247,7 +251,7 @@ def write_html(content_html: str,
         ord(ch)
         for text in root_element.itertext()
         for ch in text)
-    build_params.font_codepoints.update(range(0x00, 0x80)) # Add all ASCII chars too
+    build_params.font_codepoints.update(range(0x00, 0x80))  # Add all ASCII chars too
 
     # Determine which XPath expressions match the document (so we know later which css/js
     # resources to include).
@@ -315,7 +319,7 @@ def write_html(content_html: str,
 
         vars_to_be_defined = {}
         while len(vars_used) > 0:
-            css_var_name = vars_used.pop()[2:] # Strip '--' prefix
+            css_var_name = vars_used.pop()[2:]  # Strip '--' prefix
             if css_var_name in build_params.css_vars:
                 value = build_params.css_vars[css_var_name]
                 vars_to_be_defined[css_var_name] = value
@@ -370,5 +374,3 @@ def write_html(content_html: str,
     else:
         build_params.progress.progress(NAME, msg = 'output written')
         return True
-
-

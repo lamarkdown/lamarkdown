@@ -3,18 +3,19 @@ from ..util.markdown_ext import entry_point_cls
 import lamarkdown.ext
 
 import unittest
-from unittest.mock import Mock, patch
-from hamcrest import *
+from unittest.mock import patch
+from hamcrest import (assert_that, contains_exactly, contains_string, empty, has_properties,
+                      has_property, instance_of, is_, not_none, same_instance)
 
 import markdown
 import lxml.html
 
-import re
 import sys
 import tempfile
 from textwrap import dedent
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
+
 
 class CiteTestCase(unittest.TestCase):
     REFERENCES = r'''
@@ -51,11 +52,12 @@ class CiteTestCase(unittest.TestCase):
     # @misc{refC...} gives us a <dd> element with no sub-elements, which helps test a particular
     # path in cite.py.
 
-    def run_markdown(self, markdown_text,
-                           more_extensions = [],
-                           expect_error = False,
-                           hook = lambda md: None,
-                           **kwargs):
+    def run_markdown(self,
+                     markdown_text,
+                     more_extensions = [],
+                     expect_error = False,
+                     hook = lambda md: None,
+                     **kwargs):
         self.progress = mock_progress.MockProgress(expect_error = expect_error)
         md = markdown.Markdown(
             extensions = ['la.cite', *more_extensions],
@@ -136,7 +138,8 @@ class CiteTestCase(unittest.TestCase):
             html,
             r'''(?sx)
             \s* <h1>Heading</h1>
-            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>,[ ]citation[ ]X[ ]\[@refX].</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>,[ ]citation
+                [ ]X[ ]\[@refX].</p>
             \s* <dl[ ]id="la-bibliography">
             \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* \. </dd>
             \s* </dl>
@@ -190,10 +193,14 @@ class CiteTestCase(unittest.TestCase):
 
     def test_links(self):
         linked_citations = r'''
-            \s* <p>Citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]id="la-cite:1-1">1</a>,[ ]p\.[ ]5\]</cite>,[ ]
-                   citation[ ]C[ ]<cite>\[<a[ ]href="\#la-ref:2"[ ]id="la-cite:2-1">2</a>\]</cite>.</p>
-            \s* <p>Citation[ ]D[ ]<cite>\[<a[ ]href="\#la-ref:3"[ ]id="la-cite:3-1">3</a>[ ]maybe\]</cite>,[ ]
-                   citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]id="la-cite:1-2">1</a>\]</cite>.</p>
+            \s* <p>Citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]
+                                               id="la-cite:1-1">1</a>,[ ]p\.[ ]5\]</cite>,[ ]
+                   citation[ ]C[ ]<cite>\[<a[ ]href="\#la-ref:2"[ ]
+                                               id="la-cite:2-1">2</a>\]</cite>.</p>
+            \s* <p>Citation[ ]D[ ]<cite>\[<a[ ]href="\#la-ref:3"[ ]
+                                               id="la-cite:3-1">3</a>[ ]maybe\]</cite>,[ ]
+                   citation[ ]B[ ]<cite>\[<a[ ]href="\#la-ref:1"[ ]
+                                               id="la-cite:1-2">1</a>\]</cite>.</p>
         '''
 
         unlinked_citations = r'''
@@ -204,8 +211,9 @@ class CiteTestCase(unittest.TestCase):
         '''
 
         linked_refs = r'''
-            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* [ ]<span>↩[ ]<a[ ]href="\#la-cite:1-1">1</a>
-                                                                    [ ]<a[ ]href="\#la-cite:1-2">2</a></span></dd>
+            \s* <dt[ ]id="la-ref:1">1</dt> \s* <dd> .* [ ]<span>↩[ ]
+                <a[ ]href="\#la-cite:1-1">1</a>[ ]
+                <a[ ]href="\#la-cite:1-2">2</a></span></dd>
             \s* <dt[ ]id="la-ref:2">2</dt> \s* <dd> .* [ ]<a[ ]href="\#la-cite:2-1">↩</a></dd>
             \s* <dt[ ]id="la-ref:3">3</dt> \s* <dd> .* [ ]<a[ ]href="\#la-cite:3-1">↩</a></dd>
         '''
@@ -260,8 +268,10 @@ class CiteTestCase(unittest.TestCase):
             \s* </dl>
         '''
 
-        regex_citation_b = r'\s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>.</p>'
-        regex_citation_c = r'\s* <p>Citation[ ]C[ ]<cite>\[<span[ ]id="la-cite:2-1">2</span>]</cite>.</p>'
+        regex_citation_b = r'''
+            \s* <p>Citation[ ]B[ ]<cite>\[<span[ ]id="la-cite:1-1">1</span>]</cite>.</p>'''
+        regex_citation_c = r'''
+            \s* <p>Citation[ ]C[ ]<cite>\[<span[ ]id="la-cite:2-1">2</span>]</cite>.</p>'''
 
         # We're testing different placements of the 'place marker, which determines
         data = [
@@ -307,9 +317,9 @@ class CiteTestCase(unittest.TestCase):
             )
         ]
 
-        for markdown, regex in data:
+        for markdown_input, regex in data:
             html = self.run_markdown(
-                markdown,
+                markdown_input,
                 file = [],
                 references = self.REFERENCES,
                 hyperlinks = 'none')
@@ -342,9 +352,9 @@ class CiteTestCase(unittest.TestCase):
 
     def test_citation_key_syntax(self):
         html = self.run_markdown(
-            fr'''
+            r'''
             # Heading
-            [see @1:a.2b$3c&4+d?5<e>6~f/7-g; @{{![]!}}; @{{;;;}}]
+            [see @1:a.2b$3c&4+d?5<e>6~f/7-g; @{![]!}; @{;;;}]
             ''',
             file = [],
             references = r'''
@@ -412,7 +422,7 @@ class CiteTestCase(unittest.TestCase):
                         }}
                     ''')
 
-            html = self.run_markdown(
+            self.run_markdown(
                 fr'''
                 bibliography: {dir}/referencesA.bib
                               {dir}/referencesB.bib
@@ -438,7 +448,7 @@ class CiteTestCase(unittest.TestCase):
 
     def test_nocite(self):
         html = self.run_markdown(
-            fr'''
+            r'''
             nocite: @*
 
             # Heading
@@ -462,7 +472,7 @@ class CiteTestCase(unittest.TestCase):
             ''')
 
         html = self.run_markdown(
-            fr'''
+            r'''
             nocite: @refB, @nonexistent, @refC
                     @refD
 
@@ -507,7 +517,7 @@ class CiteTestCase(unittest.TestCase):
 
 
     def test_parse_error(self):
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             [@refA]
             ''',
@@ -520,7 +530,7 @@ class CiteTestCase(unittest.TestCase):
             self.progress.error_messages,
             contains_exactly(has_property('location', 'la.cite')))
 
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             bibliography: nonexistent.bib
 
@@ -538,15 +548,12 @@ class CiteTestCase(unittest.TestCase):
 
 
     def test_format_error(self):
-        html = self.run_markdown(
+        self.run_markdown(
             r'''
             [@refA]
             ''',
             file = [],
-            references =
-                r'''
-                @article{refA}
-                ''',
+            references = r'@article{refA}',
             expect_error = True
         )
 

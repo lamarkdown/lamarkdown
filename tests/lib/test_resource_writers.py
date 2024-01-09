@@ -3,15 +3,14 @@ from lamarkdown.lib import resources, resource_writers
 
 import unittest
 from unittest.mock import patch, Mock, PropertyMock, ANY
-from hamcrest import *
+from hamcrest import (assert_that, contains_exactly, contains_inanyorder, empty,
+                      equal_to_ignoring_whitespace)
 
 import base64
-import email.utils
-import io
 import os
 import tempfile
-from textwrap import dedent
 from xml.etree import ElementTree
+
 
 # TODO:
 # - handling of cycles in nested stylesheets
@@ -29,8 +28,8 @@ class ResourceWritersTestCase(unittest.TestCase):
     @patch('lamarkdown.lib.resources.read_url')
     def test_make_data_url(self, mock_read_url):
 
-        b64_orig = 'bW9ja19jb250ZW50' # base64 encoding of "mock_content"
-        b64_converted = 'bW9ja19jb250ZW50X2NvbnZlcnRlZA==' # b64 of "mock_content_converted"
+        b64_orig = 'bW9ja19jb250ZW50'  # base64 encoding of "mock_content"
+        b64_converted = 'bW9ja19jb250ZW50X2NvbnZlcnRlZA=='  # b64 of "mock_content_converted"
 
         mock_build_params = Mock()
         converter = Mock()
@@ -89,8 +88,8 @@ class ResourceWritersTestCase(unittest.TestCase):
             (f'url({url})',            'a/b/c/', [url],  [url],    f'url("{data_url}")'),
             (f'@import"{url}";',       'a/b/c',  [url],  [url],    f'@import "{data_url}";'),
 
-            (f'url(dir/file)',         'a/b/c/', [],     [],       f'url("a/b/c/dir/file")'),
-            (f'@import"dir/file";',    'a/b/c',  [],     [],       f'@import "a/b/dir/file";'),
+            ('url(dir/file)',          'a/b/c/', [],     [],       'url("a/b/c/dir/file")'),
+            ('@import"dir/file";',     'a/b/c',  [],     [],       '@import "a/b/dir/file";'),
 
             (
                 r'''p{ x: "url(abc)"; /* url(def) */ y: url("ghi"); z: "url(jkl)"} /*url(mno) */''',
@@ -129,7 +128,9 @@ class ResourceWritersTestCase(unittest.TestCase):
             ('''url('\\'\\69 \\06d\\0061\t\\00067\\000065 \\'')''',
              '', ["'image'"], ["'image'"], fr'url("{data_url}")'),
         ]:
-            embed_rule = lambda url='', **k: url in embed
+            def embed_rule(url='', **k):
+                return url in embed
+
             type(mock_build_params).embed_rule = PropertyMock(return_value = embed_rule)
 
             sw = resource_writers.StylesheetWriter(mock_build_params)
@@ -160,7 +161,6 @@ class ResourceWritersTestCase(unittest.TestCase):
         sw = resource_writers.StylesheetWriter(mock_build_params)
 
         exp_content1 = f'<style>\n{content1.content}\n</style>'
-        exp_content2 = f'<style>\n{content2.content}\n</style>'
         exp_content12 = f'<style>\n{content1.content}\n{content2.content}\n</style>'
         exp_url1 = f'<link rel="stylesheet" href="{url1.url}" />'
         exp_url2 = f'<link rel="stylesheet" href="{url2.url}" />'
@@ -328,7 +328,7 @@ class ResourceWritersTestCase(unittest.TestCase):
             type(mock_build_params).progress = PropertyMock(return_value = MockProgress())
             # Embed only .css files, not .txt files.
             type(mock_build_params).embed_rule = PropertyMock(return_value =
-                                                              lambda url,**k: url.endswith('css'))
+                                                              lambda url, **k: url.endswith('css'))
 
             expected = f'<style>\n{conv_contentA}\n</style>'
 
@@ -379,14 +379,14 @@ class ResourceWritersTestCase(unittest.TestCase):
             mock_build_params = Mock()
             mock_progress = Mock()
             type(mock_build_params).progress = PropertyMock(return_value = mock_progress)
-            type(mock_build_params).embed_rule = PropertyMock(return_value = lambda *a,**k: True)
+            type(mock_build_params).embed_rule = PropertyMock(return_value = lambda *a, **k: True)
             type(mock_build_params).resource_base_url = PropertyMock(return_value = '')
 
             sw = resource_writers.StylesheetWriter(mock_build_params)
 
             for url in ['fileA.css', 'fileB.css']:
                 resource = resources.UrlResource(url, to_embed = True)
-                _output = sw.format([resource])
+                sw.format([resource])
 
                 mock_progress.error.assert_called_once()
                 mock_progress.reset_mock()
@@ -419,7 +419,7 @@ class ResourceWritersTestCase(unittest.TestCase):
             ('audio',  'mp3',  'audio/mpeg',             {}),
             ('audio',  'mp3',  'audio/mpeg',             {'type': 'mock/type'}),
             ('embed',  'jpg',  'image/jpeg',             {}),
-            ('embed',  'jpg',  'mock/type',              {'type': 'mock/type'}), # type attr
+            ('embed',  'jpg',  'mock/type',              {'type': 'mock/type'}),  # type attr
             ('iframe', 'html', 'text/html',              {}),
             ('iframe', 'html', 'text/html',              {'type': 'mock/type'}),
             ('input',  'jpg',  'image/jpeg',             {}),
@@ -430,7 +430,7 @@ class ResourceWritersTestCase(unittest.TestCase):
             ('script', 'js',   'application/javascript', {}),
             ('script', 'js',   'application/javascript', {'type': 'mock/type'}),
             ('source', 'jpg',  'image/jpeg',             {}),
-            ('source', 'jpg',  'mock/type',              {'type': 'mock/type'}), # type attr
+            ('source', 'jpg',  'mock/type',              {'type': 'mock/type'}),  # type attr
             ('track',  'vtt',  'text/vtt',               {}),
             ('track',  'vtt',  'text/vtt',               {'type': 'mock/type'}),
             ('video',  'mp4',  'video/mp4',              {}),
@@ -510,4 +510,3 @@ class ResourceWritersTestCase(unittest.TestCase):
                 contains_inanyorder(os.path.abspath('file1'), os.path.abspath('file3')))
 
             live_update_deps.clear()
-

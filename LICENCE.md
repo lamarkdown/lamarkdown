@@ -1,4 +1,4 @@
-# The MIT License
+# MIT License
 
 Copyright (c) 2022 David J A Cooper
 

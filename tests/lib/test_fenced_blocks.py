@@ -1,11 +1,12 @@
 from ..util.mock_progress import MockProgress
-from lamarkdown.lib import fenced_blocks, build_params
+from lamarkdown.lib import fenced_blocks
 
 import unittest
 from unittest.mock import Mock, PropertyMock
 
 import sys
 import tempfile
+
 
 class FencedBlocksTestCase(unittest.TestCase):
 
@@ -25,7 +26,7 @@ class FencedBlocksTestCase(unittest.TestCase):
         mock_formatter.return_value = '<div>Hello</div>'
 
         mock_build_params = Mock()
-        type(mock_build_params).build_cache = PropertyMock(return_value = {}) # Trivial 'cache'
+        type(mock_build_params).build_cache = PropertyMock(return_value = {})  # Trivial 'cache'
 
         fmt = fenced_blocks.caching_formatter(mock_build_params, 'mock', mock_formatter)
 
@@ -77,26 +78,26 @@ class FencedBlocksTestCase(unittest.TestCase):
 
         fmt = fenced_blocks.attr_formatter(mock_formatter)
 
-        for base_html,              cls,  classes,      id,   attrs, expected in [
-            ('<A>X</A>',            '',   [],           None, {},    '<A>X</A>'),
-            ('<A>X</A>',            'c1', [],           None, {},    '<A class="c1">X</A>'),
-            ('<A>X</A>',            '',   ['c2'],       None, {},    '<A class="c2">X</A>'),
-            ('<A>X</A>',            '',   ['c2', 'c3'], None, {},    '<A class="c2 c3">X</A>'),
-            ('<A>X</A>',            'c1', ['c2'],       None, {},    '<A class="c1 c2">X</A>'),
-            ('<A>X</A>',            'c1', ['c2', 'c3'], None, {},    '<A class="c1 c2 c3">X</A>'),
-            ('<A class="c0">X</A>', 'c1', [],           None, {},    '<A class="c0 c1">X</A>'),
-            ('<A class="c0">X</A>', '',   ['c2'],       None, {},    '<A class="c0 c2">X</A>'),
-            ('<A class="c0">X</A>', '',   ['c2', 'c3'], None, {},    '<A class="c0 c2 c3">X</A>'),
-            ('<A class="c0">X</A>', 'c1', ['c2'],       None, {},    '<A class="c0 c1 c2">X</A>'),
-            ('<A class="c0">X</A>', 'c1', ['c2', 'c3'], None, {},    '<A class="c0 c1 c2 c3">X</A>'),
+        for base_html,              cls,  classes,      id, attrs, expected in [
+            ('<A>X</A>',            '',   [],           None, {},  '<A>X</A>'),
+            ('<A>X</A>',            'c1', [],           None, {},  '<A class="c1">X</A>'),
+            ('<A>X</A>',            '',   ['c2'],       None, {},  '<A class="c2">X</A>'),
+            ('<A>X</A>',            '',   ['c2', 'c3'], None, {},  '<A class="c2 c3">X</A>'),
+            ('<A>X</A>',            'c1', ['c2'],       None, {},  '<A class="c1 c2">X</A>'),
+            ('<A>X</A>',            'c1', ['c2', 'c3'], None, {},  '<A class="c1 c2 c3">X</A>'),
+            ('<A class="c0">X</A>', 'c1', [],           None, {},  '<A class="c0 c1">X</A>'),
+            ('<A class="c0">X</A>', '',   ['c2'],       None, {},  '<A class="c0 c2">X</A>'),
+            ('<A class="c0">X</A>', '',   ['c2', 'c3'], None, {},  '<A class="c0 c2 c3">X</A>'),
+            ('<A class="c0">X</A>', 'c1', ['c2'],       None, {},  '<A class="c0 c1 c2">X</A>'),
+            ('<A class="c0">X</A>', 'c1', ['c2', 'c3'], None, {},  '<A class="c0 c1 c2 c3">X</A>'),
 
-            ('<A>X</A>',            '',   [],           'i1', {},    '<A id="i1">X</A>'),
-            ('<A id="i0">X</A>',    '',   [],           'i1', {},    '<A id="i1">X</A>'),
+            ('<A>X</A>',            '',   [],           'i1', {},  '<A id="i1">X</A>'),
+            ('<A id="i0">X</A>',    '',   [],           'i1', {},  '<A id="i1">X</A>'),
 
-            ('<A a="1">X</A>',      '',   [],  None, {'a':2, 'b':3}, '<A a="2" b="3">X</A>'),
-            ('<A a="1">X</A>',      '',   [],  None, {'b':3, 'c':4}, '<A a="1" b="3" c="4">X</A>'),
+            ('<A a="1">X</A>', '', [], None, {'a': 2, 'b': 3}, '<A a="2" b="3">X</A>'),
+            ('<A a="1">X</A>', '', [], None, {'b': 3, 'c': 4}, '<A a="1" b="3" c="4">X</A>'),
 
-            ('<A class="c0" id="i0">X</A>', 'c1', ['c2','c3'], 'i1', {'a':2, 'b':3},
+            ('<A class="c0" id="i0">X</A>', 'c1', ['c2', 'c3'], 'i1', {'a': 2, 'b': 3},
              '<A class="c0 c1 c2 c3" id="i1" a="2" b="3">X</A>'),
         ]:
             # NOTE: we're cheating a bit here by relying on a predictable ordering of class, id

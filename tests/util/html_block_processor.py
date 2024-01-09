@@ -3,6 +3,7 @@ from lamarkdown.ext import util
 import markdown
 from xml.etree import ElementTree
 
+
 class TestHtmlBlockProcessor(markdown.blockprocessors.BlockProcessor):
     '''
     This is to force Markdown to convert HTML into actual Element nodes, to be seen in the
