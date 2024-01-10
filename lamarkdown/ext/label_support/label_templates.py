@@ -1,4 +1,5 @@
 from . import counter_types
+from . import standard_counter_types
 from dataclasses import dataclass
 from typing import Optional
 import sys
@@ -77,7 +78,7 @@ def _repl_literal(match) -> str:
 class LabelTemplateParser:
 
     DEFAULT = LabelTemplate(prefix = '', separator = '', suffix = '.', parent_type = '',
-                            counter_type = counter_types.get_counter_type('decimal'),
+                            counter_type = standard_counter_types.get_counter_type('decimal'),
                             inner_template = None)
 
     def __init__(self):
@@ -101,12 +102,10 @@ class LabelTemplateParser:
 
         counter_type = None
         if (counter_name := match.group('format')) is not None:
-            try:
-                counter_type = counter_types.get_counter_type(counter_name)
-            except KeyError as e:
+            counter_type = standard_counter_types.get_counter_type(counter_name)
+            if counter_type is None:
                 raise LabelTemplateException(
-                    f'Invalid counter type "{counter_name}" in label template "{template_str}"'
-                ) from e
+                    f'Invalid counter type "{counter_name}" in label template "{template_str}"')
 
         template = LabelTemplate(
             prefix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix')),

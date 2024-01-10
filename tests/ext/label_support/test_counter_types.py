@@ -1,7 +1,9 @@
 from lamarkdown.ext.label_support.counter_types import (
-    get_counter_type, AdditiveCounter, AlphabeticCounter, CyclicCounter, FixedCounter,
-    NumericCounter, SymbolicCounter)
+    AdditiveCounter, AlphabeticCounter, CyclicCounter, FixedCounter, NumericCounter,
+    SymbolicCounter)
+from lamarkdown.ext.label_support.standard_counter_types import get_counter_type
 import unittest
+from hamcrest import assert_that, equal_to
 
 
 class CounterTypesTestCase(unittest.TestCase):
@@ -53,33 +55,111 @@ class CounterTypesTestCase(unittest.TestCase):
             (['I', 'upper-roman'],                  999,   'CMXCIX'),
         ]:
             for name in names:
-                self.assertEqual(
-                    string,
+                assert_that(
                     get_counter_type(name).format(value),
-                    msg = f'counter "{name}" for value {value} expected to give "{string}"')
+                    equal_to(string),
+                    f'counter "{name}" for value {value} expected to give "{string}"')
 
 
     def test_get_counter_type_i18n(self):
         for (name, all_symbols, other_samples) in [
             (
                 'lower-greek',
-                ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π',
-                 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
+                ['0', 'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο',
+                 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
                 [(25, 'αα'), (51, 'βγ')]
+            ),
+            (
+                'ethiopic-numeric',
+                ['0', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱',  # 0-9
+                 '፲', '፲፩', '፲፪', '፲፫', '፲፬', '፲፭', '፲፮', '፲፯', '፲፰', '፲፱',  # 10-19
+                 '፳'],  # 20
+                [
+                    (30, '፴'), (40, '፵'), (50, '፶'), (60, '፷'), (70, '፸'), (80, '፹'), (90, '፺'),
+
+                    # https://www.w3.org/TR/css-counter-styles-3/#ethiopic-numeric-counter-style
+                    (100, '፻'), (78010092, '፸፰፻፩፼፺፪'), (780100000092, '፸፰፻፩፼፼፺፪'),
+
+                    # https://www.w3.org/TR/predefined-counter-styles/#ethiopic-numeric
+                    (111, '፻፲፩'), (222, '፪፻፳፪'), (333, '፫፻፴፫'), (444, '፬፻፵፬'),
+
+                    # https://en.wikipedia.org/wiki/Ge%CA%BDez_script#Numerals
+                    (475, '፬፻፸፭'), (83692, '፰፼፴፮፻፺፪')
+                ]
+            ),
+            (
+                'simp-chinese-informal',
+                ['零、', '一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、',
+                 '十、', '十一、', '十二、', '十三、', '十四、', '十五、', '十六、', '十七、', '十八、', '十九、',
+                 '二十、', '二十一、'],
+                [
+                    (-1, '负一、'), (-9, '负九、'), (-120, '负一百二十、'),
+
+                    # https://www.w3.org/TR/css-counter-styles-3/#limited-chinese
+                    (30, '三十、'), (40, '四十、'), (50, '五十、'), (60, '六十、'), (70, '七十、'), (80, '八十、'),
+                    (90, '九十、'), (100, '一百、'), (105, '一百零五、'), (110, '一百一十、'), (120, '一百二十、'),
+
+                    # https://www.w3.org/TR/predefined-counter-styles/#simp-chinese-informal
+                    (111, '一百一十一、'), (222, '二百二十二、'), (333, '三百三十三、'), (444, '四百四十四、'),
+                ]
+            ),
+            (
+                'simp-chinese-formal',
+                ['零、', '壹、', '贰、', '叁、', '肆、', '伍、', '陆、', '柒、', '捌、', '玖、',
+                 '拾、', '拾壹、', '拾贰、', '拾叁、', '拾肆、', '拾伍、', '拾陆、', '拾柒、', '拾捌、', '拾玖、',
+                 '贰拾、', '贰拾壹、'],
+                [
+                    (-1, '负壹、'), (-9, '负玖、'), (-120, '负壹佰贰拾、'),
+                    (30, '叁拾、'), (40, '肆拾、'), (50, '伍拾、'), (60, '陆拾、'), (70, '柒拾、'), (80, '捌拾、'),
+                    (90, '玖拾、'), (100, '壹佰、'), (105, '壹佰零伍、'), (110, '壹佰壹拾、'), (120, '壹佰贰拾、'),
+
+                    # https://www.w3.org/TR/predefined-counter-styles/#simp-chinese-formal
+                    (111, '壹佰壹拾壹、'), (222, '贰佰贰拾贰、'), (333, '叁佰叁拾叁、'), (444, '肆佰肆拾肆、'),
+                ]
+            ),
+            (
+                'trad-chinese-informal',
+                ['零、', '一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、',
+                 '十、', '十一、', '十二、', '十三、', '十四、', '十五、', '十六、', '十七、', '十八、', '十九、',
+                 '二十、', '二十一、'],
+                [
+                    (-1, '負一、'), (-9, '負九、'), (-120, '負一百二十、'),
+                    (30, '三十、'), (40, '四十、'), (50, '五十、'), (60, '六十、'), (70, '七十、'), (80, '八十、'),
+                    (90, '九十、'), (100, '一百、'), (105, '一百零五、'), (110, '一百一十、'), (120, '一百二十、'),
+
+                    # https://www.w3.org/TR/predefined-counter-styles/#trad-chinese-informal
+                    (111, '一百一十一、'), (222, '二百二十二、'), (333, '三百三十三、'), (444, '四百四十四、'),
+                ]
+
+            ),
+            (
+                'trad-chinese-formal',
+                ['零、', '壹、', '貳、', '參、', '肆、', '伍、', '陸、', '柒、', '捌、', '玖、',
+                 '拾、', '拾壹、', '拾貳、', '拾參、', '拾肆、', '拾伍、', '拾陸、', '拾柒、', '拾捌、', '拾玖、',
+                 '貳拾、', '貳拾壹、'],
+                [
+                    (-1, '負壹、'), (-9, '負玖、'), (-120, '負壹佰貳拾、'),
+                    (30, '參拾、'), (40, '肆拾、'), (50, '伍拾、'), (60, '陸拾、'), (70, '柒拾、'), (80, '捌拾、'),
+                    (90, '玖拾、'), (100, '壹佰、'), (105, '壹佰零伍、'), (110, '壹佰壹拾、'), (120, '壹佰貳拾、'),
+
+                    # https://www.w3.org/TR/predefined-counter-styles/#trad-chinese-formal
+                    (111, '壹佰壹拾壹、'), (222, '貳佰貳拾貳、'), (333, '參佰參拾參、'), (444, '肆佰肆拾肆、'),
+                ]
+
             ),
         ]:
             counter = get_counter_type(name)
-            for (value, string) in enumerate(all_symbols, start = 1):
-                self.assertEqual(
-                    string,
+            for (value, string) in enumerate(all_symbols, start = 0):
+                assert_that(
                     counter.format(value),
-                    msg = f'counter "{name}" for value {value} expected to give "{string}"')
+                    equal_to(string),
+                    f'counter "{name}" for value {value} expected to give "{string}"')
 
             for (value, string) in other_samples:
-                self.assertEqual(
-                    string,
+                assert_that(
                     counter.format(value),
-                    msg = f'counter "{name}" for value {value} expected to give "{string}"')
+                    equal_to(string),
+                    f'counter "{name}" for value {value} expected to give "{string}"')
 
 
     def test_numeric_counter(self):
@@ -94,7 +174,7 @@ class CounterTypesTestCase(unittest.TestCase):
             (-1,    '-1'),
             (-24,   '-44'),
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))
 
 
     def test_alphabetic_counter(self):
@@ -109,7 +189,7 @@ class CounterTypesTestCase(unittest.TestCase):
             (30,    'ee'),
             (31,    'aaa'),
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))
 
 
     def test_additive_counter(self):
@@ -132,7 +212,7 @@ class CounterTypesTestCase(unittest.TestCase):
             (14,    'xiv'),
             (39,    'xxxix'),
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))
 
 
     def test_symbolic_counter(self):
@@ -148,14 +228,15 @@ class CounterTypesTestCase(unittest.TestCase):
             (11,    'aaa'),
             (15,    'eee'),
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))
 
 
     def test_cyclic_counter(self):
         counter = CyclicCounter('mock_css_id', 'abcde')
         for (value, string) in [
-            (-1,    '-1'),  # Fallback
-            (0,     '0'),   # Fallback
+            # (-2,    'c'),
+            (-1,    'd'),
+            (0,     'e'),
             (1,     'a'),
             (2,     'b'),
             (5,     'e'),
@@ -164,7 +245,7 @@ class CounterTypesTestCase(unittest.TestCase):
             (11,    'a'),
             (15,    'e'),
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))
 
 
     def test_fixed_counter(self):
@@ -182,4 +263,4 @@ class CounterTypesTestCase(unittest.TestCase):
             (10,    '10'),  # Fallback
             (11,    '11'),  # Fallback
         ]:
-            self.assertEqual(string, counter.format(value))
+            assert_that(counter.format(value), equal_to(string))

@@ -1,6 +1,6 @@
 from lamarkdown.ext.label_support.label_templates import (LabelTemplate, LabelTemplateParser,
                                                           LabelTemplateException)
-from lamarkdown.ext.label_support.counter_types import get_counter_type
+from lamarkdown.ext.label_support.standard_counter_types import get_counter_type
 import unittest
 from hamcrest import assert_that, equal_to, same_instance
 
