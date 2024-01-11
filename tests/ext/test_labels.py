@@ -538,22 +538,42 @@ class LabelsTestCase(unittest.TestCase):
             \s*
             ''')
 
+        # self.assertRegex(
+        #     css.getvalue(),
+        #     r'''(?xs)
+        #     \s* \.la-labelled>li\{      list-style-type:none;                           \}
+        #     \s* .la-label0\{            counter-reset:la-label0;                        \}
+        #     \s* .la-label0>li:not\(\.la-no-label\)\{         counter-increment:la-label0;                    \}
+        #     \s* .la-label0>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}
+        #     \s* .la-label1\{            counter-reset:la-label1;                        \}
+        #     \s* .la-label1>li:not\(\.la-no-label\)\{         counter-increment:la-label1;                    \}
+        #     \s* .la-label1>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+        #                                         counter\(la-label1,decimal\)[ ]"[ ]";   \}
+        #     \s* .la-label2\{            counter-reset:la-label2;                        \}
+        #     \s* .la-label2>li:not\(\.la-no-label\)\{         counter-increment:la-label2;                    \}
+        #     \s* .la-label2>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+        #                                         counter\(la-label1,decimal\)[ ]"."[ ]
+        #                                         counter\(la-label2,decimal\)[ ]"[ ]";   \}
+        #     '''
+        # )
+
+        li = r'li:not\(\.la-no-label\)'
         self.assertRegex(
             css.getvalue(),
-            r'''(?xs)
-            \s* \.la-labelled>li\{      list-style-type:none;                           \}
-            \s* .la-label0\{            counter-reset:la-label0;                        \}
-            \s* .la-label0>li\{         counter-increment:la-label0;                    \}
-            \s* .la-label0>li::before\{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}
-            \s* .la-label1\{            counter-reset:la-label1;                        \}
-            \s* .la-label1>li\{         counter-increment:la-label1;                    \}
-            \s* .la-label1>li::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-                                                counter\(la-label1,decimal\)[ ]"[ ]";   \}
-            \s* .la-label2\{            counter-reset:la-label2;                        \}
-            \s* .la-label2>li\{         counter-increment:la-label2;                    \}
-            \s* .la-label2>li::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-                                                counter\(la-label1,decimal\)[ ]"."[ ]
-                                                counter\(la-label2,decimal\)[ ]"[ ]";   \}
+            fr'''(?xs)
+            \s* \.la-labelled>li\{{         list-style-type:none;                           \}}
+            \s* \.la-label0\{{              counter-reset:la-label0;                        \}}
+            \s* \.la-label0>{li}\{{         counter-increment:la-label0;                    \}}
+            \s* \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}}
+            \s* \.la-label1\{{              counter-reset:la-label1;                        \}}
+            \s* \.la-label1>{li}\{{         counter-increment:la-label1;                    \}}
+            \s* \.la-label1>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                    counter\(la-label1,decimal\)[ ]"[ ]";   \}}
+            \s* \.la-label2\{{              counter-reset:la-label2;                        \}}
+            \s* \.la-label2>{li}\{{         counter-increment:la-label2;                    \}}
+            \s* \.la-label2>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                    counter\(la-label1,decimal\)[ ]"."[ ]
+                                                    counter\(la-label2,decimal\)[ ]"[ ]";   \}}
             '''
         )
 
@@ -602,20 +622,50 @@ class LabelsTestCase(unittest.TestCase):
             '''
         )
 
+        # self.assertRegex(
+        #     css.getvalue(),
+        #     r'''(?xs)
+        #     \s* \.la-labelled>li\{
+        #         list-style-type:none; \}
+        #     \s* \.la-label0\{
+        #         counter-reset:la-label0; \}
+        #     \s* \.la-label0>li:not\(\.la-no-label\)\{
+        #         counter-increment:la-label0; \}
+        #     \s* \.la-label0>li:not\(\.la-no-label\)::before\{
+        #         content:counter\(la-label0,decimal\); \}
+        #     \s* \.la-label1\{
+        #         counter-reset:la-label1; \}
+        #     \s* \.la-label1>li:not\(\.la-no-label\)\{
+        #         counter-increment:la-label1; \}
+        #     \s* \.la-label1>li:not\(\.la-no-label\)::before\{
+        #         content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\); \}
+        #     \s* \.la-label2\{
+        #         counter-reset:la-label2; \}
+        #     \s* \.la-label2>li:not\(\.la-no-label\)\{
+        #         counter-increment:la-label2; \}
+        #     \s* \.la-label2>li:not\(\.la-no-label\)::before\{
+        #         content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\)[ ]"\."[ ]
+        #                                 counter\(la-label2, decimal\); \}
+        #     '''
+        # )
+
+        li = r'li:not\(\.la-no-label\)'
         self.assertRegex(
             css.getvalue(),
-            r'''(?xs)
-            \s* \.la-labelled>li\{       list-style-type:none;                                  \}
-            \s* \.la-label0\{            counter-reset:la-label0;                               \}
-            \s* \.la-label0>li\{         counter-increment:la-label0;                           \}
-            \s* \.la-label0>li::before\{ content:counter\(la-label0,decimal\);                  \}
-            \s* \.la-label1\{            counter-reset:la-label1;                               \}
-            \s* \.la-label1>li\{         counter-increment:la-label1;                           \}
-            \s* \.la-label1>li::before\{ content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\);  \}
-            \s* \.la-label2\{            counter-reset:la-label2;                               \}
-            \s* \.la-label2>li\{         counter-increment:la-label2;                           \}
-            \s* \.la-label2>li::before\{ content:"2\.A"[ ]"\."[ ]
-                counter\(la-label1,decimal\)[ ]"\."[ ]counter\(la-label2, decimal\);            \}
+            fr'''(?xs)
+            \s* \.la-labelled>li\{{         list-style-type:none;                   \}}
+            \s* \.la-label0\{{              counter-reset:la-label0;                \}}
+            \s* \.la-label0>{li}\{{         counter-increment:la-label0;            \}}
+            \s* \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\);   \}}
+            \s* \.la-label1\{{              counter-reset:la-label1;                \}}
+            \s* \.la-label1>{li}\{{         counter-increment:la-label1;            \}}
+            \s* \.la-label1>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
+                                            counter\(la-label1,decimal\);           \}}
+            \s* \.la-label2\{{              counter-reset:la-label2;                \}}
+            \s* \.la-label2>{li}\{{         counter-increment:la-label2;            \}}
+            \s* \.la-label2>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
+                                            counter\(la-label1,decimal\)[ ]"\."[ ]
+                                            counter\(la-label2, decimal\);          \}}
             '''
         )
 
@@ -748,11 +798,43 @@ class LabelsTestCase(unittest.TestCase):
             css.getvalue(),
             r'''(?xs)
             \s* \.la-labelled>li\{list-style-type:none;\}
-            \s* \.la-label0>li::before\{content:"@@";\}
-            \s* \.la-label1>li::before\{content:":::";\}
+            \s* \.la-label0>li:not\(\.la-no-label\)::before\{content:"@@";\}
+            \s* \.la-label1>li:not\(\.la-no-label\)::before\{content:":::";\}
             '''
         )
 
+
+    def test_no_label_headings(self):
+        html = self.run_markdown(
+            r'''
+            # HeadingA {::label="1.,*"}
+            # HeadingB
+            # HeadingC {::no-label}
+            # HeadingD
+            # HeadingE {::no-label}
+            # HeadingF {::no-label}
+            # HeadingG
+            # HeadingH {::label="I."}
+            # HeadingI {::no-label}
+            # HeadingJ
+            ''',
+            more_extensions = ["attr_list"]
+        )
+
+        self.assertRegex(
+            html,
+            r'''(?xs)
+            \s* <h1><span[ ]class="la-label">1.</span>HeadingA</h1>
+            \s* <h1><span[ ]class="la-label">2.</span>HeadingB</h1>
+            \s* <h1>HeadingC</h1>
+            \s* <h1><span[ ]class="la-label">3.</span>HeadingD</h1>
+            \s* <h1>HeadingE</h1>
+            \s* <h1>HeadingF</h1>
+            \s* <h1><span[ ]class="la-label">4.</span>HeadingG</h1>
+            \s* <h1><span[ ]class="la-label">I.</span>HeadingH</h1>
+            \s* <h1>HeadingI</h1>
+            \s* <h1><span[ ]class="la-label">II.</span>HeadingJ</h1>
+            ''')
 
 
     def test_extension_setup(self):
