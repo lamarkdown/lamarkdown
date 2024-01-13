@@ -4,8 +4,8 @@ from typing import List, Optional
 
 class Labeller:
     '''
-    Tracks and renders labels (particularly counter-based labels, though fixed labels too) for
-    headings, lists and potentially other elements.
+    Tracks and produces text/css representation of labels (particularly counter-based labels,
+    though fixed labels too) for headings, lists and potentially other elements.
     '''
     def __init__(self,
                  element_type: str,
@@ -30,7 +30,7 @@ class Labeller:
         self._children.clear()
 
 
-    def _as_string_core(self):
+    def as_string_core(self):
         if self._template.counter_type is None:
             return ''
 
@@ -38,31 +38,31 @@ class Labeller:
         if self._parent is None:
             return s
 
-        return f'{self._parent._as_string_core()}{self._template.separator}{s}'
+        return f'{self._parent.as_string_core()}{self._template.separator}{s}'
 
 
-    def _as_css_expr_core(self):
+    def as_css_expr_core(self):
         if self._template.counter_type is None:
             return ''
 
         if self._css_id is None:
-            return _as_css_str(self._as_string_core())
+            return _as_css_str(self.as_string_core())
 
         expr = f'counter({self.get_css_class()},{self._template.counter_type.css_id})'
         if self._parent is not None:
             sep = _as_css_str(self._template.separator)
-            expr = f'{self._parent._as_css_expr_core()} {sep} {expr}'.strip()
+            expr = f'{self._parent.as_css_expr_core()} {sep} {expr}'.strip()
         return expr
 
 
     def as_string(self):
-        return f'{self._template.prefix}{self._as_string_core()}{self._template.suffix}'
+        return f'{self._template.prefix}{self.as_string_core()}{self._template.suffix}'
 
 
     def as_css_expr(self):
         prefix = _as_css_str(self._template.prefix)
         suffix = _as_css_str(self._template.suffix)
-        return f'{prefix} {self._as_css_expr_core()} {suffix}'.strip()
+        return f'{prefix} {self.as_css_expr_core()} {suffix}'.strip()
 
 
     def get_css_class(self):

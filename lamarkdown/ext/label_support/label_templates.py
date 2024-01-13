@@ -69,6 +69,11 @@ ESCAPED_QUOTES = {'"': re.compile('""'),
                   "'": re.compile("''")}
 
 
+def parse_element_type(spec: str) -> str:
+    spec = spec.lower()
+    return {'x': '', 'l': 'ol'}.get(spec, spec)
+
+
 def _repl_literal(match) -> str:
     quote = match.group()[0]
     text  = match.group()[1:-1]
@@ -98,7 +103,7 @@ class LabelTemplateParser:
 
         parent_type = None
         if (parent_spec := match.group('parent')) is not None:
-            parent_type = {'X': '', 'L': 'ol'}.get(parent_spec, parent_spec.lower())
+            parent_type = parse_element_type(parent_spec)
 
         counter_type = None
         if (counter_name := match.group('format')) is not None:

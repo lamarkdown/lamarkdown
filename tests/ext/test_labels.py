@@ -1,15 +1,17 @@
 from ..util.markdown_ext import entry_point_cls
+from ..util.hamcrest_elements import is_element
 import lamarkdown.ext
 
 import unittest
 from unittest.mock import patch
-from hamcrest import assert_that, instance_of, is_, same_instance
+from hamcrest import assert_that, contains_exactly, instance_of, is_, same_instance
 
 import markdown
 
 import io
 import sys
 from textwrap import dedent
+from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
 
@@ -129,7 +131,7 @@ class LabelsTestCase(unittest.TestCase):
 
         html = self.run_markdown(
             self.HEADING_DIRECTIVE_TESTDATA,
-            more_extensions = ["attr_list"]
+            more_extensions = ['attr_list']
         )
 
         self.assertRegex(
@@ -538,25 +540,6 @@ class LabelsTestCase(unittest.TestCase):
             \s*
             ''')
 
-        # self.assertRegex(
-        #     css.getvalue(),
-        #     r'''(?xs)
-        #     \s* \.la-labelled>li\{      list-style-type:none;                           \}
-        #     \s* .la-label0\{            counter-reset:la-label0;                        \}
-        #     \s* .la-label0>li:not\(\.la-no-label\)\{         counter-increment:la-label0;                    \}
-        #     \s* .la-label0>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}
-        #     \s* .la-label1\{            counter-reset:la-label1;                        \}
-        #     \s* .la-label1>li:not\(\.la-no-label\)\{         counter-increment:la-label1;                    \}
-        #     \s* .la-label1>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-        #                                         counter\(la-label1,decimal\)[ ]"[ ]";   \}
-        #     \s* .la-label2\{            counter-reset:la-label2;                        \}
-        #     \s* .la-label2>li:not\(\.la-no-label\)\{         counter-increment:la-label2;                    \}
-        #     \s* .la-label2>li:not\(\.la-no-label\)::before\{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-        #                                         counter\(la-label1,decimal\)[ ]"."[ ]
-        #                                         counter\(la-label2,decimal\)[ ]"[ ]";   \}
-        #     '''
-        # )
-
         li = r'li:not\(\.la-no-label\)'
         self.assertRegex(
             css.getvalue(),
@@ -621,33 +604,6 @@ class LabelsTestCase(unittest.TestCase):
             \s*
             '''
         )
-
-        # self.assertRegex(
-        #     css.getvalue(),
-        #     r'''(?xs)
-        #     \s* \.la-labelled>li\{
-        #         list-style-type:none; \}
-        #     \s* \.la-label0\{
-        #         counter-reset:la-label0; \}
-        #     \s* \.la-label0>li:not\(\.la-no-label\)\{
-        #         counter-increment:la-label0; \}
-        #     \s* \.la-label0>li:not\(\.la-no-label\)::before\{
-        #         content:counter\(la-label0,decimal\); \}
-        #     \s* \.la-label1\{
-        #         counter-reset:la-label1; \}
-        #     \s* \.la-label1>li:not\(\.la-no-label\)\{
-        #         counter-increment:la-label1; \}
-        #     \s* \.la-label1>li:not\(\.la-no-label\)::before\{
-        #         content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\); \}
-        #     \s* \.la-label2\{
-        #         counter-reset:la-label2; \}
-        #     \s* \.la-label2>li:not\(\.la-no-label\)\{
-        #         counter-increment:la-label2; \}
-        #     \s* \.la-label2>li:not\(\.la-no-label\)::before\{
-        #         content:"2\.A"[ ]"\."[ ]counter\(la-label1,decimal\)[ ]"\."[ ]
-        #                                 counter\(la-label2, decimal\); \}
-        #     '''
-        # )
 
         li = r'li:not\(\.la-no-label\)'
         self.assertRegex(
@@ -818,7 +774,7 @@ class LabelsTestCase(unittest.TestCase):
             # HeadingI {::no-label}
             # HeadingJ
             ''',
-            more_extensions = ["attr_list"]
+            more_extensions = ['attr_list']
         )
 
         self.assertRegex(
@@ -835,6 +791,83 @@ class LabelsTestCase(unittest.TestCase):
             \s* <h1>HeadingI</h1>
             \s* <h1><span[ ]class="la-label">II.</span>HeadingJ</h1>
             ''')
+
+
+    def test_label_refs(self):
+        html = self.run_markdown(
+            r'''
+            [x: ##, l: ##l, h: ##h, h2: ##h2](#id4)
+
+            # Heading1
+            ## Heading1.1
+            ### Heading1.1.1 {#id1}
+
+            [x: ##, l: ##l, h: ##h, h2: ##h2](#id3)
+
+            1. ListItemA
+                1. ListItemA.A
+                    1. ListItemA.A.A
+                        {#id2}
+
+            2. ListItemB
+                1. ListItemB.A
+                    1. ListItemB.A.A
+                        {#id3}
+
+                        [x: ##, l: ##l, h: ##h, h2: ##h2](#id2)
+
+                        # Heading2
+                        ## Heading2.1
+                        ### Heading2.1.1 {#id4}
+
+            [x: ##, l: ##l, h: ##h, h2: ##h2](#id1)
+            ''',
+            h_labels = '(H.1),*',
+            ol_labels = '[L.A],*',
+            more_extensions = ['attr_list']
+        )
+
+        anchors = ElementTree.fromstring(f'<div>{html}</div>').findall('.//a')
+
+        assert_that(
+            anchors[0].findall('.//span'),  # #id4
+            contains_exactly(
+                is_element('span', {'class': 'la-ref'}, '2.1.1'),  # ##x
+                is_element('span', {'class': 'la-ref'}, 'B.A.A'),  # ##l
+                is_element('span', {'class': 'la-ref'}, '2.1.1'),  # ##h
+                is_element('span', {'class': 'la-ref'}, '2.1'),    # ##h2
+            )
+        )
+
+        assert_that(
+            anchors[1].findall('.//span'),  # #id3
+            contains_exactly(
+                is_element('span', {'class': 'la-ref'}, 'B.A.A'),  # ##x
+                is_element('span', {'class': 'la-ref'}, 'B.A.A'),  # ##l
+                is_element('span', {'class': 'la-ref'}, '1.1.1'),  # ##h
+                is_element('span', {'class': 'la-ref'}, '1.1'),    # ##h2
+            )
+        )
+
+        assert_that(
+            anchors[2].findall('.//span'),  # #id2
+            contains_exactly(
+                is_element('span', {'class': 'la-ref'}, 'A.A.A'),  # ##x
+                is_element('span', {'class': 'la-ref'}, 'A.A.A'),  # ##l
+                is_element('span', {'class': 'la-ref'}, '1.1.1'),  # ##h
+                is_element('span', {'class': 'la-ref'}, '1.1'),    # ##h2
+            )
+        )
+
+        assert_that(
+            anchors[3].findall('.//span'),  # #id1
+            contains_exactly(
+                is_element('span', {'class': 'la-ref'}, '1.1.1'),  # ##x
+                is_element('span', {'class': 'la-ref'}, '##l'),    # ##l
+                is_element('span', {'class': 'la-ref'}, '1.1.1'),  # ##h
+                is_element('span', {'class': 'la-ref'}, '1.1'),    # ##h2
+            )
+        )
 
 
     def test_extension_setup(self):

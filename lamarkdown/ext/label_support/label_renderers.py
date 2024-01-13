@@ -42,9 +42,9 @@ class LabelsRenderer(ABC):
 class CssLabelsRenderer(LabelsRenderer):
     def __init__(self, css_fn: Callable[[str], None]):
         self._css_fn = css_fn
-        self._css_done = set()
+        self._css_done: Set[str] = set()
         self._labellers: Dict[ElementTree.Element, Labeller] = {}
-        self._labellers_changed: Set[Labeller] = set()
+        self._labellers_changed: Set[ElementTree.Element] = set()
 
 
     def _css(self, css):
@@ -89,7 +89,8 @@ class CssLabelsRenderer(LabelsRenderer):
                 if labeller.template.counter_type is not None:
                     self._css(f'{element.tag}.{css_class}{{counter-increment:{css_class};}}\n')
 
-                self._css(f'{element.tag}.{css_class}::before{{content:{labeller.as_css_expr()};}}\n')
+                self._css(f'{element.tag}.{css_class}::before{{'
+                          f'content:{labeller.as_css_expr()};}}\n')
                 _add_element_style(element, f'counter-reset:{css_class}')
                 self._labellers_changed.add(container)
 
@@ -111,7 +112,7 @@ class HtmlLabelsRenderer(LabelsRenderer):
             self._containers.add(container)
             _add_css_class(container, LABELLED_CSS_CLASS)
 
-        label_elem = ElementTree.Element('span', **{'class': EXPLICIT_LABEL_CSS_CLASS})
+        label_elem = ElementTree.Element('span', {'class': EXPLICIT_LABEL_CSS_CLASS})
         label_elem.text = labeller.as_string()
         label_elem.tail = element.text
         element.text = ''
