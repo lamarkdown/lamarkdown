@@ -31,6 +31,7 @@ lamd = "lamarkdown.lib.lamd:main"
 
 [tool.poetry.plugins."markdown.extensions"]
 "la.attr_prefix"     = "lamarkdown.ext.attr_prefix:AttrPrefixExtension"
+"la.captions"        = "lamarkdown.ext.captions:CaptionsExtension"
 "la.cite"            = "lamarkdown.ext.cite:CiteExtension"
 "la.eval"            = "lamarkdown.ext.eval:EvalExtension"
 "la.latex"           = "lamarkdown.ext.latex:LatexExtension"
