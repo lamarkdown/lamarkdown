@@ -1,5 +1,5 @@
-from .label_templates import LabelTemplate
-from typing import List, Optional
+from .label_templates import LabelTemplate, LabelTemplateParser
+from typing import List, Optional, Union
 
 
 class Labeller:
@@ -105,42 +105,80 @@ def _as_css_str(string):
     return ('"' + string.replace('\\', '\\\\').replace('"', '\\"') + '"') if string else ''
 
 
-class LabellerFactory:
-    def __init__(self):
-        self._next_id = 0
-        self._labellers = {}
+# class LabellerFactory:
+#     def __init__(self, parser = LabelTemplateParser()):
+#         self._parser = parser
+#         self._next_id = 0
+#         self._labellers = {}
+#
+#     def get(self,
+#             element_type: str,
+#             template: Union[str, LabelTemplate],
+#             parent: Optional[Labeller] = None,
+#             count: int = 0,
+#             css: bool = True):
+#
+#         _template = self._parser.parse(template) if isinstance(template, str) else template
+#
+#         key_list = [_template.counter_type, css, _template.prefix, _template.suffix]
+#         cur_parent = parent
+#         while cur_parent is not None:
+#             key_list.append(cur_parent._template.counter_type)
+#             key_list.append(_template.separator)
+#             cur_parent = cur_parent.parent
+#
+#         key = tuple(key_list)
+#
+#         labeller = self._labellers.get(key)
+#         if labeller is None:
+#             if css is False:
+#                 css_id = None
+#             else:
+#                 css_id = self._next_id
+#                 self._next_id += 1
+#                 self._labellers[key] = labeller
+#
+#             labeller = Labeller(element_type, _template, parent, count, css_id)
+#             self._labellers[key] = labeller
+#
+#         labeller.count = count
+#
+#         if parent is not None:
+#             parent.add_child(labeller)
+#
+#         return labeller
 
-    def get(self,
-            element_type: str,
-            template: LabelTemplate,
-            parent: Optional[Labeller] = None,
-            count: int = 0,
-            css: bool = True):
 
-        key_list = [template.counter_type, css, template.prefix, template.suffix]
-        cur_parent = parent
-        while cur_parent is not None:
-            key_list.append(cur_parent.template.counter_type)
-            key_list.append(template.separator)
-            cur_parent = cur_parent.parent
-
-        key = tuple(key_list)
-
-        labeller = self._labellers.get(key)
-        if labeller is None:
-            if css is False:
-                css_id = None
-            else:
-                css_id = self._next_id
-                self._next_id += 1
-                self._labellers[key] = labeller
-
-            labeller = Labeller(element_type, template, parent, count, css_id)
-            self._labellers[key] = labeller
-
-        labeller.count = count
-
-        if parent is not None:
-            parent.add_child(labeller)
-
-        return labeller
+# class LabellerStack:
+#     def __init__(self):
+#         self._stack: List[Labeller] = []
+#
+#     def append(self, labeller: Labeller):
+#         self._stack.append(labeller)
+#
+#     def clear_children(self, labeller: Labeller):
+#         for child_labeller in labeller.children:
+#             try:
+#                 stack.remove(child_labeller)
+#             except ValueError:
+#                 pass  # Doesn't matter if not in stack
+#         labeller.children.clear()
+#
+#     def remove(self, labeller: Labeller):
+#         self.clear_children(labeller)
+#         try:
+#             self._stack.remove(labeller)
+#         except ValueError:
+#             pass
+#
+#     def replace(self, old_labeller: Labeller, new_labeller: Labeller):
+#         self.clear_children(old_labeller)
+#         self._stack[self._stack.index(old_labeller)] = new_labeller
+#
+#     def find(self, element_type: str) -> Optional[Labeller]:
+#         if element_type is None:
+#             return None
+#         for labeller in reversed(self._labeller_stack):
+#             if labeller.element_type.startswith(element_type):
+#                 return labeller
+#         return None

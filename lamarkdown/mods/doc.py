@@ -36,9 +36,9 @@ def apply(heading_numbers = True):
         doc_class_options = la.extendable('class=scrreprt', join=','),
         prepend = la.extendable(la.late(latex_preamble)))
 
-    la('la.labels', ol_labels = '1.,(a),(I)')
+    la('la.labels', labels = la.extendable({'ol': '1.,(a),(I)'}))
     if heading_numbers:
-        la('la.labels', h_level = 2, h_labels = 'H.1 ,*')
+        la('la.labels', labels = {'h2': 'H.1 ,*'})
 
     # Table of contents for H2 - H6 elements.
     # (Note: the user can choose NOT to have a table-of-contents just by omitting '[TOC]'.)
