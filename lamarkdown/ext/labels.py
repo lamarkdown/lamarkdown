@@ -133,6 +133,7 @@ Examples:
 # NOTE: There are other types of lists as well: <menu>/<li> and <dd>/<dt>/<dl>, but
 # numbering these is likely a rarefied use case.
 
+from __future__ import annotations
 
 import lamarkdown
 from lamarkdown.ext.label_support.labellers import Labeller
@@ -145,7 +146,7 @@ from lamarkdown.lib.progress import Progress
 import markdown
 
 import abc
-from typing import Callable, Dict, Iterable, List, Optional, Protocol, Set, Tuple, Union
+from typing import Callable
 from xml.etree.ElementTree import Element
 
 NAME = 'la.labels'
@@ -229,7 +230,7 @@ class ListLabelProcesor(LabelProcessor):
         return element.tag in {'ol', 'ul'}
 
     def run(self, element: Element, control: 'LabelControl'):
-        template: Union[None, str, LabelTemplate] = element.attrib.pop(LABEL_DIRECTIVE, None)
+        template: str | LabelTemplate | None = element.attrib.pop(LABEL_DIRECTIVE, None)
 
         outer_labeller = control.find(element.tag)
         if template is None and outer_labeller is not None:
@@ -344,7 +345,7 @@ class FigureLabelProcessor(LabelProcessor):
                     msg = (f'Conflicting label templates, :label="{template1}" and '
                            f':label="{template2}", given for the same {element_type}'))
 
-        template: Union[None, str, LabelTemplate] = template1 or template2
+        template: str | LabelTemplate | None = template1 or template2
 
         maybe_labeller = control.find(element_type)
         if self._first_child or maybe_labeller is None:
@@ -373,7 +374,7 @@ class FigureLabelProcessor(LabelProcessor):
 
         self._first_child = True
         self._level += 1
-        control.recurse(element, exclude = [fig_caption])
+        control.recurse(element, exclude = {fig_caption})
         self._first_child = False
         self._level -= 1
         control.remove_labeller(labeller)
@@ -382,13 +383,13 @@ class FigureLabelProcessor(LabelProcessor):
 class LabelControl(markdown.treeprocessors.Treeprocessor):
     def __init__(self,
                  md,
-                 label_processors: List[LabelProcessor],
-                 default_templates: Dict[str, str],
-                 use_css_rendering: Set[str],
+                 label_processors: list[LabelProcessor],
+                 default_templates: dict[str, str],
+                 use_css_rendering: set[str],
                  parser: LabelTemplateParser,
                  ref_resolver: RefResolver,
                  html_renderer: HtmlLabelsRenderer,
-                 css_renderer: Optional[CssLabelsRenderer],
+                 css_renderer: CssLabelsRenderer | None,
                  progress: Progress):
 
         super().__init__(md)
@@ -406,10 +407,10 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         'Starting point for all label processing, called by Python Markdown.'
 
         # Initialise state
-        self._stack: List[Labeller] = []
-        self._labellers: Dict[Tuple, Labeller] = {}
+        self._stack: list[Labeller] = []
+        self._labellers: dict[tuple, Labeller] = {}
         self._next_id = 0
-        self._renderers: Dict[str, LabelsRenderer] = {}
+        self._renderers: dict[str, LabelsRenderer] = {}
 
         self._ref_resolver.find_refs(root)
         for label_proc in self._label_processors:
@@ -425,11 +426,11 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
                 break
         else:
             self.resolve_refs(element)
-            self.recurse(element, [])
+            self.recurse(element)
 
     # The methods below form a kind of API used by individual label processors.
 
-    def recurse(self, element: Element, exclude: Iterable[Element] = []):
+    def recurse(self, element: Element, exclude: set[Element] = set()):
         for child in element:
             if element not in exclude:
                 self._apply_labellers(child)
@@ -449,7 +450,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         except ValueError:
             pass
 
-    def find(self, element_type: str) -> Optional[Labeller]:
+    def find(self, element_type: str) -> Labeller | None:
         if element_type is None:
             return None
         for labeller in reversed(self._stack):
@@ -457,7 +458,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
                 return labeller
         return None
 
-    def get_default_template(self, *element_types: str) -> Optional[str]:
+    def get_default_template(self, *element_types: str) -> str | None:
         for t in element_types:
             if template := self._default_templates.get(t):
                 return template
@@ -480,10 +481,10 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         return renderer
 
     def _make_labeller(self,
-            element_type: str,
-            template: Union[str, LabelTemplate],
-            parent: Optional[Labeller] = None,
-            count: int = 0):
+                       element_type: str,
+                       template: str | LabelTemplate,
+                       parent: Labeller | None = None,
+                       count: int = 0):
 
         _template: LabelTemplate = (
             self._parser.parse(template) if isinstance(template, str) else template)
@@ -524,7 +525,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         return labeller
 
 
-    def new_labeller(self, element_type: str, template: Union[str, LabelTemplate]) -> Labeller:
+    def new_labeller(self, element_type: str, template: str | LabelTemplate) -> Labeller:
         labeller = self._make_labeller(element_type, template)
         self._stack.append(labeller)
         return labeller
@@ -532,17 +533,17 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
     def replace_labeller(self,
                          old_labeller: Labeller,
                          element_type: str,
-                         new_template: Union[str, LabelTemplate]):
+                         new_template: str | LabelTemplate):
         labeller = self._make_labeller(element_type, new_template, old_labeller.parent)
         self.clear_children(old_labeller)
         self._stack[self._stack.index(old_labeller)] = labeller
         return labeller
 
-    def render(self, labeller: Labeller, container: Optional[Element], item: Element):
+    def render(self, labeller: Labeller, container: Element | None, item: Element):
         self._get_renderer(labeller.element_type).render_labelled_element(labeller,
                                                                           container, item)
 
-    def render_none(self, element_type: str, container: Optional[Element], item: Element):
+    def render_none(self, element_type: str, container: Element | None, item: Element):
         self._get_renderer(element_type).render_no_labelled_element(container, item)
 
     def resolve_refs(self, element: Element):
