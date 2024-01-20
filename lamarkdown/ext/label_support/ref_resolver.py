@@ -3,7 +3,7 @@ from .label_templates import parse_element_type
 
 from collections import defaultdict
 import re
-from typing import Callable, Dict, Generator, List, Tuple
+from typing import Callable, Dict, Generator, List, Optional, Tuple
 from xml.etree.ElementTree import Element
 
 
@@ -61,7 +61,7 @@ class RefResolver:
 
     def resolve_refs(self,
                      target_element: Element,
-                     find_labeller: Callable[[str], Labeller]):
+                     find_labeller: Callable[[str], Optional[Labeller]]):
 
         if (id := target_element.get('id')) and (id_label_refs := self._refs.get(id)):
             for element_type, ref_elements in id_label_refs.items():

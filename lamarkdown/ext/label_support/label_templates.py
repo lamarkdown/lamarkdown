@@ -89,7 +89,7 @@ class LabelTemplateParser:
     def __init__(self):
         self._cache = {}
 
-    def parse(self, template_str: str, error_msg_offset: int = 0) -> Optional[LabelTemplate]:
+    def parse(self, template_str: str, error_msg_offset: int = 0) -> LabelTemplate:
         if template_str is None:
             raise ValueError
 
