@@ -6,6 +6,7 @@ This file also maintains a global instance of this state, BuildParams.current, w
 build modules.
 '''
 
+from __future__ import annotations
 from .resources import ResourceSpec
 from .progress import Progress
 from markdown.extensions import Extension
@@ -13,7 +14,7 @@ import diskcache  # type: ignore
 
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Protocol, Set, TypeVar
+from typing import Any, Callable, ClassVar, Protocol, TypeVar
 
 
 class ResourceError(Exception):
@@ -112,7 +113,7 @@ class Rule(Protocol[R]):
                  url: str = '',
                  type: str = '',
                  tag: str = '',
-                 attr: Dict[str, str] = {}) -> R:
+                 attr: dict[str, str] = {}) -> R:
         ...
 
 
@@ -129,7 +130,7 @@ def default_embed_rule(type: str = '', tag: str = '', **kwargs) -> bool:
     )
 
 
-def default_resource_hash_rule(**kwargs) -> Optional[str]:
+def default_resource_hash_rule(**kwargs) -> str | None:
     return None
 
 
@@ -144,12 +145,12 @@ def default_output_namer(target):
 
 @dataclass
 class BuildParams:
-    current: ClassVar[Optional['BuildParams']] = None
+    current: ClassVar['BuildParams' | None] = None
 
     # These fields are not intended to be modified once set:
     src_file: str
     target_file: str
-    build_files: List[str]
+    build_files: list[str]
     build_dir: str
     build_defaults: bool
     build_cache: diskcache.Cache
@@ -161,23 +162,23 @@ class BuildParams:
     # These fields *are* modifiable by build modules (or even extensions):
     name:                 str                        = ''
     variant_name_sep:     str                        = '_'
-    variants:             List[Variant]              = field(default_factory=list)
-    _named_extensions:    Dict[str, Dict[str, Any]]  = field(default_factory=dict)
-    obj_extensions:       List[Extension]            = field(default_factory=list)
-    tree_hooks:           List[Callable]             = field(default_factory=list)
-    html_hooks:           List[Callable]             = field(default_factory=list)
-    font_codepoints:      Set[int]                   = field(default_factory=set)
-    css_vars:             Dict[str, str]             = field(default_factory=dict)
-    css:                  List[ResourceSpec]         = field(default_factory=list)
-    js:                   List[ResourceSpec]         = field(default_factory=list)
+    variants:             list[Variant]              = field(default_factory=list)
+    _named_extensions:    dict[str, dict[str, Any]]  = field(default_factory=dict)
+    obj_extensions:       list[Extension]            = field(default_factory=list)
+    tree_hooks:           list[Callable]             = field(default_factory=list)
+    html_hooks:           list[Callable]             = field(default_factory=list)
+    font_codepoints:      set[int]                   = field(default_factory=set)
+    css_vars:             dict[str, str]             = field(default_factory=dict)
+    css:                  list[ResourceSpec]         = field(default_factory=list)
+    js:                   list[ResourceSpec]         = field(default_factory=list)
     resource_base_url:    str                        = ''
     embed_rule:           Rule[bool]                 = default_embed_rule
-    resource_hash_rule:   Rule[Optional[str]]        = default_resource_hash_rule
+    resource_hash_rule:   Rule[str | None]           = default_resource_hash_rule
     scale_rule:           Rule[float]                = default_scale_rule
-    env:                  Dict[str, Any]             = field(default_factory=Environment)
+    env:                  dict[str, Any]             = field(default_factory=Environment)
     output_namer:         Callable[[str], str]       = default_output_namer
     allow_exec:           bool                       = False
-    live_update_deps:     Set[str]                   = field(default_factory=set)
+    live_update_deps:     set[str]                   = field(default_factory=set)
 
     def set_current(self):
         BuildParams.current = self
@@ -195,7 +196,7 @@ class BuildParams:
         return self.output_namer(self.target_file)
 
     @property
-    def resource_xpaths(self) -> Set[str]:
+    def resource_xpaths(self) -> set[str]:
         'The set of all XPath expressions specified by all CSS/JS resources.'
         return {xpath
                 for res_list in (self.css, self.js)
@@ -204,7 +205,7 @@ class BuildParams:
 
     @property
     def named_extensions(self):
-        configs = {}
+        configs: dict[str, dict[str, Any]] = {}
         for extension, config in self._named_extensions.items():
             configs[extension] = {}
             for key, value in config.items():

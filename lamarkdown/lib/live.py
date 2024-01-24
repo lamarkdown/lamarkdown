@@ -8,6 +8,7 @@ build modules), and reload the page when anything changes.
 improvement for a single local user, and is not designed for security or performance.
 '''
 
+from __future__ import annotations
 from lamarkdown.lib import md_compiler
 from lamarkdown.lib.build_params import BuildParams
 
@@ -23,7 +24,6 @@ import string
 import threading
 import time
 import webbrowser
-from typing import Dict, List, Optional, Set
 
 NAME = 'live updating'  # For progress/error messages
 
@@ -218,24 +218,24 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
     def __init__(self,
                  base_build_params: BuildParams,
-                 complete_build_params: List[BuildParams]):
+                 complete_build_params: list[BuildParams]):
         self._base_build_params = base_build_params
         self._complete_build_params = complete_build_params
-        self._output_docs: Dict[str, OutputDoc] = {}
+        self._output_docs: dict[str, OutputDoc] = {}
         self._base_variant = complete_build_params[0].name
 
-        self._server: Optional[http.server.HTTPServer] = None
-        self._server_thread: Optional[threading.Thread] = None
+        self._server: http.server.HTTPServer | None = None
+        self._server_thread: threading.Thread | None = None
 
-        self._dependency_files: Set[str] = set()
-        self._dependency_paths: Set[str] = set()
-        self._fs_observer = None
+        self._dependency_files: set[str] = set()
+        self._dependency_paths: set[str] = set()
+        self._fs_observer: watchdog.observers.Observer | None = None
 
         self._update_n = 0
-        self._update_event = None
+        self._update_event: threading.Event | None = None
 
         self._compile_lock = threading.Lock()
-        self._compile_thread = None
+        self._compile_thread: threading.Thread | None = None
 
 
     @property
@@ -422,6 +422,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
     def shutdown(self):
         with self._compile_lock:
+            assert self._server_thread is not None
             if self._server is None:
                 raise ValueError('Live updater not currently running')
             self._server.server_close()
@@ -438,6 +439,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
 
     def recompile(self):
         with self._compile_lock:
+            assert self._fs_observer is not None
             self._fs_observer.stop()
             self._fs_observer = None
             self._compile_thread = threading.current_thread()

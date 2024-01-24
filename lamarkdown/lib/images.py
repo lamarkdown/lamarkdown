@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .build_params import BuildParams
 from .progress import Progress
 from . import resources
@@ -7,7 +8,6 @@ import PIL.Image
 
 import collections
 import io
-from typing import Optional
 import xml.dom
 from xml.etree import ElementTree
 
@@ -72,8 +72,8 @@ def _calc_scale(element, type, build_params) -> float:
 
 def _rescale_element(element,
                      scale: float,
-                     content: Optional[bytes],
-                     type: Optional[str],
+                     content: bytes | None,
+                     type: str | None,
                      css_parser: cssutils.CSSParser,
                      progress: Progress):
     #

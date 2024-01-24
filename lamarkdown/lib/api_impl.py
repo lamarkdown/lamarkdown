@@ -4,6 +4,7 @@
 The functions here are to be used by build files and extensions.
 '''
 
+from __future__ import annotations
 from .build_params import BuildParams, ExtendableValue, LateValue, Rule, Variant
 from .resources import ContentResourceSpec, UrlResourceSpec
 from . import fenced_blocks
@@ -13,7 +14,7 @@ from lxml.cssselect import CSSSelector
 from lxml.html import HtmlElement
 
 import importlib
-from typing import Callable, Iterable, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Protocol
 from types import ModuleType
 
 
@@ -21,10 +22,9 @@ class BuildParamsException(Exception):
     pass
 
 
-ValueFactory = Callable[[Set[str]], Optional[str]]
-ResourceArg = Union[str, ValueFactory]
-Condition = Union[str, Iterable[str]]
-ResourceInfo = Tuple[List[str], ValueFactory]
+class ValueFactory(Protocol):
+    def __call__(self, subset_found: set[str]) -> str | None:
+        ...
 
 
 def _callable(fn, which = 'argument'):
@@ -33,24 +33,11 @@ def _callable(fn, which = 'argument'):
                          f'"{type(fn).__name__}" (value {fn})')
 
 
-def _res_values(value: ResourceArg,
-                if_xpaths:    Condition = [],
-                if_selectors: Condition = []) -> ResourceInfo:
+def _res_values(value: str | ValueFactory,
+                if_xpaths:    str | Iterable[str] = [],
+                if_selectors: str | Iterable[str] = []) -> tuple[list[str], ValueFactory]:
 
-    # value_factory: ValueFactory
-
-    # if callable(value):
-    #     value_factory = value
-    # elif if_xpaths or if_selectors:
-    #     # If a literal value is given as well as one or more XPath expressions, we'll produce
-    #     # that value if any of the expressions are found.
-    #     value_factory = lambda subset_found: value if subset_found else None
-    # else:
-    #     # If a literal value is given with no XPaths, then we'll produce that value
-    #     # unconditionally.
-    #     value_factory = lambda _: value
-
-    def value_factory(subset_found: Set[str]) -> Optional[str]:
+    def value_factory(subset_found: set[str]) -> str | None:
         if callable(value):
             return value(subset_found)
         elif if_xpaths or if_selectors:
@@ -65,7 +52,7 @@ def _res_values(value: ResourceArg,
     xpath_iterable    = [if_xpaths]    if isinstance(if_xpaths,    str) else if_xpaths
     selector_iterable = [if_selectors] if isinstance(if_selectors, str) else if_selectors
 
-    xpaths: List[str] = []
+    xpaths: list[str] = []
     xpaths.extend(xpath_iterable)
     xpaths.extend(CSSSelector(sel).path for sel in selector_iterable)
 
@@ -74,9 +61,9 @@ def _res_values(value: ResourceArg,
 
 def _url_resources(url_list: Iterable[str],
                    tag: str,
-                   embed: Optional[bool] = None,
-                   hash_type: Optional[str] = None,
-                   mime_type: Optional[str] = None,
+                   embed: bool | None = None,
+                   hash_type: str | None = None,
+                   mime_type: str | None = None,
                    **kwargs):
 
     p = BuildParams.current
@@ -84,29 +71,6 @@ def _url_resources(url_list: Iterable[str],
 
     for url in url_list:
         (xpaths_required, url_factory) = _res_values(url, **kwargs)
-        #
-        # if embed is None:
-        #     if mime_type is None:
-        #         def embed_fn():
-        #             return p.embed_rule(url = url, tag = tag, attr = {})
-        #     else:
-        #         def embed_fn():
-        #             return p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
-        # else:
-        #     def embed_fn():
-        #         return embed
-        #
-        # if hash_type is None:
-        #     if mime_type is None:
-        #         def hash_type_fn():
-        #             return p.resource_hash_rule(url = url, tag = tag, attr = {})
-        #     else:
-        #         def hash_type_fn():
-        #             return p.resource_hash_rule(url = url, tag = tag, attr = {},
-        #                                                     type = mime_type)
-        # else:
-        #     def hash_type_fn():
-        #         return hash_type
 
         def embed_fn():
             if embed is None:
@@ -189,7 +153,7 @@ class ApiImpl(ModuleType):
     def m(self):
         return self._m
 
-    def __call__(self, *extensions: Union[str, Extension], **config):
+    def __call__(self, *extensions: str | Extension, **config):
         if len(extensions) == 0:
             raise ValueError('Must supply at least one extension')
 
@@ -296,8 +260,8 @@ class ApiImpl(ModuleType):
     def fenced_block(self,
                      name: str,
                      formatter: Callable,
-                     validator: Optional[Callable] = None,
-                     css_class: Optional[str] = None,
+                     validator: Callable | None = None,
+                     css_class: str | None = None,
                      cached: bool = True,
                      check_exec: bool = False,
                      set_attr: bool = True):
@@ -324,7 +288,7 @@ class ApiImpl(ModuleType):
 
 
 
-    def command_formatter(self, command: List[str]):
+    def command_formatter(self, command: list[str]):
         return fenced_blocks.command_formatter(params(), command)
 
 
@@ -341,8 +305,8 @@ class ApiImpl(ModuleType):
 
 
     def prune(self,
-              selector: Optional[str] = None,
-              xpath: Optional[str] = None):
+              selector: str | None = None,
+              xpath: str | None = None):
 
         if selector is None and xpath is None:
             raise ValueError('Must specify at least one argument')
@@ -376,18 +340,18 @@ class ApiImpl(ModuleType):
 
 
     def with_tree(self,
-                  fn: Callable[[HtmlElement], Optional[HtmlElement]]):
+                  fn: Callable[[HtmlElement], HtmlElement | None]):
         _callable(fn)
         params().tree_hooks.append(fn)
 
 
     def with_html(self,
-                  fn: Callable[[str], Optional[str]]):
+                  fn: Callable[[str], str | None]):
         _callable(fn)
         params().html_hooks.append(fn)
 
 
-    def css_rule(self, selectors: Condition, properties: str):
+    def css_rule(self, selectors: str | Iterable[str], properties: str):
         '''
         Sets a CSS rule, consisting of one or more selectors and a set of properties (together in a
         single string).
@@ -401,7 +365,7 @@ class ApiImpl(ModuleType):
 
         xpath_to_sel = {CSSSelector(sel).path: sel for sel in selectors}
 
-        def content_factory(found: Set[str]) -> Optional[str]:
+        def content_factory(found: set[str]) -> str | None:
             if not found:
                 return None
             return ', '.join(xpath_to_sel[xp] for xp in sorted(found)) + ' { ' + properties + ' }'
@@ -410,7 +374,7 @@ class ApiImpl(ModuleType):
                                                 content_factory = content_factory))
 
 
-    def css(self, content: ResourceArg, **kwargs):
+    def css(self, content: str | ValueFactory, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().css.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                 content_factory = content_factory))
@@ -421,7 +385,7 @@ class ApiImpl(ModuleType):
         return params().css_vars
 
 
-    def js(self, content: ResourceArg, **kwargs):
+    def js(self, content: str | ValueFactory, **kwargs):
         (xpaths_required, content_factory) = _res_values(content, **kwargs)
         params().js.append(ContentResourceSpec(xpaths_required = xpaths_required,
                                                content_factory = content_factory))
@@ -440,11 +404,8 @@ class ApiImpl(ModuleType):
                                           mime_type = 'application/javascript',
                                           **kwargs))
 
-    R = TypeVar('R')
-    RuleSpec = Union[R, Rule[R]]
 
-
-    def embed(self, embed_spec: RuleSpec[bool]):
+    def embed(self, embed_spec: bool | Rule[bool]):
         p = params()
         if isinstance(embed_spec, bool):
             p.embed_rule = lambda **k: embed_spec
@@ -457,7 +418,7 @@ class ApiImpl(ModuleType):
                              f'was "{type(embed_spec).__name__}" ({embed_spec}).')
 
 
-    def resource_hash_type(self, hash_spec: Rule[Optional[str]]):
+    def resource_hash_type(self, hash_spec: str | None | Rule[str | None]):
         p = params()
         if hash_spec in [None, 'sha256', 'sha384', 'sha512']:
             p.resource_hash_rule = lambda **k: hash_spec
@@ -471,7 +432,7 @@ class ApiImpl(ModuleType):
                              f'"{type(hash_spec).__name__}" ({hash_spec}).')
 
 
-    def scale(self, scale_spec: RuleSpec[float]):
+    def scale(self, scale_spec: float | int | Rule[float | int]):
         p = params()
         if isinstance(scale_spec, int) or isinstance(scale_spec, float):
             p.scale_rule = lambda **k: float(scale_spec)

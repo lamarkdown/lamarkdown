@@ -610,7 +610,8 @@ class LabelsExtension(markdown.Extension):
             ],
 
             'css_fn': [
-                lamarkdown.css if p else _FN_DEFAULT,
+                lamarkdown.css  # type: ignore
+                if p else _FN_DEFAULT,
                 'Callback function accepting CSS code via a string parameter. This enables CSS-'
                 'based numbering (for <ol> elements). This may be "None", in which case list '
                 'labels will be computed at compile-time and embedded in the HTML as plain text.'

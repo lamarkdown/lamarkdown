@@ -1,3 +1,5 @@
+# mypy: disable-error-code="attr-defined"
+
 import lamarkdown as la
 
 

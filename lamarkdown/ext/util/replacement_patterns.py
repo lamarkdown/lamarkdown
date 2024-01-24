@@ -59,8 +59,8 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
 
 
     def run(self, root):
-        all_patterns = list(self.md.replacement_patterns)
-        self._process_element(root, all_patterns)
+        repl_patterns = self.md.replacement_patterns  # type: ignore
+        self._process_element(root, list(repl_patterns))
 
 
     def _process_element(self, element, all_patterns):
@@ -145,6 +145,24 @@ class ReplacementProcessor(markdown.treeprocessors.Treeprocessor):
 
 
 def init(md):
+    # WARNING: we're unilaterally declaring a new attribute ('replacement_patterns') on an object
+    # outside our explicit control: a markdown.Markdown instance. The documentation in
+    # Markdown.build_parser() seems to imply that _something like this_ was anticipated, albeit in
+    # a subclass rather than by direct assignment.
+
+    # If required, we could switch to an alternative mechanism:
+    #
+    # 1. Define a subclass of Markdown, overriding build_parser(). Unfortunately, this creates a
+    #    barrier to the use of certain Lamarkdown extensions outside of Lamarkdown.
+    #
+    # 2. Define a global dictionary in which Markdown instances are the keys, used to lookup
+    #    replacement-pattern registries. However, global state seems an unfortunate solution, and
+    #    in particular creates subtle difficulties:
+    #
+    #    (a) It might break depending on any future Markdown.__hash__() method;
+    #    (b) It would create memory leaks unless we rely WeakKeyDictionary
+    #        (https://docs.python.org/3/library/weakref.html#weakref.WeakKeyDictionary).
+
     if not hasattr(md, 'replacement_patterns'):
         md.replacement_patterns = markdown.util.Registry()
         md.replacement_patterns.register(BacktickPassthrough(), 'backtick-passthrough', 10)

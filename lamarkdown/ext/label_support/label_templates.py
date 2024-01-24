@@ -1,7 +1,7 @@
+from __future__ import annotations
 from . import counter_types
 from . import standard_counter_types
 from dataclasses import dataclass
-from typing import Optional
 import sys
 
 if sys.version_info < (3, 11):
@@ -16,18 +16,19 @@ class LabelTemplate:
     prefix: str
     separator: str
     suffix: str
-    parent_type: Optional[str]
-    counter_type: Optional[counter_types.CounterType]
-    inner_template: Optional['LabelTemplate']
+    parent_type: str | None
+    counter_type: counter_types.CounterType | None
+    inner_template: 'LabelTemplate' | None
 
     def __repr__(self):
-        parent_spec = {'': 'X', 'ol': 'L'}.get(self.parent_type, self.parent_type)
+        ptype = self.parent_type or ''
+        parent_spec = {'': 'X', 'ol': 'L'}.get(ptype, ptype)
         inner_spec = (
             ',*'    if self.inner_template is self
             else '' if self.inner_template is None
             else repr(self.inner_template)
         )
-        css_id = self.counter_type.css_id if self.counter_type else ""
+        css_id = self.counter_type.css_id if self.counter_type else ''
         return (f'{self.prefix}{parent_spec}{self.separator}{css_id}{self.suffix}{inner_spec}')
 
 

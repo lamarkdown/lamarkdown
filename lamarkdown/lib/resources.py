@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .progress import Progress
 
 import diskcache  # type: ignore
@@ -9,7 +10,7 @@ import hashlib
 import mimetypes
 import re
 import time
-from typing import Callable, List, Optional, Set, Tuple, Union
+from typing import Callable
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -24,7 +25,7 @@ REMOTE_URL_SCHEME_REGEX = re.compile('(?!(file|data):)[a-z]+:')
 def read_url(url: str,
              cache,
              progress: Progress,
-             user_agent = DEFAULT_USER_AGENT) -> Tuple[bool, bytes, str]:
+             user_agent = DEFAULT_USER_AGENT) -> tuple[bool, bytes, str]:
 
     NAME = 'fetching'
 
@@ -133,7 +134,7 @@ class ContentResource:
 
 
 class UrlResource:
-    def __init__(self, url: str, to_embed: bool = False, hash: Optional[Tuple[str, str]] = None):
+    def __init__(self, url: str, to_embed: bool = False, hash: tuple[str, str] | None = None):
         self._url = _check(url, 'url')
         self._to_embed = to_embed
         self._hash = hash
@@ -154,12 +155,8 @@ class UrlResource:
         return self._to_embed
 
 
-Resource = Union[UrlResource, ContentResource]
-OptResource = Optional[Resource]
-
-
 class ResourceSpec(abc.ABC):
-    def __init__(self, xpaths: List[str]):
+    def __init__(self, xpaths: list[str]):
         self._xpaths = xpaths
 
     @property
@@ -168,19 +165,22 @@ class ResourceSpec(abc.ABC):
 
     @abc.abstractmethod
     def make_resource(self,
-                      xpaths_found: Set[str],
-                      progress: Progress) -> OptResource:
+                      xpaths_found: set[str],
+                      progress: Progress) -> UrlResource | ContentResource | None:
         raise NotImplementedError
 
 
 class ContentResourceSpec(ResourceSpec):
     def __init__(self,
-                 xpaths_required: List[str],
-                 content_factory: Callable[[Set[str]], Optional[str]]):
+                 xpaths_required: list[str],
+                 content_factory: Callable[[set[str]], str | None]):
         super().__init__(xpaths_required)
         self.content_factory = content_factory
 
-    def make_resource(self, xpaths_found: Set[str], progress: Progress) -> OptResource:
+    def make_resource(self,
+                      xpaths_found: set[str],
+                      progress: Progress) -> UrlResource | ContentResource | None:
+
         content = self.content_factory(xpaths_found.intersection(self.xpaths_required))
         return ContentResource(content) if content else None
 
@@ -188,12 +188,12 @@ class ContentResourceSpec(ResourceSpec):
 class UrlResourceSpec(ResourceSpec):
 
     def __init__(self,
-                 xpaths_required: List[str],
-                 url_factory: Callable[[Set[str]], Optional[str]],
+                 xpaths_required: list[str],
+                 url_factory: Callable[[set[str]], str | None],
                  base_url: str,
                  cache: diskcache.Cache,
                  embed_fn: Callable[[], bool],
-                 hash_type_fn: Callable[[], Optional[str]]):
+                 hash_type_fn: Callable[[], str | None]):
 
         super().__init__(xpaths_required)
         self.url_factory = url_factory
@@ -204,8 +204,8 @@ class UrlResourceSpec(ResourceSpec):
 
 
     def make_resource(self,
-                      xpaths_found: Set[str],
-                      progress: Progress) -> OptResource:
+                      xpaths_found: set[str],
+                      progress: Progress) -> UrlResource | ContentResource | None:
         url = self.url_factory(xpaths_found.intersection(self.xpaths_required))
         if url is None:
             return None

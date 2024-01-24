@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .build_params import BuildParams
 from .resources import UrlResource, ContentResource
 from . import resources
@@ -11,20 +12,17 @@ import io
 import mimetypes
 import os
 import re
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Iterable
 import urllib.parse
 import urllib.request
 
 NAME = 'resource linking'  # For progress/error messages
 
-Converter = Callable[[str, bytes, str], Tuple[bytes, str]]
-RList = List[Union[UrlResource, ContentResource]]
-
 
 def make_data_url(url: str,
-                  mime_type: Optional[str],
+                  mime_type: str | None,
                   build_params: BuildParams,
-                  converter: Optional[Converter] = None) -> str:
+                  converter: Callable[[str, bytes, str], tuple[bytes, str]] | None = None) -> str:
 
     try:
         _, content_bytes, auto_mime_type = resources.read_url(url,
@@ -53,7 +51,7 @@ class ResourceWriter:
     def __init__(self, build_params: BuildParams):
         self.build_params = build_params
 
-    def format(self, resource_list: RList):
+    def format(self, resource_list: list[UrlResource | ContentResource]):
         buffer = io.StringIO()
         try:
             self.write(buffer, resource_list)
@@ -64,12 +62,12 @@ class ResourceWriter:
             buffer.write(err.as_comment())
         return buffer.getvalue()
 
-    def write(self, buffer, resource_list: RList):
+    def write(self, buffer, resource_list: list[UrlResource | ContentResource]):
         raise NotImplementedError
 
 
-    def _write_in_order(self, buffer, resource_list: RList):
-        content_list: List[ContentResource] = []
+    def _write_in_order(self, buffer, resource_list: list[UrlResource | ContentResource]):
+        content_list: list[ContentResource] = []
 
         for res in resource_list:
             if isinstance(res, UrlResource):
@@ -88,7 +86,7 @@ class ResourceWriter:
         if len(content_list) > 0:
             self._write_content(buffer, content_list)
 
-    def _write_urls_first(self, buffer, resource_list: RList):
+    def _write_urls_first(self, buffer, resource_list: list[UrlResource | ContentResource]):
         if len(resource_list) == 0:
             return ''
 
@@ -185,7 +183,7 @@ class StylesheetWriter(ResourceWriter):
         self.url_stack = []
 
 
-    def write(self, buffer, resource_list: RList):
+    def write(self, buffer, resource_list: list[UrlResource | ContentResource]):
         self._write_urls_first(buffer, resource_list)
 
 
@@ -339,7 +337,7 @@ class StylesheetWriter(ResourceWriter):
             return buf.getvalue()
 
 
-    def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> Tuple[bytes, str]:
+    def _convert(self, base_url: str, content_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
         if mime_type == 'text/css':
             # If we're sure the URL points to a stylesheet, then it may have its own external
             # resources, and we must embed those too.
@@ -383,7 +381,7 @@ class StylesheetWriter(ResourceWriter):
 
 class ScriptWriter(ResourceWriter):
 
-    def write(self, buffer, resource_list: RList):
+    def write(self, buffer, resource_list: list[UrlResource | ContentResource]):
         self._write_in_order(buffer, resource_list)
 
     def _write_content(self, buffer, resource_sublist: Iterable[ContentResource]):

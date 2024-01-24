@@ -31,6 +31,8 @@ class AttrPrefixBlockProcessor(markdown.blockprocessors.BlockProcessor):
         return self._match
 
     def run(self, parent, blocks):
+        assert self._match is not None
+
         block = blocks.pop(0)[self._match.end(0):]
         if len(block.strip()) > 0:
             blocks.insert(0, block)
@@ -52,7 +54,7 @@ class AttrPrefixTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
     def run(self, root):
         to_remove = []
-        attrib = {}
+        attrib: dict[str, str] = {}
 
         for element in root:
             if element.get(_ATTR_PREFIX_ATTR) == '1':

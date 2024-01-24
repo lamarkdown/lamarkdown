@@ -1,3 +1,5 @@
+# mypy: disable-error-code="attr-defined,operator"
+
 import lamarkdown as la
 from ..lib import fenced_blocks
 

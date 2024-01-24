@@ -1,7 +1,8 @@
+from __future__ import annotations
 from .labellers import Labeller
 from abc import ABC, abstractmethod
 from textwrap import dedent
-from typing import Callable, Dict, Optional, Set
+from typing import Callable
 from xml.etree import ElementTree
 
 
@@ -30,12 +31,12 @@ class LabelsRenderer(ABC):
     @abstractmethod
     def render_labelled_element(self,
                                 labeller: Labeller,
-                                container: Optional[ElementTree.Element],
+                                container: ElementTree.Element | None,
                                 element: ElementTree.Element):
         ...
 
     def render_no_labelled_element(self,
-                                   container: Optional[ElementTree.Element],
+                                   container: ElementTree.Element | None,
                                    element: ElementTree.Element):
 
         if container is not None:
@@ -45,9 +46,9 @@ class LabelsRenderer(ABC):
 class CssLabelsRenderer(LabelsRenderer):
     def __init__(self, css_fn: Callable[[str], None]):
         self._css_fn = css_fn
-        self._css_done: Set[str] = set()
-        self._labellers: Dict[ElementTree.Element, Labeller] = {}
-        self._labellers_changed: Set[ElementTree.Element] = set()
+        self._css_done: set[str] = set()
+        self._labellers: dict[ElementTree.Element, Labeller] = {}
+        self._labellers_changed: set[ElementTree.Element] = set()
 
 
     def _css(self, css):
@@ -59,7 +60,7 @@ class CssLabelsRenderer(LabelsRenderer):
 
     def render_labelled_element(self,
                                 labeller: Labeller,
-                                container: Optional[ElementTree.Element],
+                                container: ElementTree.Element | None,
                                 element: ElementTree.Element):
 
         self._css(f'.{LABELLED_CSS_CLASS}>li{{list-style-type:none;}}\n')
@@ -104,11 +105,11 @@ class CssLabelsRenderer(LabelsRenderer):
 class HtmlLabelsRenderer(LabelsRenderer):
 
     def __init__(self):
-        self._containers: Set[ElementTree.Element] = set()
+        self._containers: set[ElementTree.Element] = set()
 
     def render_labelled_element(self,
                                 labeller: Labeller,
-                                container: Optional[ElementTree.Element],
+                                container: ElementTree.Element | None,
                                 element: ElementTree.Element):
 
         if container is not None and container not in self._containers:

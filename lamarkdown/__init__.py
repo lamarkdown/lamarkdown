@@ -4,6 +4,7 @@
 Build files need only 'import lamarkdown'.
 '''
 
+from __future__ import annotations
 from .lib.api_impl import ApiImpl
 import sys
 

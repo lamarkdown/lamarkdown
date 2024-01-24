@@ -6,9 +6,10 @@ This is where we invoke Python Markdown, but also:
 * We build the complete HTML document around Python Markdown's output.
 '''
 
+from __future__ import annotations
 import lamarkdown
 from .build_params import BuildParams, Variant
-from .resources import ResourceSpec, Resource, ContentResource
+from .resources import ResourceSpec, ContentResource, UrlResource
 from .progress import Progress
 from . import resource_writers, images
 
@@ -23,7 +24,6 @@ from io import StringIO
 import locale
 import os
 import re
-from typing import Dict, List, Optional, Set
 
 NAME = 'compiling'  # For progress/error messages
 
@@ -142,7 +142,7 @@ def invoke_python_markdown(build_params: BuildParams):
     build_params.progress.progress(
         NAME, msg = f'running Python Markdown for {os.path.basename(build_params.output_file)}')
     content_html = ''
-    meta: Dict[str, List[str]] = {}
+    meta: dict[str, list[str]] = {}
 
     try:
         with open(build_params.src_file, 'r') as src:
@@ -170,9 +170,9 @@ def invoke_python_markdown(build_params: BuildParams):
     return content_html, meta
 
 
-def resource_list(spec_list: List[ResourceSpec],
-                  xpaths_found: Set[str],
-                  build_params: Progress) -> List[Resource]:
+def resource_list(spec_list: list[ResourceSpec],
+                  xpaths_found: set[str],
+                  build_params: Progress) -> list[UrlResource | ContentResource]:
     res_list = []
     for spec in spec_list:
         res = spec.make_resource(xpaths_found, build_params)
@@ -186,7 +186,7 @@ _parser = lxml.html.HTMLParser(default_doctype = False,
                                remove_comments = True)
 
 
-def parse(content_html: Optional[str]) -> Optional[lxml.html.HtmlElement]:
+def parse(content_html: str | None) -> lxml.html.HtmlElement | None:
     buf = StringIO(content_html or '<body></body>')
     try:
         return lxml.html.parse(buf, _parser).find('body')
@@ -205,7 +205,7 @@ CSS_VAR_REGEX = re.compile(
 
 
 def write_html(content_html: str,
-               meta: Dict[str, List[str]],
+               meta: dict[str, list[str]],
                build_params: BuildParams):
 
     build_params.progress.progress(

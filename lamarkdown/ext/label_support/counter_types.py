@@ -1,22 +1,24 @@
+from __future__ import annotations
 import abc
 import io
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable
 
-Negative = Tuple[str, str]
-Range = Tuple[Optional[int], Optional[int]]
-Pad = Tuple[int, str]
+# Negative = tuple[str, str]
+# Range = tuple[int | None, int | None]
+# Pad = tuple[int, str]
 
 
 class CounterType(abc.ABC):
     def __init__(self,
                  css_id: str,
-                 fallback: Optional['CounterType'] = None,
-                 negative: Negative = ('-', ''),
+                 fallback: CounterType | None = None,
+                 negative: tuple[str, str] = ('-', ''),
                  prefix: str = '',
                  suffix: str = '',
-                 range: Range = (1, None),  # By default, use only if strictly positive
-                 pad: Pad = (0, '0'),
-                 eq_extra: Tuple = (),
+                 # By default, use only if strictly positive
+                 range: tuple[int | None, int | None] = (1, None),
+                 pad: tuple[int, str] = (0, '0'),
+                 eq_extra: tuple[Any, ...] = (),
                  abs_negative: bool = True):
 
         self._css_id = css_id
@@ -29,7 +31,7 @@ class CounterType(abc.ABC):
         self._eq_extra = eq_extra
         self._abs_negative = abs_negative
 
-        self._cache: Dict[int, str] = {}
+        self._cache: dict[int, str] = {}
         self._hash = hash((type(self), css_id, fallback, negative,
                           prefix, suffix, range, pad, eq_extra))
 
@@ -65,7 +67,7 @@ class CounterType(abc.ABC):
         return fmt
 
     @abc.abstractmethod
-    def format_impl(self, count) -> Optional[str]:
+    def format_impl(self, count) -> str | None:
         ...
 
     @property
@@ -97,8 +99,10 @@ class CounterType(abc.ABC):
 class NumericCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 symbols: List[str],
-                 range: Range = (None, None),  # No min or max; always applicable
+                 symbols: list[str],
+
+                 # No min or max; always applicable
+                 range: tuple[int | None, int | None] = (None, None),
                  **kwargs):
 
         super().__init__(css_id,
@@ -109,7 +113,7 @@ class NumericCounter(CounterType):
         self._symbols = symbols
 
     def format_impl(self, count: int) -> str:
-        digits: List[str] = []
+        digits: list[str] = []
         n_symbols = len(self._symbols)
         while count > 0:
             digits.insert(0, self._symbols[count % n_symbols])
@@ -124,15 +128,15 @@ class NumericCounter(CounterType):
 class AlphabeticCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 symbols: List[str],
-                 range: Range = (1, None),
+                 symbols: list[str],
+                 range: tuple[int | None, int | None] = (1, None),
                  **kwargs):
 
         super().__init__(css_id, range = range, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
-    def format_impl(self, count: int) -> Optional[str]:
-        digits: List[str] = []
+    def format_impl(self, count: int) -> str | None:
+        digits: list[str] = []
         n_symbols = len(self._symbols)
         while count > 0:
             digits.insert(0, self._symbols[(count - 1) % n_symbols])
@@ -144,15 +148,15 @@ class AlphabeticCounter(CounterType):
 class AdditiveCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 additive_symbols: List[Tuple[int, str]],
-                 range: Range = (0, None),
+                 additive_symbols: list[tuple[int, str]],
+                 range: tuple[int | None, int | None] = (0, None),
                  **kwargs):
 
         super().__init__(css_id, range = range, eq_extra = tuple(additive_symbols), **kwargs)
         self._symbols = additive_symbols
         self._symbols.sort(reverse = True)
 
-    def format_impl(self, count: int) -> Optional[str]:
+    def format_impl(self, count: int) -> str | None:
         digits = io.StringIO()
         for weight, symbol in self._symbols:
             while count >= weight:
@@ -170,14 +174,14 @@ class AdditiveCounter(CounterType):
 class SymbolicCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 symbols: List[str],
-                 range: Range = (1, None),
+                 symbols: list[str],
+                 range: tuple[int | None, int | None] = (1, None),
                  **kwargs):
 
         super().__init__(css_id, range = range, eq_extra = tuple(symbols), **kwargs)
         self._symbols = symbols
 
-    def format_impl(self, count: int) -> Optional[str]:
+    def format_impl(self, count: int) -> str | None:
         if count <= 0:
             return None
         count -= 1
@@ -188,9 +192,9 @@ class SymbolicCounter(CounterType):
 class CyclicCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 symbols: List[str],
-                 range: Range = (None, None),
-                 negative: Negative = ('', ''),
+                 symbols: list[str],
+                 range: tuple[int | None, int | None] = (None, None),
+                 negative: tuple[str, str] = ('', ''),
                  **kwargs):
 
         super().__init__(css_id,
@@ -208,7 +212,7 @@ class CyclicCounter(CounterType):
 class FixedCounter(CounterType):
     def __init__(self,
                  css_id: str,
-                 symbols: List[str],
+                 symbols: list[str],
                  first: int = 1,
                  **kwargs):
 
@@ -220,7 +224,7 @@ class FixedCounter(CounterType):
         self._symbols = symbols
         self._first = first
 
-    def format_impl(self, count: int) -> Optional[str]:
+    def format_impl(self, count: int) -> str | None:
         count -= self._first
         return self._symbols[count] if 0 <= count < len(self._symbols) else None
 
@@ -249,8 +253,8 @@ class ChineseCounter(CounterType):
 
     def __init__(self,
                  css_id: str,
-                 digit_symbols: List[str],
-                 power_symbols: List[str],
+                 digit_symbols: list[str],
+                 power_symbols: list[str],
                  **kwargs):
 
         # Note: the first element of power_symbols should generally be the empty string.
@@ -266,11 +270,11 @@ class ChineseCounter(CounterType):
         self._digit_symbols = digit_symbols
         self._power_symbols = power_symbols
 
-    def format_impl(self, count: int) -> Optional[str]:
+    def format_impl(self, count: int) -> str | None:
         if count == 0:
             return self._digit_symbols[0]
 
-        digits: List[str] = []
+        digits: list[str] = []
         power = 0
         prev_zero = True
         while count > 0:
@@ -298,8 +302,8 @@ class EthiopicCounter(CounterType):
 
     def __init__(self,
                  css_id: str,
-                 minor_symbols: List[str],
-                 major_symbols: List[str],
+                 minor_symbols: list[str],
+                 major_symbols: list[str],
                  odd_symbol: str,
                  even_symbol: str,
                  **kwargs):
@@ -316,14 +320,14 @@ class EthiopicCounter(CounterType):
         self._n_minors = len(minor_symbols) + 1                 # Generally 10
         self._base = self._n_minors * (len(major_symbols) + 1)  # Generally 100
 
-    def format_impl(self, count: int) -> Optional[str]:
+    def format_impl(self, count: int) -> str | None:
         if count < 1:
             return None
 
         if count == 1:
             return self._minor_symbols[0]
 
-        digits: List[str] = []
+        digits: list[str] = []
         first = True
         odd = False
         while count > 0:
@@ -355,8 +359,8 @@ class EthiopicCounter(CounterType):
 
 
 class CounterTypeFactory:
-    def __init__(self, initialisers: Dict[str, Callable[[], CounterType]]):
-        self._instances: Dict[str, CounterType] = {}
+    def __init__(self, initialisers: dict[str, Callable[[], CounterType]]):
+        self._instances: dict[str, CounterType] = {}
         self._initialisers = initialisers
 
     def __getitem__(self, name):

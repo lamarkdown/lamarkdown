@@ -1,5 +1,5 @@
+from __future__ import annotations
 from .label_templates import LabelTemplate
-from typing import List, Optional
 
 
 class Labeller:
@@ -10,19 +10,19 @@ class Labeller:
     def __init__(self,
                  element_type: str,
                  template: LabelTemplate,
-                 parent: Optional['Labeller'] = None,
+                 parent: Labeller | None = None,
                  count: int = 0,
-                 css_id: Optional[int] = None):
+                 css_id: int | None = None):
 
         self._element_type = element_type.lower()
         self._template = template
         self._parent = parent
         self._count = count
         self._css_id = css_id
-        self._dependents: List[Labeller] = []
+        self._dependents: list[Labeller] = []
 
 
-    def add_dependent(self, dependent: 'Labeller'):
+    def add_dependent(self, dependent: Labeller):
         assert dependent is not self
         self._dependents.append(dependent)
 

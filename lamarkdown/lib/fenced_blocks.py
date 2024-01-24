@@ -1,21 +1,22 @@
+from __future__ import annotations
 from .build_params import BuildParams
 
 import io
 import os.path
 import subprocess
-from typing import Dict, List, Protocol
+from typing import Any, Protocol
 from xml.etree import ElementTree
 
 
 class Formatter(Protocol):
     def __call__(self,
-                 source: str, language: str, css_class: str, options: Dict, md,
+                 source: str, language: str, css_class: str, options: dict[Any, Any], md,
                  *, classes = [], id_value = '', attrs = {}, **kwargs):
         ...
 
 
 def command_formatter(build_params: BuildParams,
-                      command: List[str]) -> Formatter:
+                      command: list[str]) -> Formatter:
     def formatter(source, language, css_class, options, md, **kwargs):
 
         try:

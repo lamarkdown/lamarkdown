@@ -1,3 +1,5 @@
+# mypy: disable-error-code="attr-defined,operator"
+
 import lamarkdown as la
 import pymdownx  # noqa: F401
 

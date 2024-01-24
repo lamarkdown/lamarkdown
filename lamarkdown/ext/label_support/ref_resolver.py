@@ -1,9 +1,10 @@
+from __future__ import annotations
 from .labellers import Labeller
 from .label_templates import parse_element_type
 
 from collections import defaultdict
 import re
-from typing import Callable, Dict, Generator, List, Optional, Tuple
+from typing import Callable, Iterator
 from xml.etree.ElementTree import Element
 
 
@@ -16,7 +17,7 @@ class RefResolver:
         pass
 
     def find_refs(self, root: Element):
-        self._refs: Dict[str, Dict[str, List[Element]]] = defaultdict(lambda: defaultdict(list))
+        self._refs: dict[str, dict[str, list[Element]]] = defaultdict(lambda: defaultdict(list))
 
         for anchor in root.iter('a'):
             href = anchor.get('href') or ''
@@ -26,7 +27,7 @@ class RefResolver:
                     self._refs[id][element_type].append(ref_element)
 
 
-    def _find(self, element: Element) -> Generator[Tuple[str, Element], None, None]:
+    def _find(self, element: Element) -> Iterator[tuple[str, Element]]:
         text = element.text or ''
         if match := LINK_REF_REGEX.search(text):
             ref_element = Element('span')
@@ -61,7 +62,7 @@ class RefResolver:
 
     def resolve_refs(self,
                      target_element: Element,
-                     find_labeller: Callable[[str], Optional[Labeller]]):
+                     find_labeller: Callable[[str], Labeller | None]):
 
         if (id := target_element.get('id')) and (id_label_refs := self._refs.get(id)):
             for element_type, ref_elements in id_label_refs.items():

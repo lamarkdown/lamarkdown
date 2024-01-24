@@ -38,7 +38,7 @@ The 'la.latex' extension lets you write Latex code inside a .md file. This works
     literal meaning of '$', or to use an alternate math code processor like pymdownx.arithmatex).
 '''
 
-
+from __future__ import annotations
 from lamarkdown.lib.progress import Progress
 from . import util
 from .util import replacement_patterns
@@ -56,7 +56,7 @@ import re
 import subprocess
 import threading
 import time
-from typing import Callable, Dict, List, Optional, Set, Union
+from typing import Callable
 from xml.etree import ElementTree
 
 NAME = 'la.latex'  # For error messages
@@ -75,9 +75,9 @@ class CommandException(Exception):
         self.output = output
 
 
-def check_run(command: Union[str, List[str]],
+def check_run(command: str | list[str],
               expected_output_file: str,
-              timeout: Optional[float] = None,
+              timeout: float | None = None,
               **kwargs):
     start_time = time.time_ns()
     command_str = ' '.join(command) if isinstance(command, list) else command
@@ -95,18 +95,19 @@ def check_run(command: Union[str, List[str]],
     output_buf = io.StringIO()
     output_lock = threading.Lock()
 
-    def read_stdout():
-        # Reads stdout from the process in a separate thread, so the blocking doesn't interfere
-        # with our timeout monitoring.
-        try:
-            for line in iter(popen.stdout.readline, ''):
-                new_output.set()
-                with output_lock:
-                    output_buf.write(line)
-        finally:
-            popen.stdout.close()
+    if (stdout := popen.stdout) is not None:
+        def read_stdout():
+            # Reads stdout from the process in a separate thread, so the blocking doesn't interfere
+            # with our timeout monitoring.
+            try:
+                for line in iter(stdout.readline, ''):
+                    new_output.set()
+                    with output_lock:
+                        output_buf.write(line)
+            finally:
+                stdout.close()
 
-    threading.Thread(target = read_stdout).start()
+        threading.Thread(target = read_stdout).start()
 
     if timeout is None:
         popen.wait()
@@ -203,20 +204,20 @@ class LatexCompiler:
         'inkscape': ['inkscape', '--pdf-poppler', 'job.pdf', '-o', 'job.svg'],
     }
 
-    CONVERTER_CORRECTIONS: Dict[str, Callable[[str], str]] = {
+    CONVERTER_CORRECTIONS: dict[str, Callable[[str], str]] = {
         'pdf2svg': _pdf2svg_correction
     }
 
     home_dir = os.path.expanduser('~')
 
     def __init__(self, md, cache_factors: tuple, build_dir: str, cache, progress: Progress,
-                 live_update_deps: Set[str], tex: str, pdf_svg_converter: str, embedding: str,
+                 live_update_deps: set[str], tex: str, pdf_svg_converter: str, embedding: str,
                  strip_html_comments: bool, timeout: int, verbose_errors: bool):
 
         self._md = md
         self._cache_factors = cache_factors
 
-        self._html: Dict[int, str] = {}
+        self._html: dict[int, str] = {}
         self._instance = 0
 
         self.md = md
@@ -225,12 +226,12 @@ class LatexCompiler:
         self.progress = progress
         self.live_update_deps = live_update_deps
 
-        self.tex_cmdline: Union[List[str], str] = (
+        self.tex_cmdline: str | list[str] = (
             self.TEX_CMDLINES.get(tex)
             or tex.replace('in.tex', 'job.tex').replace('out.pdf', 'job.pdf')
         )
 
-        self.converter_cmdline: Union[List[str], str] = (
+        self.converter_cmdline: str | list[str] = (
             self.CONVERTER_CMDLINES.get(pdf_svg_converter)
             or pdf_svg_converter.replace('in.pdf', 'job.pdf').replace('out.svg', 'job.svg')
         )
@@ -246,7 +247,7 @@ class LatexCompiler:
         self.verbose_errors = verbose_errors
 
 
-    def _generate_html(self, latex: str, attr: Dict[str, str]) -> str:
+    def _generate_html(self, latex: str, attr: dict[str, str]) -> str:
         # Run Python Markdown's postprocessors.
 
         # This is important, because Markdown's _pre_processors replace certain constructs,
@@ -411,7 +412,7 @@ class LatexCompiler:
         return True  # Unchanged
 
 
-    def compile(self, full_doc: str, attr: Dict[str, str]):
+    def compile(self, full_doc: str, attr: dict[str, str]):
         self._instance += 1
         self._html[self._instance] = self._generate_html(full_doc, attr)
         return f'{LATEX_PLACEHOLDER_PREFIX}{self._instance}{ETX}'
@@ -825,6 +826,7 @@ class LatexExtension(markdown.Extension):
             LatexPostprocessor(compiler),
             'la-latex-post', 25)
 
+        replacementProcessor: replacement_patterns.ReplacementPattern | None = None
         if math == 'mathml':
             replacementProcessor = LatexMathMLReplacementProcessor()
 
@@ -835,8 +837,6 @@ class LatexExtension(markdown.Extension):
                 doc_class         = doc_class,
                 doc_class_options = doc_class_options,
             )
-        else:
-            replacementProcessor = None
 
         if replacementProcessor:
             util.replacement_patterns.init(md)

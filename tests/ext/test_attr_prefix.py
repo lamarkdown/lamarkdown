@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..util.markdown_ext import entry_point_cls
 import lamarkdown.ext
 import lamarkdown.ext.attr_prefix

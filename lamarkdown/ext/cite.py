@@ -7,7 +7,7 @@ are collected to generate a bibliography, based on an external database file.
 We use the Pybtex package to read the database file(s) and format the bibliography.
 
 '''
-
+from __future__ import annotations
 from lamarkdown.lib.progress import Progress
 
 import markdown
@@ -25,7 +25,7 @@ import lxml.html
 import io
 import os.path
 import re
-from typing import List
+from typing import IO
 from xml.etree import ElementTree
 
 NAME = 'la.cite'  # For progress/error messages
@@ -98,7 +98,7 @@ class MetadataPreprocessor(Preprocessor):
     actual cited in-text.
     '''
 
-    def __init__(self, md, ext, bib_parser, cited_keys: List[str]):
+    def __init__(self, md, ext, bib_parser, cited_keys: list[str]):
         super().__init__(md)
         self.ext = ext
         self.bib_parser = bib_parser
@@ -134,7 +134,7 @@ class MetadataPreprocessor(Preprocessor):
 
 
 class CitationInlineProcessor(InlineProcessor):
-    def __init__(self, bib_parser, cited_keys: List[str]):
+    def __init__(self, bib_parser, cited_keys: list[str]):
         super().__init__(GROUP_REGEX)
         self.bib_parser = bib_parser
         self.cited_keys = cited_keys
@@ -193,7 +193,7 @@ class PybtexTreeProcessor(Treeprocessor):
                  ext: 'CiteExtension',
                  bib_parser,
                  bib_style: pybtex.style.formatting.BaseStyle,
-                 cited_keys: List[str]):
+                 cited_keys: list[str]):
         super().__init__(md)
         self.ext = ext
 
@@ -228,7 +228,7 @@ class PybtexTreeProcessor(Treeprocessor):
         # Populate the <cite> elements (created by CitationInlineProcessor) with the 'labels'
         # created by Pybtex, and 'id' and 'href' attributes to assist linking.
         entries = {entry.key: entry for entry in formatted_biblio.entries}
-        n_citations = {}
+        n_citations: dict[str, int] = {}
         create_forward_links = self.ext.getConfig('hyperlinks') in ['both', 'forward']
 
         for elem in root.iter(tag = 'cite'):
@@ -267,8 +267,9 @@ class PybtexTreeProcessor(Treeprocessor):
         # Create back-links from references to their related citations.
         create_back_links = self.ext.getConfig('hyperlinks') in ['both', 'back']
         for dd in biblio_tree.iterfind('.//dd'):
-            label = dd.attrib['label']
-            del dd.attrib['label']
+            # label = dd.attrib['label']
+            # del dd.attrib['label']
+            label = dd.attrib.pop('label')
 
             n_cites = n_citations.get(label, 0)
             if create_back_links and n_cites > 0:
@@ -276,10 +277,15 @@ class PybtexTreeProcessor(Treeprocessor):
                 # (b) There could be 0 citations, if the reference was provided via 'nocite'. Only
                 #     add links if there are citations.
 
+                # if len(dd) == 0:
+                #     dd.text += ' '
+                # else:
+                #     dd[-1].tail += ' '
+
                 if len(dd) == 0:
-                    dd.text += ' '
+                    dd.text = (dd.text or '') + ' '
                 else:
-                    dd[-1].tail += ' '
+                    dd[-1].tail = (dd[-1].tail or '') + ' '
 
                 if n_cites == 1:
                     back_link = lxml.etree.SubElement(
@@ -433,6 +439,7 @@ class CiteExtension(markdown.Extension):
     def extendMarkdown(self, md):
 
         file_spec = self.getConfig('file')
+        files: list[str | IO[str]]
         if file_spec is None:
             files = []
         elif isinstance(file_spec, str):
@@ -476,7 +483,7 @@ class CiteExtension(markdown.Extension):
             min_crossrefs    = self.getConfig('min_crossrefs')
         )
 
-        cited_keys = []
+        cited_keys: list[str] = []
 
         # The pre-processor handles additional directives given in the document metadata. Since
         # it's another extension's preprocessor ('meta') that _parses_ the metadata, our

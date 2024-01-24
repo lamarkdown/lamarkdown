@@ -2,6 +2,7 @@
 Logging/error handling infrastructure.
 '''
 
+from __future__ import annotations
 from markdown.util import AtomicString
 
 from dataclasses import dataclass, field
@@ -9,7 +10,6 @@ import io
 import shutil
 import traceback
 from xml.etree import ElementTree
-from typing import List, Optional, Set
 
 
 RESET = '\033[0m'
@@ -44,12 +44,16 @@ class Details:
     title: str
     content: str
     show_line_numbers: bool = False
-    context_lines: Optional[int] = None
-    highlight_lines: Set[int] = field(default_factory = set)
+    context_lines: int | None = None
+    highlight_lines: set[int] = field(default_factory = set)
 
 
 class Message:
-    def __init__(self, location: str, msg: str, details_list: List[Details] = []):
+    LOCATION_COLOUR: str
+    MSG_COLOUR: str
+    TAG: str
+
+    def __init__(self, location: str, msg: str, details_list: list[Details] = []):
         self._location = location
         self._msg = msg
         self._details_list = details_list
@@ -269,7 +273,7 @@ class Progress:
         return self.show(ProgressMsg(location, msg, details_list))
 
 
-    def cache_hit(self, location: str, *, resource: Optional[str] = None):
+    def cache_hit(self, location: str, *, resource: str | None = None):
         obj = ProgressMsg(location,
                           'Using cached value' + (f' for {resource}' if resource else ''))
         return self.show(obj) if self._show_cache_hits else obj
