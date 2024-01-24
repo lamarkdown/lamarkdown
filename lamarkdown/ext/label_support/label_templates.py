@@ -27,8 +27,8 @@ class LabelTemplate:
             else '' if self.inner_template is None
             else repr(self.inner_template)
         )
-        return (f'{self.prefix}{parent_spec}{self.separator}{self.counter_type.css_id}'
-                f'{self.suffix}{inner_spec}')
+        css_id = self.counter_type.css_id if self.counter_type else ""
+        return (f'{self.prefix}{parent_spec}{self.separator}{css_id}{self.suffix}{inner_spec}')
 
 
 class LabelTemplateException(Exception):

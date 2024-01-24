@@ -61,20 +61,27 @@ CAPTION_DIRECTIVE = ':caption'
 
 class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
-    def __init__(self, md, progress: Progress):
+    def __init__(self,
+                 md,
+                 progress: Progress,
+                 autowrap_listings: bool,
+                 autowrap_maths: bool):
         super().__init__(md)
         self._progress = progress
+        self._autowrap_listings = autowrap_listings
+        self._autowrap_maths = autowrap_maths
 
     def run(self, root):
-        print(f'Original:\n{ElementTree.tostring(root).decode()}')
         self._recurse(root)
 
     def _recurse(self, parent: ElementTree.Element):
         i = 0
         while i < (len(parent) - 1):  # Captions cannot be the last element
-            caption_element = parent[i]
-            if CAPTION_DIRECTIVE in caption_element.attrib:
+            element = parent[i]
 
+            if CAPTION_DIRECTIVE in element.attrib:
+
+                caption_element = element
                 value = caption_element.get(CAPTION_DIRECTIVE)
                 if value != CAPTION_DIRECTIVE:
                     self._progress.warning(
@@ -84,7 +91,8 @@ class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                                'representing the caption.'))
 
                 del caption_element.attrib[CAPTION_DIRECTIVE]
-                parent.remove(caption_element)
+                # parent.remove(caption_element)
+                del parent[i]
 
                 # The 'figure element' comes straight after the caption element; but also has
                 # index i because we just removed the latter.
@@ -134,6 +142,23 @@ class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     fig_element.text = None
                     caption_element.tail = text + (caption_element.tail or '')
 
+            else:
+                def is_code(e):
+                    return e.tag == 'pre' and len(e) <= 2 and e[-1].tag == 'code'
+
+                auto_wrap = (
+                    (self._autowrap_listings
+                        and (is_code(element) or (element.tag == 'div'
+                                                  and len(element) == 1
+                                                  and is_code(element[0]))))
+                    or (self._autowrap_maths
+                        and element.tag == 'math' and element.get('display') == 'block'))
+
+                if auto_wrap:
+                    fig_element = ElementTree.Element('figure')
+                    parent[i] = fig_element
+                    fig_element.append(element)
+
 
             self._recurse(parent[i])  # This will never recurse into an actual caption element
             i += 1
@@ -172,6 +197,16 @@ class CaptionsExtension(markdown.Extension):
                 p.progress if p else Progress(),
                 'An object accepting progress messages.'
             ],
+            'autowrap_listings': [
+                False,
+                'Wrap all code listings (<pre> elements containing a <code> element) in a '
+                '<figure> element, even where no caption is provided.'
+            ],
+            'autowrap_maths': [
+                False,
+                'Wrap all block MathML elements (<math display="block">...</math>) in a <figure> '
+                'element, even where no caption is provided.'
+            ]
         }
         super().__init__(**kwargs)
 
@@ -179,11 +214,16 @@ class CaptionsExtension(markdown.Extension):
         # Auto-load attr_list, since 'la.captions' can't really do anything without it.
         md.registerExtensions(['attr_list'], {})
 
+        proc = CaptionsTreeProcessor(
+            md,
+            self.getConfig('progress'),
+            self.getConfig('autowrap_listings'),
+            self.getConfig('autowrap_maths')
+        )
+
         # Priority must be lower than attr_list (8) and higher than la.labels (6) (which itself
         # must also be higher than toc (5)).
-        md.treeprocessors.register(
-            CaptionsTreeProcessor(md, self.getConfig('progress')),
-            'la-captions-tree', 7)
+        md.treeprocessors.register(proc, 'la-captions-tree', 7)
 
 
 def makeExtension(**kwargs):

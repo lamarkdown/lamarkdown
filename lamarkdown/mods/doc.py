@@ -21,6 +21,7 @@ def apply(heading_numbers = True):
         # (Note: lamarkdown extensions are located in package 'lamarkdown.ext', but the 'la.'
         # prefix is provided as a shorthand.)
         'la.attr_prefix',
+        'la.captions',
         'la.cite',
         'la.eval',
         'la.labels',
@@ -36,7 +37,14 @@ def apply(heading_numbers = True):
         doc_class_options = la.extendable('class=scrreprt', join=','),
         prepend = la.extendable(la.late(latex_preamble)))
 
-    la('la.labels', labels = la.extendable({'ol': '1.,(a),(I)'}))
+    la('la.labels',
+        labels = la.extendable({
+            'ol':       '1.,(a),(I)',
+            'figure':   '"Figure "h1.1. ',
+            'table':    '"Table "h1.1. ',
+            'listing':  '"Listing "h1.1. ',
+            'math':     '(h1.1) ,(math""a) ',
+        }))
     if heading_numbers:
         la('la.labels', labels = {'h2': 'H.1 ,*'})
 
@@ -70,6 +78,10 @@ def apply(heading_numbers = True):
         'la-table-head-background':    '#ffc080',
         'la-table-oddrow-background':  'var(--la-main-background)',
         'la-table-evenrow-background': '#fff0e0',
+
+        'la-figure-background':        '#e0e0e0',
+        'la-caption-background':       '#d0d0d0',
+        'la-figure-label-color':       '#c04000',
 
         'la-bullet1-color': '#0080ff',
         'la-bullet1-shape': r'"\25A0"',
@@ -242,7 +254,6 @@ def apply(heading_numbers = True):
             font-weight: bold;
         }
 
-
         ol > li > p:first-child {
             /* It seems that, without 'display: table', the <p> child elements of adjacent <li>
                elements will share their vertical margins, whereas 'display: table' causes those
@@ -314,6 +325,34 @@ def apply(heading_numbers = True):
         }
         ''',
         if_selectors = 'table'
+    )
+
+    la.css_rule(
+        'figure',
+        '''
+        background: var(--la-figure-background);
+        display: table;
+        margin: 1em 0;
+        '''
+    )
+
+    la.css_rule(
+        'figcaption',
+        '''
+        display: table-caption;
+        width: 100%;
+        text-align: left;
+        '''
+    )
+
+    la.css(
+        r'''
+        figcaption > .la-label {
+            font-weight: bold;
+            color: var(--la-figure-label-color);
+        }
+        ''',
+        if_selectors = 'figcaption > .la-label'
     )
 
     la.css(

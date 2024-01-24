@@ -1,4 +1,4 @@
-from ..util.markdown_ext import entry_point_cls
+from ..util.markdown_ext import entry_point_cls, HtmlInsert
 import lamarkdown.ext.captions
 
 import unittest
@@ -11,38 +11,8 @@ import lxml.html
 
 import sys
 from textwrap import dedent
-from xml.etree import ElementTree
 
 sys.modules['la'] = sys.modules['lamarkdown.ext']
-
-
-class HtmlInsert(markdown.extensions.Extension):
-    '''
-    Helps testing by injecting arbitrary DOM subtree at a given point in the markdown.
-
-    We can't achieve the same thing by writing literal HTML within the markdown, because that won't
-    get embedded until the postprocessing stage, and we need it there earlier.
-    '''
-
-    def __init__(self, html, **kwargs):
-        super().__init__(**kwargs)
-        self.element = ElementTree.fromstring(html)
-
-    def extendMarkdown(self, md):
-        element = self.element
-
-        class BlockProcessor(markdown.blockprocessors.BlockProcessor):
-            def __init__(self):
-                super().__init__(md.parser)
-
-            def test(self, parent, block):
-                return block == 'X'
-
-            def run(self, parent, blocks):
-                blocks.pop(0)
-                parent.append(element)
-
-        md.parser.blockprocessors.register(BlockProcessor(), 'hibp', 1000)
 
 
 class CaptionsTestCase(unittest.TestCase):
@@ -203,6 +173,27 @@ class CaptionsTestCase(unittest.TestCase):
                 is_element('p', {}, 'Fig text'),
             )
         )
+
+
+    # def test_listing(self):
+    #     html = self.run_markdown(
+    #         r'''
+    #         Para1.
+    #
+    #         ```
+    #         TestCode
+    #         ```
+    #
+    #         Para2.
+    #         ''',
+    #         autowrap_listings = True,
+    #         extra_extensions = ['fenced_code']
+    #         # extra_extensions = ['pymdownx.superfences']
+    #     )
+    #
+    #     print(html)
+
+
 
 
     def test_extension_setup(self):

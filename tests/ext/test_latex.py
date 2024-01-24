@@ -764,6 +764,15 @@ class LatexTestCase(unittest.TestCase):
 
 
     def test_non_timeout(self):
+        '''
+        The timeout for running external commands should be reset if we receive ongoing output.
+        That is, a command can take longer than the specified timeout, provided it still appears to
+        be doing something.
+
+        WARNING: this test is known to fail occasionally, but tends to pass most of the time. I'm
+        not certain whether this actually poses a problem.
+        '''
+
         with open(self.mock_tex_command, 'w') as f:
             # Use a different mock 'tex' compiler here. It waits 1.2 seconds collectively, more
             # than the timeout value, but with intervening output to 'keep it alive'.

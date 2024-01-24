@@ -86,11 +86,15 @@ Examples:
 
 # TODO :
 # - number <table><caption>... and <figure><figcaption>...
-# - <figure> could be used to represent several different kinds of numbered constructs: images, equations, code listings, maybe even tables (though <table><caption> already exists for that).
+# - <figure> could be used to represent several different kinds of numbered constructs: images,
+#   equations, code listings, maybe even tables (though <table><caption> already exists for that).
 #
 # - For each <figure> or <table>, we first figure out what sub-type it is:
-#   - initially, check whether there's a CSS class equal to any of several keywords, case-insensitive. By default, these are 'figure', 'table', 'equation' and 'listing' (irrespective of whether <figure> or <table> has been used).
-#   - if not, check whether there's a CSS class _containing_ any of those keywords, or any abbreviations ('fig', 'tab', 'eq' or 'lst')
+#   - initially, check whether there's a CSS class equal to any of several keywords,
+#     case-insensitive. By default, these are 'figure', 'table', 'equation' and 'listing'
+#     (irrespective of whether <figure> or <table> has been used).
+#   - if not, check whether there's a CSS class _containing_ any of those keywords, or any
+#     abbreviations ('fig', 'tab', 'eq' or 'lst')
 #   - if not, then:
 #     - a <table> is just a table
 #     - for a <figure>, guess from the contents; by default:
@@ -98,27 +102,28 @@ Examples:
 #       - <math> -> equation;
 #       - <table> -> table;
 #       - anything else -> figure.
-#   - Each of these shall be called a 'figure/table type', and has its own independent label series.
+#   - Each of these shall be called a 'figure/table type', and has its own independent label
+#     series.
 #
-# - The user shall be able to define additional types, via la.labels configuration option; e.g., (for equations)
+# - The user shall be able to define additional types, via la.labels configuration option; e.g.,
+#   (for equations)
 #   - figure_types: [{'names': ['example', 'ex'],
 #                       'auto_detect': ['./div[@class="example"]'],
 #                       'default_labels': 'Example H2.1. '}]
 #   - The names become valid class names, as well as valid element types. They must not overlap.
 #
-# - Consolidate the config option for specifying global labelling, into a single dict, indexed by element type
+# - Consolidate the config option for specifying global labelling, into a single dict, indexed by
+#   element type
 #
 # - Create another (simple) markdown extension called 'figures' (or maybe 'captions') that will
 #   find any elements with the ':caption' directive and wrap them in a <figure>, with the value of
-#   ':caption' becoming the content (passed through markdown's inline (tree?) processors) of <figcaption>.
+#   ':caption' becoming the content (passed through markdown's inline (tree?) processors) of
+#   <figcaption>.
 
 
 
 # TODO:
-#
-# <f
-#
-#
+##
 # :label-resume -- continue the numbering from the previous list _at the same level_. (The
 #   previous list may be a sibling element, or it may be an 'nth-cousin', sharing any common
 #   ancestor element.)
@@ -130,23 +135,19 @@ Examples:
 #   alphabetic count or roman numeral), then the counter value is set to that number.
 
 
-# NOTE: There are other types of lists as well: <menu>/<li> and <dd>/<dt>/<dl>, but
-# numbering these is likely a rarefied use case.
-
 from __future__ import annotations
 
 import lamarkdown
 from lamarkdown.ext.label_support.labellers import Labeller
 from lamarkdown.ext.label_support.label_templates import LabelTemplate, LabelTemplateParser
 from lamarkdown.ext.label_support.label_renderers import (LabelsRenderer, CssLabelsRenderer,
-                                                          HtmlLabelsRenderer)
+                                                          HtmlLabelsRenderer, add_css_class)
 from lamarkdown.ext.label_support.ref_resolver import RefResolver
 from lamarkdown.lib.progress import Progress
 
 import markdown
 
 import abc
-from typing import Callable
 from xml.etree.ElementTree import Element
 
 NAME = 'la.labels'
@@ -198,15 +199,15 @@ class HeadingLabelProcessor(LabelProcessor):
                 template = outer_labeller.template.inner_template
 
             # Failing that, maybe a configuration option is applicable
-            if template is None: # and cur_h_level == self._h_level:
+            if template is None:
                 template = control.get_default_template('h', element.tag)
 
             if template is not None:
-                labeller = control.new_labeller(element.tag, template)
+                labeller = control.new_labeller(element.tag, 'h', template)
 
         elif new_template := element.attrib.pop(LABEL_DIRECTIVE, None):
             # A labeller does already exist, but a new template has been given
-            labeller = control.replace_labeller(labeller, element.tag, new_template)
+            labeller = control.replace_labeller(labeller, element.tag, 'h', new_template)
 
         if self._previous_h_level > cur_h_level:
             # Finishing (at least) one heading level, and continuing with a higher- level
@@ -219,7 +220,6 @@ class HeadingLabelProcessor(LabelProcessor):
         self._previous_h_level = cur_h_level
 
         if labeller is not None:
-            labeller.count += 1
             control.render(labeller, None, element)
 
         control.resolve_refs(element)
@@ -244,7 +244,7 @@ class ListLabelProcesor(LabelProcessor):
             control.recurse(element)
             return
 
-        labeller = control.new_labeller(element.tag, template)
+        labeller = control.new_labeller(element.tag, element.tag, template)
         control.resolve_refs(element)
 
         for li in element:
@@ -255,14 +255,14 @@ class ListLabelProcesor(LabelProcessor):
 
                 else:
                     if new_template := li.attrib.pop(LABEL_DIRECTIVE, None):
-                        labeller = control.replace_labeller(labeller, element.tag, new_template)
+                        labeller = control.replace_labeller(labeller,
+                                                            element.tag, element.tag, new_template)
 
-                    labeller.count += 1
                     control.render(labeller, element, li)
 
                 control.resolve_refs(li)
                 control.recurse(li)
-                control.clear_children(labeller)
+                control.clear_dependents(labeller)
 
         control.remove_labeller(labeller)
 
@@ -283,8 +283,18 @@ class FigureLabelProcessor(LabelProcessor):
             else None
         )
 
+
         if element.tag == 'table':
             element_type = 'table'
+
+            if self._level > 0 and fig_caption is None:
+                # Nested <table> elements will only be labelled if they already have an explicit
+                # caption. In particular, if we have <figure><table>...</table></figure>, the
+                # outer <figure> element represents the container to be captioned/labelled,
+                # and the inner <table> element is purely the subject of that.
+                control.resolve_refs(element)
+                control.recurse(element)
+                return
 
         else:
             if cls := element.get('class'):
@@ -305,25 +315,34 @@ class FigureLabelProcessor(LabelProcessor):
             children = [e for e in element if e is not fig_caption]
             element_type = (
                 css_type_guess.pop() if len(css_type_guess) == 1
+
+                # Note: len(children) == 0 will happen in certain normal cases, where the document
+                # tree merely contains _placeholder_ text that will later be turned into an image
+                # (for instance). We're going to assume this means it's a figure.
+                else 'figure'        if len(children) == 0
+
                 else 'table'         if all(c.tag == 'table' for c in children)
                 else 'math'          if all(c.tag == 'math'  for c in children)
                 else 'listing'       if all(c.tag in ['code', 'pre'] for c in children)
                 else 'figure'
             )
 
-        if (element.attrib.pop(NO_LABEL_DIRECTIVE)
-                or (fig_caption is not None and fig_caption.attrib.pop(NO_LABEL_DIRECTIVE))):
+            add_css_class(element, f'la-{element_type}')
+
+
+        if (element.attrib.pop(NO_LABEL_DIRECTIVE, None)
+                or (fig_caption is not None
+                    and fig_caption.attrib.pop(NO_LABEL_DIRECTIVE, False))):
 
             control.resolve_refs(element)
             if fig_caption is None:
                 pass
             else:
-                control.resolve_refs(fig_caption)
                 control.render_none(element_type, None, fig_caption)
+                control.resolve_refs(fig_caption)
 
             control.recurse(element)
             return
-
 
         if fig_caption is None:
             fig_caption = Element(caption_tag)
@@ -349,7 +368,6 @@ class FigureLabelProcessor(LabelProcessor):
 
         maybe_labeller = control.find(element_type)
         if self._first_child or maybe_labeller is None:
-            # outer_labeller = control.find(element_type)
             if maybe_labeller is not None:
                 template = maybe_labeller.template.inner_template
 
@@ -361,23 +379,24 @@ class FigureLabelProcessor(LabelProcessor):
                 control.recurse(element)
                 return
 
-            labeller = control.new_labeller(element.tag, template)
+            labeller = control.new_labeller(element_type, element_type, template)
 
         elif template is not None:
-            labeller = control.replace_labeller(labeller, element_type, template)
+            labeller = control.replace_labeller(labeller, element_type, element_type, template)
 
         else:
             labeller = maybe_labeller
 
+        control.render(labeller, None, fig_caption)
         control.resolve_refs(element)
         control.resolve_refs(fig_caption)
 
         self._first_child = True
         self._level += 1
         control.recurse(element, exclude = {fig_caption})
+        control.clear_dependents(labeller)
         self._first_child = False
         self._level -= 1
-        control.remove_labeller(labeller)
 
 
 class LabelControl(markdown.treeprocessors.Treeprocessor):
@@ -435,16 +454,17 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
             if element not in exclude:
                 self._apply_labellers(child)
 
-    def clear_children(self, labeller: Labeller):
-        for child_labeller in labeller.children:
+    def clear_dependents(self, labeller: Labeller):
+        for dependent_labeller in labeller.dependents:
             try:
-                self._stack.remove(child_labeller)
+                self._stack.remove(dependent_labeller)
             except ValueError:
                 pass  # Doesn't matter if not in stack
-        labeller.children.clear()
+            self.clear_dependents(dependent_labeller)
+        labeller.dependents.clear()
 
     def remove_labeller(self, labeller: Labeller):
-        self.clear_children(labeller)
+        self.clear_dependents(labeller)
         try:
             self._stack.remove(labeller)
         except ValueError:
@@ -454,7 +474,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         if element_type is None:
             return None
         for labeller in reversed(self._stack):
-            if labeller.element_type.startswith(element_type):
+            if isinstance(labeller, Labeller) and labeller.element_type.startswith(element_type):
                 return labeller
         return None
 
@@ -467,7 +487,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
     def _get_renderer(self, element_type: str):
 
         if self._css_renderer is None:
-             return self._html_renderer
+            return self._html_renderer
 
         renderer = self._renderers.get(element_type)
         if renderer is None:
@@ -481,7 +501,8 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         return renderer
 
     def _make_labeller(self,
-                       element_type: str,
+                       specific_element_type: str,
+                       series_element_type: str,
                        template: str | LabelTemplate,
                        parent: Labeller | None = None,
                        count: int = 0):
@@ -492,7 +513,8 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
             self.find(_template.parent_type)
             if parent is None and _template.parent_type is not None
             else parent)
-        use_css = isinstance(self._get_renderer(element_type), CssLabelsRenderer)
+
+        use_css = isinstance(self._get_renderer(specific_element_type), CssLabelsRenderer)
 
         # We cache labellers, reusing ones that share the same visual info and same parents. This
         # is done to optimise the output (fewer CSS declarations), _not_ processing time or memory
@@ -514,32 +536,46 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
             else:
                 css_id = None
 
-            labeller = Labeller(element_type, _template, _parent, count, css_id)
+            outer_labeller = self.find(series_element_type)
+            labeller = Labeller(specific_element_type, _template, _parent, count, css_id)
             self._labellers[key] = labeller
+            if outer_labeller is not None:
+                outer_labeller.add_dependent(labeller)
 
         labeller.count = count
 
+        assert parent is not labeller
+
         if _parent is not None:
-            _parent.add_child(labeller)
+            _parent.add_dependent(labeller)
+
 
         return labeller
 
 
-    def new_labeller(self, element_type: str, template: str | LabelTemplate) -> Labeller:
-        labeller = self._make_labeller(element_type, template)
+    def new_labeller(self,
+                     specific_element_type: str,
+                     series_element_type: str,
+                     template: str | LabelTemplate) -> Labeller:
+        labeller = self._make_labeller(specific_element_type, series_element_type, template)
         self._stack.append(labeller)
         return labeller
 
     def replace_labeller(self,
                          old_labeller: Labeller,
-                         element_type: str,
+                         specific_element_type: str,
+                         series_element_type: str,
                          new_template: str | LabelTemplate):
-        labeller = self._make_labeller(element_type, new_template, old_labeller.parent)
-        self.clear_children(old_labeller)
+        labeller = self._make_labeller(specific_element_type,
+                                       series_element_type,
+                                       new_template,
+                                       parent = old_labeller.parent)
+        self.clear_dependents(old_labeller)
         self._stack[self._stack.index(old_labeller)] = labeller
         return labeller
 
     def render(self, labeller: Labeller, container: Element | None, item: Element):
+        labeller.count += 1
         self._get_renderer(labeller.element_type).render_labelled_element(labeller,
                                                                           container, item)
 
