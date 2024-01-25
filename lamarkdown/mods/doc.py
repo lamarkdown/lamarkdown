@@ -110,19 +110,17 @@ def apply(heading_numbers = True):
             #la-doc-parent {
                 display: flex;
                 flex-direction: row;
-                height: 100vh;
+                width: 100%;
             }
             #la-doc-area {
-                flex-grow: 3;
-                overflow: auto;
-            }
-            #la-doc {
-                box-shadow: 5px 5px 10px var(--la-side-shadow-color);
-                max-width: 50em;
-                padding: 4em;
+                overflow-x: visible;
                 margin-left: auto;
                 margin-right: auto;
-                resize: horizontal;
+                width: 58em;
+                box-shadow: 5px 5px 10px var(--la-side-shadow-color);
+            }
+            #la-doc {
+                padding: 4em;
             }
             pre {
                 overflow: auto;
@@ -361,8 +359,12 @@ def apply(heading_numbers = True):
         r'''
         @media screen {
             #la-toc-sidebar {
-                overflow: auto;
+                position: sticky;
                 width: 20em;
+                height: 100%;
+                max-height: 95vh;
+                top: 0px;
+                overflow-y: scroll;
                 resize: horizontal;
                 background: var(--la-main-background, white);
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color, black);
