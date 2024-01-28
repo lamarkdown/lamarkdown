@@ -547,8 +547,8 @@ class MdCompilerTestCase(unittest.TestCase):
                     # Heading
                     <{tag} id="a" width="10" height="15"{suffix}
                     <{tag} id="b" width="10" height="15" size="3"{suffix}
-                    <{tag} id="c" width="10" height="15" scale="5"{suffix}
-                    <{tag} id="d" width="10" height="15" size="3" scale="5"{suffix}
+                    <{tag} id="c" width="10" height="15" :scale="5"{suffix}
+                    <{tag} id="d" width="10" height="15" size="3" :scale="5"{suffix}
                 ''',
                 build = r'''
                     import lamarkdown as la

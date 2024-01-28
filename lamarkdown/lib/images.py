@@ -59,7 +59,7 @@ def _calc_scale(element, type, build_params) -> float:
             msg = f'Non-numeric value "{s}" given as a scaling factor')
         return 1.0  # Don't scale
 
-    if abs_scale := element.attrib.pop(ABS_SCALE_DIRECTIVE, None) is not None:
+    if element.attrib.pop(ABS_SCALE_DIRECTIVE, None) is not None:
         # TODO: users should be able to provide a scaling value directly through :abs-scale.
         return local_scale
 
