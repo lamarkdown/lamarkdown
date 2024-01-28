@@ -27,6 +27,7 @@ def apply(heading_numbers = True):
         'la.cite',
         'la.eval',
         'la.labels',
+        'la.list_tables',
     )
 
     def latex_preamble():
@@ -333,6 +334,7 @@ def apply(heading_numbers = True):
         background: var(--la-figure-background);
         display: table;
         margin: 1em 0;
+        padding: 0.5em;
         '''
     )
 
