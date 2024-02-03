@@ -48,8 +48,12 @@ def port_range_type(s: str) -> range:
     return range(start, end + 1)
 
 
+def get_fetch_cache_dir() -> str:
+    return platformdirs.user_cache_dir(appname = 'lamarkdown', version = VERSION)
+
+
 def main():
-    fetch_cache_dir = platformdirs.user_cache_dir(appname = 'lamarkdown', version = VERSION)
+    fetch_cache_dir = get_fetch_cache_dir()
 
     parser = argparse.ArgumentParser(
         prog        = 'lamd',

@@ -312,7 +312,17 @@ class ApiImpl(ModuleType):
             raise ValueError('Must specify at least one argument')
 
         def hook(elem):
-            elem.getparent().remove(elem)
+            parent = elem.getparent()
+            index = parent.index(elem)
+            if elem.tail:
+                if index == 0:
+                    parent.text = (parent.text or '') + elem.tail
+                else:
+                    prev = parent[index - 1]
+                    prev.tail = (prev.tail or '') + elem.tail
+            del parent[index]
+
+            # elem.getparent().remove(elem)
 
         if selector is not None:
             self.with_selector(selector, hook)

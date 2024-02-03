@@ -1,0 +1,47 @@
+site_name: Lamarkdown
+repo_url: https://github.com/lamarkdown/lamarkdown
+edit_uri: blob/main/docs/
+site_description: Documentation for Lamarkdown, a tool for creating standalone HTML documents from Markdown source, intended to fulfil a similar use case to Latex.
+site_author: David J A Cooper
+site_dir: docs_site
+
+nav:
+    - Tour: tour.md
+    - Settings and Compilation: process.md
+    - Extensions:
+        - Overview: extensions/index.md
+        - la.attr_prefix: extensions/attr_prefix.md
+        - la.captions: extensions/captions.md
+        - la.cite: extensions/cite.md
+        - la.eval: extensions/eval.md
+        - la.labels: extensions/labels.md
+        - la.latex: extensions/latex.md
+        - la.list_tables: extensions/list_tables.md
+        - la.markdown_demo: extensions/markdown_demo.md
+        - la.sections: extensions/sections.md
+    - Build Modules:
+        - Overview: build_modules/index.md
+        - m.code: build_modules/code.md
+        - m.doc: build_modules/doc.md
+        - m.page_numbers: build_modules/page_numbers.md
+        - m.plots: build_modules/plots.md
+        - m.teaching: build_modules/teaching.md
+    - API: api.md
+
+markdown_extensions:
+    - markdown.extensions.smarty
+    - markdown.extensions.admonition
+    - pymdownx.superfences
+    - la.labels:
+        labels:
+            h2: "H.1. , *"
+    - la.list_tables
+    - la.markdown_demo
+
+theme:
+    name: mkdocs
+    highlightjs: False
+
+extra_css:
+    - css/pygments.css
+    - css/markdown_demo.css

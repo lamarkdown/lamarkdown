@@ -180,8 +180,10 @@ class BuildParams:
     allow_exec:           bool                       = False
     live_update_deps:     set[str]                   = field(default_factory=set)
 
-    def set_current(self):
+    def set_current(self) -> BuildParams | None:
+        existing = BuildParams.current
         BuildParams.current = self
+        return existing
 
     @property
     def src_base(self):

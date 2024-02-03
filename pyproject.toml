@@ -37,6 +37,7 @@ lamd = "lamarkdown.lib.lamd:main"
 "la.latex"           = "lamarkdown.ext.latex:LatexExtension"
 "la.labels"          = "lamarkdown.ext.labels:LabelsExtension"
 "la.list_tables"     = "lamarkdown.ext.list_tables:ListTablesExtension"
+"la.markdown_demo"   = "lamarkdown.ext.markdown_demo:MarkdownDemoExtension"
 "la.sections"        = "lamarkdown.ext.sections:SectionsExtension"
 
 [tool.poetry.dependencies]

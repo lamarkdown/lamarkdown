@@ -36,104 +36,114 @@ def set_default_build_params(build_parms: BuildParams):
 def compile(base_build_params: BuildParams):
 
     build_params = deepcopy(base_build_params)
-    build_params.set_current()
-    progress = build_params.progress
+    preserved_build_params = build_params.set_current()
+    try:
+        progress = build_params.progress
 
-    build_params.progress.progress(NAME,
-                                   msg = f'configuring {os.path.basename(build_params.src_file)}')
+        build_params.progress.progress(
+            NAME,
+            msg = f'configuring {os.path.basename(build_params.src_file)}')
 
-    any_build_modules = False
+        any_build_modules = False
 
-    for build_file in build_params.build_files:
-        if os.path.exists(build_file):
-            any_build_modules = True
-            module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
-            if module_spec is None or module_spec.loader is None:
-                progress.error(NAME, msg = f'Could not load build module "{build_file}"')
-                continue
+        for build_file in build_params.build_files:
+            if os.path.exists(build_file):
+                any_build_modules = True
+                module_spec = importlib.util.spec_from_file_location('buildfile', build_file)
+                if module_spec is None or module_spec.loader is None:
+                    progress.error(NAME, msg = f'Could not load build module "{build_file}"')
+                    continue
 
-            build_module = importlib.util.module_from_spec(module_spec)
-            try:
-                module_spec.loader.exec_module(build_module)
-            except Exception as e:
+                build_module = importlib.util.module_from_spec(module_spec)
                 try:
-                    with open(build_file) as reader:
-                        build_file_contents = reader.read()
-                except OSError:
-                    build_file_contents = '[could not read file]'
-                progress.error(NAME,
-                               msg = f'in build file "{os.path.basename(build_file)}"',
-                               exception = e,
-                               code = build_file_contents)
+                    module_spec.loader.exec_module(build_module)
+                except Exception as e:
+                    try:
+                        with open(build_file) as reader:
+                            build_file_contents = reader.read()
+                    except OSError:
+                        build_file_contents = '[could not read file]'
+                    progress.error(NAME,
+                                msg = f'in build file "{os.path.basename(build_file)}"',
+                                exception = e,
+                                code = build_file_contents)
 
-            build_params.env.update(build_module.__dict__)
+                build_params.env.update(build_module.__dict__)
 
-    if not any_build_modules and build_params.build_defaults:
-        set_default_build_params(build_params)
+        if not any_build_modules and build_params.build_defaults:
+            set_default_build_params(build_params)
 
-    if build_params.variants:
-        all_build_params = []
-        for variant in build_params.variants:
-            all_build_params += compile_variant(variant, build_params)
-        build_params.progress.progress(NAME, msg = 'all variants done')
-        return all_build_params
+        if build_params.variants:
+            all_build_params = []
+            for variant in build_params.variants:
+                all_build_params += compile_variant(variant, build_params)
+            build_params.progress.progress(NAME, msg = 'all variants done')
+            return all_build_params
 
-    else:
-        content_html, meta = invoke_python_markdown(build_params)
-        if write_html(content_html, meta, build_params):
-            build_params.progress.progress(NAME, msg = 'done')
-        return [build_params]
+        else:
+            content_html, meta = invoke_python_markdown(build_params)
+            if write_html(content_html, meta, build_params):
+                build_params.progress.progress(NAME, msg = 'done')
+            return [build_params]
+
+    finally:
+        if preserved_build_params is not None:
+            preserved_build_params.set_current()
 
 
 
 def compile_variant(variant: Variant,
                     build_params: BuildParams):
-    prev_build_params = BuildParams.current
-    assert prev_build_params is not None
+    # prev_build_params = BuildParams.current
+    # assert prev_build_params is not None
 
     build_params = deepcopy(build_params)
-    build_params.set_current()
-
-    build_params.name = variant.name
-
-    def default_output_namer(t):
-        split = prev_build_params.output_namer(t).rsplit('.', 1)
-        return (
-            split[0]
-            + prev_build_params.variant_name_sep
-            + build_params.name
-            + '.'
-            + (split[1] if len(split) == 2 else '')
-        )
-
-    build_params.output_namer = default_output_namer
-
-    # A variant doesn't inherit the set of variants, or we would have infinite recursion.
-    build_params.variants = []
-
+    prev_build_params = build_params.set_current()
     try:
-        variant.build_fn()
-    except Exception as e:
+        assert prev_build_params is not None
+        build_params.name = variant.name
+
+        def default_output_namer(t):
+            split = prev_build_params.output_namer(t).rsplit('.', 1)
+            return (
+                split[0]
+                + prev_build_params.variant_name_sep
+                + build_params.name
+                + '.'
+                + (split[1] if len(split) == 2 else '')
+            )
+
+        build_params.output_namer = default_output_namer
+
+        # A variant doesn't inherit the set of variants, or we would have infinite recursion.
+        build_params.variants = []
+
         try:
-            variant_fn_source = inspect.getsource(variant.build_fn)
-        except OSError:
-            variant_fn_source = '[could not obtain source]'
-        build_params.progress.error(NAME,
-                                    msg = f'variant "{variant.name}"',
-                                    exception = e,
-                                    code = variant_fn_source)
+            variant.build_fn()
+        except Exception as e:
+            try:
+                variant_fn_source = inspect.getsource(variant.build_fn)
+            except OSError:
+                variant_fn_source = '[could not obtain source]'
+            build_params.progress.error(NAME,
+                                        msg = f'variant "{variant.name}"',
+                                        exception = e,
+                                        code = variant_fn_source)
 
-    if build_params.variants:
-        all_build_params = []
-        for sub_variant in build_params.variants:
-            all_build_params += compile_variant(sub_variant, build_params)
-    else:
-        content_html, meta = invoke_python_markdown(build_params)
-        write_html(content_html, meta, build_params)
-        all_build_params = [build_params]
+        if build_params.variants:
+            all_build_params = []
+            for sub_variant in build_params.variants:
+                all_build_params += compile_variant(sub_variant, build_params)
+        else:
+            content_html, meta = invoke_python_markdown(build_params)
+            write_html(content_html, meta, build_params)
+            all_build_params = [build_params]
 
-    prev_build_params.set_current()
-    return all_build_params
+        # prev_build_params.set_current()
+        return all_build_params
+
+    finally:
+        prev_build_params.set_current()
 
 
 

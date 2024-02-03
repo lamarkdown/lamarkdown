@@ -1,0 +1,34 @@
+.markdown-demo {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.markdown-demo > div {
+    width: 50%;
+}
+
+.markdown-demo-input {
+    padding-right: 16px;
+}
+
+.markdown-demo p {
+    color: var(--gray);
+    margin-bottom: 0;
+}
+
+.markdown-demo-output {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.markdown-demo-output > iframe {
+    width: 100%;
+    flex-grow: 1;
+    border: 1px solid var(--gray);
+}
+
+.nowrap {
+    white-space: nowrap;
+}

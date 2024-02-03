@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .build_params import BuildParams
 
+import base64
 import io
 import os.path
 import subprocess
@@ -142,7 +143,10 @@ def matplotlib_formatter(build_params: BuildParams) -> Formatter:
                 buf = io.BytesIO()
                 plot.savefig(buf, format = 'svg')
                 plot.clf()  # Clear the current figure (so we start from a clean slate next time)
-                return buf.getvalue().decode()
+
+                data = base64.b64encode(buf.getvalue()).decode()
+                return f'<img src="data:image/svg+xml;base64,{data}" />'
+
             except Exception as e:
                 return build_params.progress.error(NAME, exception = e).as_html_str()
 
@@ -158,27 +162,20 @@ def r_plot_formatter(build_params: BuildParams) -> Formatter:
     def escape_r_string(s):
         return s.replace('\\', '\\\\').replace('"', '\\"').replace('\'', '\\\'')
 
-    def only_svg(s):
-        start = s.find('<svg')
-        if start == -1:
-            return s
-        end = s.find('</svg>') + 6
-        return s[start:end]
-
     def formatter(source, language, css_class, options, md, **kwargs):
         try:
             out_file = escape_r_string(os.path.join(build_params.build_dir, 'out.svg'))
 
             source = f'''
-                svg("{out_file}")
+                dev.new <- function(...) {{ svg("{out_file}", ...) }}
                 {source}
                 graphics.off()
                 write(readChar('{out_file}', file.info('{out_file}')$size), stdout())
             '''
 
-            return only_svg(
-                base_formatter(source, language, css_class, options, md, **kwargs)
-            )
+            svg = base_formatter(source, language, css_class, options, md, **kwargs)
+            data = base64.b64encode(svg.encode()).decode()
+            return f'<img src="data:image/svg+xml;base64,{data}" />'
 
         except Exception as e:
             return build_params.progress.error(NAME, exception = e).as_html_str()

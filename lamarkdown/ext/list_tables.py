@@ -240,6 +240,8 @@ class ListTableTreeProcessor(markdown.treeprocessors.Treeprocessor):
                     keep_last_cells
                     or len(last_cell) > 0
                     or (last_cell.text is not None and len(last_cell.text.strip()) > 0))
+            else:
+                keep_last_cells = True
 
         if not keep_first_cells:
             for section in [thead, tbody, tfoot]:

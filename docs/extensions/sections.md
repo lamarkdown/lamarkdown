@@ -1,0 +1,6 @@
+---
+parent: Extensions
+---
+
+# `la.sections`
+
