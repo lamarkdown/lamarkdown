@@ -11,7 +11,7 @@ import lamarkdown
 from .build_params import BuildParams, Variant
 from .resources import ResourceSpec, ContentResource, UrlResource
 from .progress import Progress
-from . import resource_writers, images
+from . import directives, resource_writers, images
 
 import lxml.html
 import markdown
@@ -29,7 +29,6 @@ NAME = 'compiling'  # For progress/error messages
 
 
 def set_default_build_params(build_parms: BuildParams):
-    # lamarkdown.m.doc()
     lamarkdown.api.m.doc()
 
 
@@ -40,7 +39,7 @@ def compile(base_build_params: BuildParams):
     try:
         progress = build_params.progress
 
-        build_params.progress.progress(
+        progress.progress(
             NAME,
             msg = f'configuring {os.path.basename(build_params.src_file)}')
 
@@ -64,9 +63,9 @@ def compile(base_build_params: BuildParams):
                     except OSError:
                         build_file_contents = '[could not read file]'
                     progress.error(NAME,
-                                msg = f'in build file "{os.path.basename(build_file)}"',
-                                exception = e,
-                                code = build_file_contents)
+                                   msg = f'in build file "{os.path.basename(build_file)}"',
+                                   exception = e,
+                                   code = build_file_contents)
 
                 build_params.env.update(build_module.__dict__)
 
@@ -77,13 +76,13 @@ def compile(base_build_params: BuildParams):
             all_build_params = []
             for variant in build_params.variants:
                 all_build_params += compile_variant(variant, build_params)
-            build_params.progress.progress(NAME, msg = 'all variants done')
+            progress.progress(NAME, msg = 'all variants done')
             return all_build_params
 
         else:
             content_html, meta = invoke_python_markdown(build_params)
             if write_html(content_html, meta, build_params):
-                build_params.progress.progress(NAME, msg = 'done')
+                progress.progress(NAME, msg = 'done')
             return [build_params]
 
     finally:
@@ -94,8 +93,6 @@ def compile(base_build_params: BuildParams):
 
 def compile_variant(variant: Variant,
                     build_params: BuildParams):
-    # prev_build_params = BuildParams.current
-    # assert prev_build_params is not None
 
     build_params = deepcopy(build_params)
     prev_build_params = build_params.set_current()
@@ -139,11 +136,11 @@ def compile_variant(variant: Variant,
             write_html(content_html, meta, build_params)
             all_build_params = [build_params]
 
-        # prev_build_params.set_current()
         return all_build_params
 
     finally:
-        prev_build_params.set_current()
+        if prev_build_params is not None:
+            prev_build_params.set_current()
 
 
 
@@ -168,6 +165,7 @@ def invoke_python_markdown(build_params: BuildParams):
                     + list(build_params.named_extensions.keys())),
                 extension_configs = build_params.named_extensions
             )
+            directives.init(md)
 
             content_html = md.convert(content_markdown)
             meta = md.__dict__.get('Meta', {})

@@ -31,7 +31,7 @@ class CaptionsTestCase(unittest.TestCase):
         html = self.run_markdown(
             r'''
             Test caption.
-            {::caption cap_attr="cap_value"}
+            {-caption cap_attr="cap_value"}
 
             ![Test alt](mock_image.jpg){img_attr="img_value"}
             {#theid .aclass fig_attr="fig_value"}
@@ -54,7 +54,7 @@ class CaptionsTestCase(unittest.TestCase):
     def test_multiparagraph_caption(self):
         html = self.run_markdown(
             r'''
-            {::caption}
+            {-caption}
             > Caption paragraph 1.
             >
             > Caption paragraph 2.
@@ -82,7 +82,7 @@ class CaptionsTestCase(unittest.TestCase):
         html = self.run_markdown(
             r'''
             Test caption.
-            {::caption cap_attr="cap_value"}
+            {-caption cap_attr="cap_value"}
 
             {#theid .aclass tab_attr="tab_value"}
             colA  | colB
@@ -127,7 +127,7 @@ class CaptionsTestCase(unittest.TestCase):
         html = self.run_markdown(
             r'''
             Test caption.
-            {::caption cap_attr="cap_value"}
+            {-caption cap_attr="cap_value"}
 
             X
             ''',
@@ -152,7 +152,7 @@ class CaptionsTestCase(unittest.TestCase):
         html = self.run_markdown(
             r'''
             New caption.
-            {::caption}
+            {-caption}
 
             X
             ''',

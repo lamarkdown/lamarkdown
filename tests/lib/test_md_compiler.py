@@ -1,6 +1,6 @@
 from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
-from lamarkdown.lib import md_compiler, build_params
+from lamarkdown.lib import md_compiler, build_params, directives
 
 import unittest
 from unittest.mock import patch
@@ -98,6 +98,7 @@ class MdCompilerTestCase(unittest.TestCase):
             build_cache         = build_cache,
             fetch_cache         = fetch_cache,
             progress            = progress,
+            directives          = directives.Directives(progress),
             is_live             = is_live,
             allow_exec_cmdline  = False
         )
@@ -544,8 +545,8 @@ class MdCompilerTestCase(unittest.TestCase):
                     # Heading
                     <{tag} id="a" width="10" height="15"{suffix}
                     <{tag} id="b" width="10" height="15" size="3"{suffix}
-                    <{tag} id="c" width="10" height="15" :scale="5"{suffix}
-                    <{tag} id="d" width="10" height="15" size="3" :scale="5"{suffix}
+                    <{tag} id="c" width="10" height="15" md-scale="5"{suffix}
+                    <{tag} id="d" width="10" height="15" size="3" md-scale="5"{suffix}
                 ''',
                 build = r'''
                     import lamarkdown as la

@@ -1,4 +1,4 @@
-from lamarkdown.lib.build_params import BuildParams
+from lamarkdown.lib import build_params, directives
 from ..util.mock_cache import MockCache
 from ..util.mock_progress import MockProgress
 import unittest
@@ -10,7 +10,8 @@ class ApiImplTestCase(unittest.TestCase):
 
     def test_wildcard_import(self):
 
-        BuildParams(
+        progress = MockProgress()
+        build_params.BuildParams(
             src_file = 'mock_src.md',
             target_file = 'mock_target.html',
             build_files = [],
@@ -18,7 +19,8 @@ class ApiImplTestCase(unittest.TestCase):
             build_defaults = False,
             build_cache = MockCache(),
             fetch_cache = MockCache(),
-            progress = MockProgress(),
+            progress = progress,
+            directives = directives.Directives(progress),
             is_live = False,
             allow_exec_cmdline = False
         ).set_current()

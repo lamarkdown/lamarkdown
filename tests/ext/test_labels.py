@@ -136,11 +136,11 @@ class LabelsTestCase(unittest.TestCase):
     HEADING_DIRECTIVE_TESTDATA = r'''
         # Section 1
         ## Section 1.1
-        ## Section 1.2 {::label="1."}
+        ## Section 1.2 {-label="1."}
         ## Section 1.3
         # _Section_ 2
         ## **Section** 2.1
-        ### Section 2.1.1 {::label="a.,H.i.,A.,H.I."}
+        ### Section 2.1.1 {-label="a.,H.i.,A.,H.I."}
         #### Section 2.1.1.1
         ##### Section 2.1.1.1.1
         ###### Section 2.1.1.1.1.1
@@ -262,7 +262,7 @@ class LabelsTestCase(unittest.TestCase):
             (
                 'Basic <ol> labelling (no inheritance)',
                 r'''
-                {::label="-a-"}
+                {-label="-a-"}
                 1. ItemA
 
                     1. ItemAA
@@ -289,7 +289,7 @@ class LabelsTestCase(unittest.TestCase):
             (
                 'Child template inheritance.',
                 r'''
-                {::label="-a-,-1-,-i-"}
+                {-label="-a-,-1-,-i-"}
                 1. ItemA
 
                     1. ItemB
@@ -323,7 +323,7 @@ class LabelsTestCase(unittest.TestCase):
             (
                 'Child template wildcard inheritance.',
                 r'''
-                {::label="-a-,*"}
+                {-label="-a-,*"}
                 1. ItemA
 
                     1. ItemB
@@ -357,10 +357,10 @@ class LabelsTestCase(unittest.TestCase):
             (
                 'Overridden inheritance.',
                 r'''
-                {::label="-a-,-1-,-i-,-a-"}
+                {-label="-a-,-1-,-i-,-a-"}
                 1. ItemA
 
-                    {::label=".A.,.I."}
+                    {-label=".A.,.I."}
                     1. ItemB
 
                         1. ItemC
@@ -392,10 +392,10 @@ class LabelsTestCase(unittest.TestCase):
             (
                 'Numbering resets',
                 r'''
-                {::label="-a-"}
+                {-label="-a-"}
                 1. ItemA
                 2. ItemB
-                    {::label="-1-"}
+                    {-label="-1-"}
                 3. ItemC
 
                 Paragraph
@@ -779,15 +779,15 @@ class LabelsTestCase(unittest.TestCase):
     def test_no_label_headings(self):
         html = self.run_markdown(
             r'''
-            # HeadingA {::label="1.,*"}
+            # HeadingA {-label="1.,*"}
             # HeadingB
-            # HeadingC {::no-label}
+            # HeadingC {-no-label}
             # HeadingD
-            # HeadingE {::no-label}
-            # HeadingF {::no-label}
+            # HeadingE {-no-label}
+            # HeadingF {-no-label}
             # HeadingG
-            # HeadingH {::label="I."}
-            # HeadingI {::no-label}
+            # HeadingH {-label="I."}
+            # HeadingI {-no-label}
             # HeadingJ
             ''',
             more_extensions = ['attr_list']

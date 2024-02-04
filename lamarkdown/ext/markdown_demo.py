@@ -15,10 +15,11 @@ See https://facelessuser.github.io/pymdown-extensions/extensions/blocks/.
 from lamarkdown.lib.build_params import BuildParams
 from lamarkdown.lib.lamd import get_fetch_cache_dir
 from lamarkdown.lib.md_compiler import compile
+from lamarkdown.lib.directives import Directives
 from lamarkdown.lib.progress import Progress
 
-from pymdownx.blocks import BlocksExtension
-from pymdownx.blocks.block import Block
+from pymdownx.blocks import BlocksExtension  # type: ignore
+from pymdownx.blocks.block import Block      # type: ignore
 
 import diskcache  # type: ignore
 import pygments
@@ -85,7 +86,7 @@ class MarkdownDemoBlock(Block):
         return 'raw'
 
     def on_end(self, block: ElementTree.Element):
-        text = dedent(block.text)
+        text = dedent(block.text or '')
         block.text = None
 
         input_col = ElementTree.SubElement(block, 'div')
@@ -123,6 +124,7 @@ class MarkdownDemoBlock(Block):
         target_file = os.path.join(target_dir, TARGET_FILE)
         os.makedirs(target_dir, exist_ok = True)
 
+        progress = Progress()
         build_params = BuildParams(
             src_file = os.path.join(self._build_dir, MARKDOWN_FILE),
             target_file = target_file,
@@ -131,7 +133,8 @@ class MarkdownDemoBlock(Block):
             build_defaults = False,
             build_cache = self._build_cache,
             fetch_cache = self._fetch_cache,
-            progress = Progress(),
+            progress = progress,
+            directives = Directives(progress),
             is_live = False,
             allow_exec_cmdline = True,
             allow_exec = True
@@ -154,7 +157,7 @@ class MarkdownDemoBlock(Block):
                 output_bytes = reader.read()
 
             data_uri = f'data:text/html;base64,{base64.b64encode(output_bytes).decode()}'
-            output_iframe = ElementTree.SubElement(output_col, 'iframe', src = data_uri)
+            ElementTree.SubElement(output_col, 'iframe', src = data_uri)
 
 
 class MarkdownDemoExtension(BlocksExtension):

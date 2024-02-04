@@ -9,7 +9,7 @@ To caption an element:
 
 1. Write the caption _before_ the element you are captioning, with a paragraph break in between.
 
-2. Attach the ':caption' directive to the caption. (The 'attr_list' extension will be loaded
+2. Attach the '-caption' directive to the caption. (The 'attr_list' extension will be loaded
    automatically for this purpose.)
 
 
@@ -21,7 +21,7 @@ document text.
 
 A diagram for your
 consideration.
-{::caption}
+{-caption}
 
 ![Important diagram](diagram.png)
 
@@ -52,21 +52,24 @@ document at the time this extension is run.)
 '''
 
 from lamarkdown.lib.progress import Progress
+from lamarkdown.lib.directives import Directives
 import markdown
 from xml.etree import ElementTree
 
 NAME = 'la.captions'  # For error messages
-CAPTION_DIRECTIVE = ':caption'
+CAPTION_DIRECTIVE = 'caption'
 
 
 class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
     def __init__(self,
                  md,
+                 directives: Directives,
                  progress: Progress,
                  autowrap_listings: bool,
                  autowrap_maths: bool):
         super().__init__(md)
+        self._directives = directives
         self._progress = progress
         self._autowrap_listings = autowrap_listings
         self._autowrap_maths = autowrap_maths
@@ -79,31 +82,18 @@ class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
         while i < (len(parent) - 1):  # Captions cannot be the last element
             element = parent[i]
 
-            if CAPTION_DIRECTIVE in element.attrib:
-
+            if self._directives.pop_bool(CAPTION_DIRECTIVE, element, NAME):
                 caption_element = element
-                value = caption_element.get(CAPTION_DIRECTIVE)
-                if value != CAPTION_DIRECTIVE:
-                    self._progress.warning(
-                        NAME,
-                        msg = (f'Do not write {{:{CAPTION_DIRECTIVE}="{value}"}}. Rather, simply '
-                               f'write "{{:{CAPTION_DIRECTIVE}}}" next to the paragraph '
-                               'representing the caption.'))
-
-                del caption_element.attrib[CAPTION_DIRECTIVE]
-                # parent.remove(caption_element)
                 del parent[i]
 
                 # The 'figure element' comes straight after the caption element; but also has
                 # index i because we just removed the latter.
                 fig_element = parent[i]
-                if CAPTION_DIRECTIVE in fig_element.attrib:
+                if self._directives.pop_bool(CAPTION_DIRECTIVE, fig_element, NAME):
                     self._progress.warning(
                         NAME,
-                        msg = (f'"Do not write "{CAPTION_DIRECTIVE}" next to the element '
-                               'being captioned (e.g., an image, table, equation or listing). '
-                               f'"{CAPTION_DIRECTIVE}" should only appear next to the caption '
-                               'itself.'))
+                        msg = (f'"Do not apply "{self._directives.format(CAPTION_DIRECTIVE)}" to '
+                               'the element being captioned, but only to the caption itself.'))
 
                 if fig_element.tag in {'div', 'p'}:
                     # If we're captioning one of these elements, we just _convert_ it a figure, to
@@ -163,8 +153,7 @@ class CaptionsTreeProcessor(markdown.treeprocessors.Treeprocessor):
             self._recurse(parent[i])  # This will never recurse into an actual caption element
             i += 1
 
-        if len(parent) > 0 and CAPTION_DIRECTIVE in parent[-1].attrib:
-            del parent[-1].attrib[CAPTION_DIRECTIVE]
+        if len(parent) > 0 and self._directives.pop_bool(CAPTION_DIRECTIVE, parent[-1], NAME):
             self._progress.warning(
                 NAME,
                 msg = (f'Caption "{parent[-1].text}" has not been applied properly. Check that '
@@ -192,9 +181,15 @@ class CaptionsExtension(markdown.Extension):
         except ModuleNotFoundError:
             pass  # Use default defaults
 
+        default_progress = p.progress if p else Progress()
+
         self.config = {
+            'directives': [
+                p.directives if p else Directives(default_progress),
+                'An object that retrieves directives from document elements.'
+            ],
             'progress': [
-                p.progress if p else Progress(),
+                default_progress,
                 'An object accepting progress messages.'
             ],
             'autowrap_listings': [
@@ -216,6 +211,7 @@ class CaptionsExtension(markdown.Extension):
 
         proc = CaptionsTreeProcessor(
             md,
+            self.getConfig('directives'),
             self.getConfig('progress'),
             self.getConfig('autowrap_listings'),
             self.getConfig('autowrap_maths')

@@ -2,6 +2,7 @@ from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
 from lamarkdown.lib.api_impl import ApiImpl
 from lamarkdown.lib.build_params import BuildParams
+from lamarkdown.lib.directives import Directives
 
 import unittest
 from hamcrest import assert_that, has_entries
@@ -10,6 +11,7 @@ from hamcrest import assert_that, has_entries
 class BuildParamsTestCase(unittest.TestCase):
 
     def setUp(self):
+        progress = MockProgress()
         BuildParams.set_current(BuildParams(
             src_file = 'mock_src.md',
             target_file = 'mock_target.html',
@@ -18,7 +20,8 @@ class BuildParamsTestCase(unittest.TestCase):
             build_defaults = False,
             build_cache = MockCache(),
             fetch_cache = MockCache(),
-            progress = MockProgress(),
+            progress = progress,
+            directives = Directives(progress),
             is_live = False,
             allow_exec_cmdline = False
         ))

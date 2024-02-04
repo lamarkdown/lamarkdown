@@ -4,6 +4,7 @@ from . import md_compiler
 from . import live
 from .build_params import BuildParams
 from .progress import Progress
+from .directives import Directives
 
 import diskcache  # type: ignore
 import platformdirs
@@ -163,6 +164,7 @@ def main():
         build_cache = diskcache.Cache(build_cache_dir),
         fetch_cache = diskcache.Cache(fetch_cache_dir),
         progress = progress,
+        directives = Directives(progress),
         is_live = args.live is True,
         allow_exec_cmdline = args.allow_exec is True,
         allow_exec         = args.allow_exec is True

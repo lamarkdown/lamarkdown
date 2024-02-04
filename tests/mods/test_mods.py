@@ -1,5 +1,6 @@
 from ..util.mock_progress import MockProgress
 from lamarkdown.lib import md_compiler, build_params
+from lamarkdown.lib.directives import Directives
 
 import unittest
 from unittest.mock import patch
@@ -36,17 +37,19 @@ class BuildModTestCase(unittest.TestCase):
             with open(build_file, 'w') as writer:
                 writer.write(dedent(build))
 
+        progress = MockProgress()
         bp = build_params.BuildParams(
-            src_file=doc_file,
-            target_file=self.html_file,
-            build_files=[build_file] if build else [],
-            build_dir=build_dir,
-            build_defaults=build_defaults,
-            build_cache={},
-            fetch_cache={},
-            progress=MockProgress(),
-            is_live=is_live,
-            allow_exec_cmdline=False
+            src_file = doc_file,
+            target_file = self.html_file,
+            build_files = [build_file] if build else [],
+            build_dir = build_dir,
+            build_defaults = build_defaults,
+            build_cache = {},
+            fetch_cache = {},
+            progress = progress,
+            directives = Directives(progress),
+            is_live = is_live,
+            allow_exec_cmdline = False
         )
 
         md_compiler.compile(bp)

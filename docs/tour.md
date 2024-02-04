@@ -79,7 +79,7 @@ The [la.cite][cite] extension formats in-text citations and builds a reference l
 
 ## Numbering and Cross-Referencing
 
-The [la.labels][labels] extension can assign automatic numbers to headings, list items, figures and tables. Use the `:label="..."` directive to specify what to number and how.
+The [la.labels][labels] extension can assign automatic numbers to headings, list items, figures and tables. Use the `-label="..."` directive to specify what to number and how.
 
 If you link to another part of the same document using an ID (e.g., `#myid`), the link text may contain `##`, which will be replaced with the label for the linked part of the document (stripped of any fixed prefix/suffix characters).
 
@@ -88,7 +88,7 @@ If you link to another part of the same document using an ID (e.g., `#myid`), th
     import lamarkdown as la
     la('attr_list', 'la.labels')
     ---
-    ## Section  { :label="1. ,X.1. " }
+    ## Section  {-label="1. ,X.1. "}
 
     References to subsections [##](#secX) and [##](#secY).
 
@@ -100,12 +100,12 @@ If you link to another part of the same document using an ID (e.g., `#myid`), th
 
     ## Section
 
-    ## Appendix  { #appx :label="A. " }
+    ## Appendix  { #appx -label="A. " }
 
     ## Appendix
 ///
 
-For lists, the [la.attr_prefix][attr_prefix] extension provides a way to attach `:label` to the list:
+For lists, the [la.attr_prefix][attr_prefix] extension provides a way to attach `-label`{.nobreak} to the list:
 /// markdown-demo
 
     import lamarkdown as la
@@ -114,7 +114,7 @@ For lists, the [la.attr_prefix][attr_prefix] extension provides a way to attach 
 
     A list:
 
-    { :label="(a) ,[i] " }
+    {-label="(a) ,[i] "}
     1. List item
     2. List item
         1. Sublist item
@@ -172,7 +172,7 @@ Second, you can write a LaTeX environment (or an entire LaTeX document) directly
 
 The [la.captions][captions] extension lets you specify captions for any block element, which will then be wrapped in an HTML `<figure>` element, if appropriate.
 
-Simply write the caption in a paragraph (or blockquote containing several paragraphs) _above_ the element-to-be-captioned, and attach the `:caption` directive.
+Simply write the caption in a paragraph (or blockquote containing several paragraphs) _above_ the element-to-be-captioned, and attach the `-caption` directive.
 
 /// markdown-demo
 
@@ -183,7 +183,7 @@ Simply write the caption in a paragraph (or blockquote containing several paragr
     ---
 
     An enigmatic taxonomy of colours.
-    { :caption }
+    {-caption}
 
     Column A  | Column B
     --------- | --------
@@ -208,7 +208,7 @@ In combination with [la.labels][labels], you can number your figures and tables:
     Some text beforehand.
 
     A schematic representation of alphabetic distance.
-    { :caption }
+    {-caption}
 
     \begin{tikzpicture}[nodes={draw,circle},
                         font=\LARGE\bfseries]
@@ -316,7 +316,7 @@ For greater flexibility, the [la.list_tables][list_tables] extension lets you wr
     la.css('td, th { border: 1px solid blue; }')
     ---
 
-    { :list-table }
+    {-list-table}
     * #
         - Heading A
             - Subheading AA

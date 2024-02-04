@@ -9,6 +9,7 @@ build modules.
 from __future__ import annotations
 from .resources import ResourceSpec
 from .progress import Progress
+from .directives import Directives
 from markdown.extensions import Extension
 import diskcache  # type: ignore
 
@@ -156,6 +157,7 @@ class BuildParams:
     build_cache: diskcache.Cache
     fetch_cache: diskcache.Cache
     progress: Progress
+    directives: Directives
     is_live: bool
     allow_exec_cmdline: bool
 

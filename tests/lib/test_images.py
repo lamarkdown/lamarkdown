@@ -1,4 +1,5 @@
-from lamarkdown.lib import images
+from lamarkdown.lib import images, directives
+from ..util.mock_progress import MockProgress
 
 import unittest
 from unittest.mock import Mock, PropertyMock, patch
@@ -32,8 +33,8 @@ class ImageScalingTestCase(unittest.TestCase):
         return str(float(match.group()))[:8]
 
     def _compare_attrs(self, element, expected_attrs, msg):
-        self.assertNotIn(':scale', element.attrib, msg = msg)
-        self.assertNotIn(':abs-scale', element.attrib, msg = msg)
+        self.assertNotIn('-scale', element.attrib, msg = msg)
+        self.assertNotIn('-abs-scale', element.attrib, msg = msg)
         self.assertEqual(list(expected_attrs.keys()), list(element.attrib.keys()), msg = msg)
 
         for key, expected_value in expected_attrs.items():
@@ -53,6 +54,7 @@ class ImageScalingTestCase(unittest.TestCase):
     def test_rescale_direct(self, mock_real_url):
 
         mock_build_params = Mock()
+        mock_build_params.directives = directives.Directives(MockProgress())
 
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
@@ -64,8 +66,8 @@ class ImageScalingTestCase(unittest.TestCase):
 
         # Misc
         x = {'x': 'dummy'}  # Arbitrary attribute that invokes the scale rule
-        sc = {':scale': '0.1'}
-        abs_sc = {':abs-scale': ''}
+        sc = {'-scale': '0.1'}
+        abs_sc = {'-abs-scale': '-abs-scale'}
 
         # Main test input shorthands
         w_10       = {'width': '10'}
@@ -92,7 +94,7 @@ class ImageScalingTestCase(unittest.TestCase):
         s_h100     = {'style': 'height: 100mm'}
         s_w75_h100 = {'style': 'width: 75px; height: 100mm'}
 
-        # Results when scaled by 0.1 (as per the :scale=... directive)
+        # Results when scaled by 0.1 (as per the -scale=... directive)
         w_1        = {'width': '1'}
         h_2        = {'height': '2pt'}
         s_w3       = {'style': 'width: 3px'}
@@ -107,16 +109,9 @@ class ImageScalingTestCase(unittest.TestCase):
         s_w7p5_h10 = {'style': 'width: 7.5px; height: 10mm'}
 
 
-        # # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
-        # # actual result, so we can then do simple string comparisons rather than parsing the
-        # # values.
-        # WHITESPACE = re.compile(r'\s+')
-        # TRAILING_ZEROS = re.compile(r'(\.[0-9]*?)0+\b')
-        # TRAILING_ZERO_REPL = r'\1'
-
         for inp_attr, exp_attr in [
             # Without the criteria that invokes the scaling rule (well, technically it's always
-            # invoked, but here it returns 1.0), and without a ':scale' attribute, no scaling should
+            # invoked, but here it returns 1.0), and without a '-scale' attribute, no scaling should
             # happen. ('...' refers to the test input.)
             ({},                            ...),
             ({**w_10},                      ...),
@@ -154,8 +149,8 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**x, **h_20, **s_w30_h40},         {**x, **h_50, **s_w75_h100}),
             ({**x, **w_10, **h_20, **s_w30_h40}, {**x, **w_25, **h_50, **s_w75_h100}),
 
-            # Given a :scale=0.1 directive, check that the scale is applied to all width/height
-            # combinations. (Also, the :scale= directive must be removed.)
+            # Given a -scale=0.1 directive, check that the scale is applied to all width/height
+            # combinations. (Also, the -scale= directive must be removed.)
             ({**sc},                              {}),
             ({**sc, **w_10},                      {**w_1}),
             ({**sc, **h_20},                      {**h_2}),
@@ -173,7 +168,7 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**sc, **h_20, **s_w30_h40},         {**h_2, **s_w3_h4}),
             ({**sc, **w_10, **h_20, **s_w30_h40}, {**w_1, **h_2, **s_w3_h4}),
 
-            # Test both the global rule and the :scale= directive; combined scaling factor should
+            # Test both the global rule and the -scale= directive; combined scaling factor should
             # be 2.5 * 0.1 = 0.25.
             ({**x, **sc},                              {**x}),
             ({**x, **sc, **w_10},                      {**x, **w_2p5}),
@@ -192,7 +187,7 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**x, **sc, **h_20, **s_w30_h40},         {**x, **h_5, **s_w7p5_h10}),
             ({**x, **sc, **w_10, **h_20, **s_w30_h40}, {**x, **w_2p5, **h_5, **s_w7p5_h10}),
 
-            # Test that :abs-scale eliminates the effect of the scale_rule.
+            # Test that -abs-scale eliminates the effect of the scale_rule.
             ({**x, **abs_sc, **sc},                              {**x}),
             ({**x, **abs_sc, **sc, **w_10},                      {**x, **w_1}),
             ({**x, **abs_sc, **sc, **h_20},                      {**x, **h_2}),
@@ -248,6 +243,7 @@ class ImageScalingTestCase(unittest.TestCase):
     def test_rescale_img_svg(self, mock_real_url):
 
         mock_build_params = Mock()
+        mock_build_params.directives = directives.Directives(MockProgress())
 
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
@@ -259,8 +255,8 @@ class ImageScalingTestCase(unittest.TestCase):
 
         # Misc
         x = {'x': 'dummy'}  # Arbitrary attribute that invokes the scale rule
-        sc = {':scale': '0.1'}
-        abs_sc = {':abs-scale': ''}
+        sc = {'-scale': '0.1'}
+        abs_sc = {'-abs-scale': '-abs-scale'}
         src = {'src': 'mock url'}
 
         # Main test input shorthands
@@ -287,7 +283,7 @@ class ImageScalingTestCase(unittest.TestCase):
         w_75       = {'width':  str(30 * 2.5)}
         h_100      = {'height': str(40 * 2.5 * 96 / 25.4)}  # mm->px
 
-        # Results when scaled by 0.1 (as per the :scale=... directive)
+        # Results when scaled by 0.1 (as per the -scale=... directive)
         w_1        = {'width':  str(10 * 0.1)}
         h_2        = {'height': str(20 * 0.1 * 96 / 72)}  # pt->px
         w_3        = {'width':  str(30 * 0.1)}
@@ -300,16 +296,9 @@ class ImageScalingTestCase(unittest.TestCase):
         h_10       = {'height': str(40 * 0.25 * 96 / 25.4)}  # mm->px
 
 
-        # # Regex to allow us to strip out any whitespace and trailing post-decimal zeros from the
-        # # actual result, so we can then do simple string comparisons rather than parsing the
-        # # values.
-        # WHITESPACE = re.compile(r'\s+')
-        # TRAILING_ZEROS = re.compile(r'(\.[0-9]*?)0+\b')
-        # TRAILING_ZERO_REPL = r'\1'
-
         for inp_parent_attr, inp_svg_attr, exp_attr in [
             # Without the criteria that invokes the scaling rule (well, technically it's always
-            # invoked, but here it returns 1.0), and without a ':scale' attribute, no scaling should
+            # invoked, but here it returns 1.0), and without a '-scale' attribute, no scaling should
             # happen. ('...' refers to the test input.)
             ({**src}, {},                            ...),
             ({**src}, {**w_10},                      ...),
@@ -347,8 +336,8 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**src, **x}, {**h_20, **s_w30_h40},         {**src, **x, **w_75, **h_100}),
             ({**src, **x}, {**w_10, **h_20, **s_w30_h40}, {**src, **x, **w_75, **h_100}),
 
-            # Given a :scale=0.1 directive, check that the scale is applied to all width/height
-            # combinations. (Also, the :scale= directive must be removed.)
+            # Given a -scale=0.1 directive, check that the scale is applied to all width/height
+            # combinations. (Also, the -scale= directive must be removed.)
             ({**src, **sc}, {},                            {**src}),
             ({**src, **sc}, {**w_10},                      {**src, **w_1}),
             ({**src, **sc}, {**h_20},                      {**src, **h_2}),
@@ -366,7 +355,7 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**src, **sc}, {**h_20, **s_w30_h40},         {**src, **w_3, **h_4}),
             ({**src, **sc}, {**w_10, **h_20, **s_w30_h40}, {**src, **w_3, **h_4}),
 
-            # Test both the global rule and the :scale= directive; combined scaling factor should
+            # Test both the global rule and the -scale= directive; combined scaling factor should
             # be 2.5 * 0.1 = 0.25.
             ({**src, **x, **sc}, {},                            {**src, **x}),
             ({**src, **x, **sc}, {**w_10},                      {**src, **x, **w_2p5}),
@@ -385,7 +374,7 @@ class ImageScalingTestCase(unittest.TestCase):
             ({**src, **x, **sc}, {**h_20, **s_w30_h40},         {**src, **x, **w_7p5, **h_10}),
             ({**src, **x, **sc}, {**w_10, **h_20, **s_w30_h40}, {**src, **x, **w_7p5, **h_10}),
 
-            # Test that :abs-scale eliminates the effect of the scale_rule.
+            # Test that -abs-scale eliminates the effect of the scale_rule.
             ({**src, **x, **abs_sc, **sc}, {},                        {**src, **x}),
             ({**src, **x, **abs_sc, **sc}, {**w_10},                  {**src, **x, **w_1}),
             ({**src, **x, **abs_sc, **sc}, {**h_20},                  {**src, **x, **h_2}),
@@ -449,6 +438,7 @@ class ImageScalingTestCase(unittest.TestCase):
 
         scale = 2.5
         mock_build_params = Mock()
+        mock_build_params.directives = directives.Directives(MockProgress())
         type(mock_build_params).scale_rule = PropertyMock(return_value = lambda **k: scale)
 
         for unit,  px_equiv in [
@@ -497,6 +487,7 @@ class ImageScalingTestCase(unittest.TestCase):
     def test_rescale_img_raster(self, mock_real_url):
 
         mock_build_params = Mock()
+        mock_build_params.directives = directives.Directives(MockProgress())
 
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
@@ -505,8 +496,8 @@ class ImageScalingTestCase(unittest.TestCase):
 
         # Test input shorthands
         x = {'x': 'dummy'}  # Arbitrary attribute that invokes the scale rule
-        sc = {':scale': '0.1'}
-        abs_sc = {':abs-scale': ''}
+        sc = {'-scale': '0.1'}
+        abs_sc = {'-abs-scale': '-abs-scale'}
         src = {'src': 'mock url'}
 
         for width, height, format, mime_type in [

@@ -66,7 +66,7 @@ By default, CSS files provided to `css_files()` will actually be [embedded](#emb
 
 The following command-line options affect how build-files are loaded:
 
-{ :list-table }
+{-list-table}
 * #
     - Option
     - Description
@@ -84,7 +84,7 @@ The following command-line options affect how build-files are loaded:
 
 Lamarkdown adopts a convention, whereby authors may add specially-named attributes to parts of the document, which cause Lamarkdown (or a Lamarkdown extension) to perform certain kinds of structural transformations.
 
-These attributes are called _directives_. Their names begin with `:` (e.g., `:labels`), to distinguish them from genuine HTML attributes. Directives are (if validly specified) deleted before the final output is generated.
+These attributes are called _directives_. Their names begin with `-` (e.g., `-labels`), to distinguish them from genuine HTML attributes. Directives are (if validly specified) deleted before the final output is generated.
 
 This approach relies on the `attr_list` or [`la.attr_prefix`][attr_prefix] extensions (designed to let authors add HTML attributes to elements). Thus, all directive processing must happen _after_ these extensions have run.
 
@@ -92,57 +92,35 @@ Specific directives include the following:
 
 Directive | Description
 --------- | -----------
-`:caption` | With the [`la.captions`][captions] extension, this identifies the caption for a figure or table, and causes both to be wrapped (if appropriate) within a `<figure>` element.
-`:list-table`{.nowrap} | With the [`la.list_tables`][list_tables] extension, and when applied to a list (containing nested lists), this converts it into a table
-`:labels=...`{.nowrap} | With the [`la.labels`][labels] extension, and when applied to a heading, list, figure or table, this specifies a template for the numbering of that element.
-`:no-label`{.nowrap} | With the `la.labels` extension, when applied to an element, causes any labelling to be omitted.
-[`:scale=...`{.nowrap}](#scaling) | When applied to an image, this scales both dimensions of the image by a linear factor.
-[`:abs-scale`{.nowrap}](#scaling) | When applied to an image, this disregards any global scaling rule.
+`-caption` | With the [`la.captions`][captions] extension, this identifies the caption for a figure or table, and causes both to be wrapped (if appropriate) within a `<figure>` element.
+`-list-table`{.nowrap} | With the [`la.list_tables`][list_tables] extension, and when applied to a list (containing nested lists), this converts it into a table
+`-labels=...`{.nowrap} | With the [`la.labels`][labels] extension, and when applied to a heading, list, figure or table, this specifies a template for the numbering of that element.
+`-no-label`{.nowrap} | With the `la.labels` extension, when applied to an element, causes any labelling to be omitted.
+[`-scale=...`{.nowrap}](#scaling) | When applied to an image, this scales both dimensions of the image by a linear factor.
+[`-abs-scale`{.nowrap}](#scaling) | When applied to an image, this disregards any global scaling rule.
+
+Directives have a long(er) form, starting with `md-` (e.g., `md-caption`), mostly for internal reasons so that they are not rejected by HTML parsers. The short `-` form is converted to the long `md-` form during Markdown processing. It is not generally necessary to use the long form inside Markdown documents, but it is possible.
 
 
-!!! warning
+!!! note "Design Notes"
 
-    When a directive is the first or only part of an attribute list, you must insert a space or an extra `:` before the directive name; e.g., `{ :directive=...}` or `{::directive=...}`.
+    The use of `-` as a directive prefix is intended to minimise confusion relative to other possible syntactic choices, while requiring no extra Markdown parsing code beyond the existing `attr_list` extension.
 
-    If you write `{:directive=...}`, the `:` will be interpreted as part of the enclosing list syntax. Markdown attribute lists start with `{` or `{:`.
+    We prefer to have _some_ means of distinguishing directives from ordinary HTML attributes, because:
 
-    !!! note "Design Notes"
+    * The two groups have quite different semantics; and
+    * We'd like to avoid possible future conflicts between the two.
 
-        Despite the above warning, the use of `:` as a directive prefix is intended to minimise confusion relative to other possible syntactic choices, while requiring no extra parsing code beyond the existing `attr_list` extension.
+    To address other possible choices:
 
-        To address other possible designs:
-
-        * Using a different special character (e.g., `!directive=...`) might work, but almost all special characters (including `!`) are converted to `_`, so we wouldn't be able to narrowly define which character we're actually using.
-        * Using `_` itself would also seem to imply "private/internal use", especially in connection with Python.
-        * Using `-` is possible, but may not convey the idea of a directive.
-        * A _trailing_ `:` could be used, but would result in the syntax `directive:=...`, in which `:=` has the appearance of a special operator, and doesn't necessarily convey the idea of a directive either.
-        * A XML-like "namespace" could be used (e.g., `x:directive=...`), but this creates extra clutter.
-        * HTML attributes are case-insensitive, so a convention based on casing (e.g., `Directive=...`) may not be technically workable.
-        * Anything more elaborate is unlikely to be recognised by `attr_list`, and would require separate parsing.
-
-        It is possible that a future version of Lamarkdown will add an alternate way of specifying directives.
-
-<!--
-
-FIXME:
-
-Actually starting with '-' makes more sense than ':', because it avoids the clash with the list syntax. Let's change this in the code.
-
-There is still a minor theoretical issue, in that neither '-' nor ':' are technically valid as starting characters in XML attributes, and so _theoretically_ might also be disallowed inside a Document Object Model. But Python's xml.etree seems to allow it, and I can't see them changing the API without providing backwards compatibility. Even if it was changed in the future, we could choose that moment to add additional parsing logic to compensate.
-
-So, we'll have:
-
--caption
--list-table
--label=...
--no-label
--scale=...
--abs-scale
-
-And thus we can have... {-caption}, for instance.
-
-
--->
+    * Simply always using `md-` creates extra clutter.
+    * Using a different special character (e.g., `!directive=...`) runs into the problem that `attr_list` converts almost all special characters to `_`, so we wouldn't be able to narrowly define which character we're actually using.
+    * Using `_` itself (e.g., `_directive=...`) also seems to imply "private/internal use", especially in connection with Python.
+    * Using `:` (which isn't converted to `_`) conflicts somewhat with the enclosing list syntax; e.g., in `{:directive=...}`, the the `:` will be interpreted as the start of the list, not part of the name. We could insist that authors put a space after the `{`, but this still leaves room for confusion.
+    * A _trailing_ `:` would result in the syntax `directive:=...`, in which `:=` has the misleading appearance of a special operator.
+    * A XML namespace (e.g., `md:directive=...`) creates extra clutter, and would also raise questions about how to formally define that namespace, and how it formally relates to HTML.
+    * HTML attributes are case-insensitive, so a convention based on casing (e.g., `Directive=...`) risks unforeseen conflicts.
+    * Anything more elaborate is unlikely to be recognised by `attr_list`, and would require separate parsing.
 
 
 ## Variants {#variants}
@@ -168,7 +146,7 @@ la.variants(light_mode, dark_mode)
 la.css('body { font-family: sans-serif; }')
 ```
 
-You can create nested variants by calling [`variants()`][variants-call] _within_ a variant function, though be careful to avoid infinite recursion.
+You can create nested variants by calling [`variants()`][variants_call] _within_ a variant function, though be careful to avoid infinite recursion.
 
 Two variants may specify any arbitrarily-different options, including different Markdown extensions, and/or extension options. In such a case, Lamarkdown will invoke Python-Markdown separately for each distinct extension configuration (possibly resulting in multiple different interpretations of the same Markdown syntax, depending on the options chosen).
 
@@ -179,7 +157,7 @@ By default, the output filenames will have the function name appended. In the ab
 
 It's currently not recommended to run Lamarkdown on untrusted documents, unless your entire execution environment is sandboxed.
 
-Nevertheless, the `allow_exec` flag exists to provide some measure of safety in such situations. By default, `allow_exec == False`, in which case certain actions will not be permitted:
+Nevertheless, the `allow_exec` flag _attempts_ to provide some measure of safety in such situations. By default, `allow_exec == False`, in which case certain actions will not be permitted:
 
 * Use of the [`la.eval`][eval] extension will be restricted to text substitutions (not code execution);
 * Use of the [`la.markdown_demo`][markdown_demo] extension will be prohibited;
@@ -206,10 +184,20 @@ By default, Lamarkdown will embed external resources in the output HTML file (wi
 
 In most cases, the resources being embedded will be CSS styles, fonts, scripts, and images. Embedding is performed automatically, by either:
 
-* Moving the contents of `.css` and `.js` files into `<style>` and `<script>` elements, as appropriate, within the HTML document; or
+* Moving the contents of directly-referenced `.css` and `.js` files into `<style>` and `<script>` elements, as appropriate, within the HTML document; or
 * In other cases, converting the resource into a [data URL](https://developer.mozilla.org/en-US/docs/web/http/basics_of_http/data_urls).
 
 Font files will be subsetted (unused characters removed) before being embedded. Styles will be _recursively_ embedded, since CSS files can reference other resources, including other CSS files. Lamarkdown will not currently attempt to resolve resources referenced by scripts, though.
+
+!!! note
+
+    Data URLs use Base-64 encoding, which increases the size of the data by one third, rounding up, since it uses 8 bits to represent only 6 bits. This effect compounds with nested embedding.
+
+    While a single CSS file is embedded directly in a `<style>` element, any further CSS files it imports itself will be represented as data URLs, and these in turn may have other data URLs nested inside. Lamarkdown does not (currently) try to "flatten out" CSS imports, because it cannot guarantee that this would be functionally equivalent to the original arrangement, because of certain ordering semantics defined in CSS.
+
+    Thus, if you have several levels of indirection in your CSS imports, the resulting embedded content will be stored in a highly inefficient manner. It may be worth avoiding such arrangements.
+
+
 
 Ordinary hypertext links are _not_ embedded. By default, Lamarkdown will also exclude audio or video files (since they could make the output unmanageably large), and the contents of any `<iframe>` elements.
 
@@ -223,8 +211,45 @@ def embed_rule(...)
 
 ## Hashing {#hashing}
 
+Lamarkdown can arrange for the output document to contain a hash (SHA-256, SHA-384 or SHA-512) for each of its external resources, so the browser can [verify their integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity). This applies specifically to _non_-[embedded](#embedding) resources.
+
+Lamarkdown will use any defined `:hash` directive and `hash()` rule to compute an appropriate hash (or skip hashing) for each non-embedded resource. Where a hash is computed, it will appear as the value of the `integrity` HTML attribute in the output document.
+
+<!--{.note}
+Hashing is not available for embedded resources. Any adversary able to modify an embedded resource in the output document could simply also modify the hash.-->
+
+Hashing is a compromise between the control afforded by embedding, and the smaller file sizes offered by not embedding. Embedding may (depending on the particular files) significantly increase the file size of the output document. But with non-embedded, non-hashed resources, you must _trust_ the external source(s), because you are ceding control over aspects of the document. For instance, if your document links to `http://example.com/image.jpg`, then your document will show _whatever_ that image is at the time. If/when the image is replaced on the server, your document will show the new version, and for a reader, there won't be any sign that it's not the original.
+
+The same and worse could happen for stylesheets and scripts. An external entity with control over a stylesheet or script in your document could choose to disable or arbitrarily modify your entire document remotely, for anyone reading it. With embedded or hashed resources, these are no longer possibilities.
+
+However, resource hashing lacks other advantages of embedded resources:
+
+* Readers require an internet connection to view hashed resources, and must wait a moment for them to load, while embedded resources will be available offline and practically instantaneously.
+* An external entity (controlling a hashed resource) might be able to track readers of the document, by recording requests for the document's external resource(s) and mapping them to readers' IP addresses.
+* Hashing won't protect the document against its resources being moved or deleted.
+
+There's also a chance that you may _want_ the external source to be able to change the resource arbitrarily. In this case, a non-embedded, non-hashed resource would be appropriate.
+
 
 ## Scaling {#scaling}
+
+Lamarkdown can adjust the size of images in a document by a linear scaling factor. This is done at the HTML level, after Markdown processing is complete, so it applies equally to any mechanism for generating or inserting images:
+
+* Images included with the standard markdown notation: "`![Description](http://example.com/image.jpg)`".
+* Latex code compiled into SVG using the [`la.latex`][latex] extension.
+* SVGs produced by Graphviz, matplotlib, etc., via the [`m.plots`][m.plots] build module.
+* Anything else that creates `<svg>` or `<img>` elements.
+
+Scaling only alters the size information present in the HTML document. It _doesn't_ affect the actual image content, and so it applies equally to embedded and linked images, and to (practically) any image format supported by web browsers.
+
+However, Lamarkdown only scales "absolutely"-sized images---those whose sizes are given in units of pixels, points, millimetres, inches, etc. Scaling will not be done to images whose sizes expressed in relative units like, `em` (relative to the font size), `%` (relative to the parent element's size) and similar. We assume that relative units express the user's final preference for how large an image should be. (Relative units are unlikely to be present unless the user, or the author of a build module, has explicitly added them.)
+
+For any given image, there are (potentially) two different scale factors:
+
+* You can give a per-image scaling factor using the `-scale=...` directive: 1.0 by default.
+* The "scaling rule" (a function) gives a particular scaling factor for each image: 1.0 by default.
+
+The combined scaling factor is (normally) the _product_ of these two numbers. However, if the `-abs-scale` directive exists for a given image, Lamarkdown ignores the scaling rule, and only applies the per-image scaling factor.
 
 
 
@@ -232,7 +257,7 @@ def embed_rule(...)
 
 To avoid unnecessary delays during compilation, Lamarkdown uses two caches:
 
-* The "build cache" stores results of certain time-consuming processing, particularly the output of external commands like LaTeX (by the [`la.latex` extension](extensions/latex.md)). The build cache is kept in the "build directory", which (by default) is `./build/`. If necessary, you can cause Lamarkdown to delete any pre-existing entries in the build cache with the `--clean` option:
+* The "build cache" stores results of certain time-consuming processing, particularly the output of external commands like LaTeX (by the [`la.latex` extension][latex]). The build cache is kept in the "build directory", which (by default) is `./build/`. If necessary, you can cause Lamarkdown to delete any pre-existing entries in the build cache with the `--clean` option:
 
     ```console
     $ lamd --clean mydocument.md

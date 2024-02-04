@@ -31,7 +31,7 @@ arbitrarily complex tables in Markdown, overcoming the limitations of ASCII tabu
 an example:
 
 ```
-{: :list-table }
+{-list-table}
 *   - # Col Heading A
     - # Col Heading B
     - # Col Heading C
@@ -43,7 +43,7 @@ an example:
     - Row 2, Col C
 ```
 
-That is, one places the :list-table directive (using the 'la.attr_prefix' extension) prior to a
+That is, one places the -list-table directive (using the 'la.attr_prefix' extension) prior to a
 list of lists. Each item in the outer list then represents a table row, and items in each inner
 list represent table cells.
 
@@ -52,7 +52,7 @@ cell). The use of '#' at the start of a _row_ makes every cell in that row a hea
 or not they individually start with '#'; e.g.:
 
 ```
-{: :list-table }
+{-list-table}
 * #
     - Col Heading A
     - Col Heading B
@@ -112,7 +112,7 @@ hierarchy of column headings across several rows.
 In such cases, one may provide corresponding nested lists representing the header tree structure:
 
 ```
-{: :list-table }
+{-list-table }
 * #
     - Major Heading A
         - Subheading AA
@@ -155,36 +155,26 @@ the heading tree (not the number of headings overall).
 
 from __future__ import annotations
 from lamarkdown.lib.progress import Progress
+from lamarkdown.lib.directives import Directives
 import markdown
 from xml.etree import ElementTree
 
 NAME = 'la.list_tables'  # For error messages
-LIST_LABEL_DIRECTIVE = ':list-table'
+LIST_LABEL_DIRECTIVE = 'list-table'
 
 
 class ListTableTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
-    def __init__(self,
-                 md,
-                 progress: Progress,
-                 ):
+    def __init__(self, md, directives: Directives):
         super().__init__(md)
-        self._progress = progress
-        ...
+        self._directives = directives
+
 
     def run(self, root):
         for element in root:
             if (element.tag == 'ul'
-                    and (dir_value := element.attrib.pop(LIST_LABEL_DIRECTIVE, None)) is not None):
-
-                if dir_value != LIST_LABEL_DIRECTIVE:
-                    self._progress.warning(
-                        NAME,
-                        msg = (f'Do not write {{:{LIST_LABEL_DIRECTIVE}="{dir_value}"}}. Rather, '
-                               f'simply write "{{:{LIST_LABEL_DIRECTIVE}}}" next to the list.'))
-
+                    and self._directives.pop_bool(LIST_LABEL_DIRECTIVE, element, NAME)):
                 self._convert(element)
-
             else:
                 self.run(element)
 
@@ -284,7 +274,8 @@ class ListTableTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def _find_ul(self, element: ElementTree.Element) -> tuple[int, list[ElementTree.Element]]:
         try:
             return next((i, e[:]) for i, e in enumerate(element)
-                        if e.tag == 'ul' and LIST_LABEL_DIRECTIVE not in e.attrib)
+                        if (e.tag == 'ul'
+                            and not self._directives.peek(LIST_LABEL_DIRECTIVE, e, NAME)))
 
         except StopIteration:
             return (0, [])
@@ -364,21 +355,21 @@ class ListTablesExtension(markdown.Extension):
             pass  # Use default defaults
 
         self.config = {
-            'progress': [
-                p.progress if p else Progress(),
-                'An object accepting progress messages.'
+            'directives': [
+                p.directives if p else Directives(Progress()),
+                'An object that retrieves directives from document elements.'
             ],
         }
         super().__init__(**kwargs)
 
     def extendMarkdown(self, md):
-        # Auto-load la.attr_prefix. We need to be able to write {::list-table} beforehand to
+        # Auto-load la.attr_prefix. We need to be able to write {-list-table} beforehand to
         # identify the table.
         md.registerExtensions(['la.attr_prefix'], {})
 
         proc = ListTableTreeProcessor(
             md,
-            self.getConfig('progress'),
+            self.getConfig('directives'),
         )
 
         # Priority must be lower than attr_list (8) and higher than la.labels (6) (which itself

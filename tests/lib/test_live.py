@@ -1,6 +1,6 @@
 from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
-from lamarkdown.lib import build_params, live, md_compiler
+from lamarkdown.lib import build_params, live, md_compiler, directives
 
 import unittest
 from unittest.mock import patch
@@ -90,6 +90,7 @@ class LiveTestCase(unittest.TestCase):
 
             build_cache = MockCache()
             fetch_cache = MockCache()
+            progress = MockProgress()
             base_build_params = build_params.BuildParams(
                 src_file = 'doc.md',
                 target_file = 'doc.html',
@@ -98,7 +99,8 @@ class LiveTestCase(unittest.TestCase):
                 build_defaults = True,
                 build_cache = build_cache,
                 fetch_cache = fetch_cache,
-                progress = MockProgress(),
+                progress = progress,
+                directives = directives.Directives(progress),
                 is_live = True,
                 allow_exec_cmdline = False,
                 live_update_deps = {extra_file_a, extra_file_b, extra_file_c}
@@ -333,6 +335,7 @@ class LiveTestCase(unittest.TestCase):
             with open('doc.html', 'w') as f:
                 f.write('<div>Mock HTML</div>')
 
+            progress = MockProgress()
             base_build_params = build_params.BuildParams(
                 src_file = 'doc.md',
                 target_file = 'doc.html',
@@ -341,7 +344,8 @@ class LiveTestCase(unittest.TestCase):
                 build_defaults = True,
                 build_cache = MockCache(),
                 fetch_cache = MockCache(),
-                progress = MockProgress(),
+                progress = progress,
+                directives = directives.Directives(progress),
                 is_live = True,
                 allow_exec_cmdline = False,
             )

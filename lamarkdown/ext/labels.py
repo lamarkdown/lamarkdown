@@ -7,11 +7,11 @@ particularly for <ol> and <ul>.
 
 'Label templates' specify what labelling system to use. They can be provided in two ways:
 
-1. By adding the ':label' directive; e.g.:
+1. By adding the '-label' directive; e.g.:
 
-    ## The Next Section {::label="[1] "}
+    ## The Next Section {-label="[1] "}
 
-    {::label="(a) "}
+    {-label="(a) "}
     1. Item A
     2. Item B
     3. Item C
@@ -73,8 +73,8 @@ the delimiting literal will be omitted too.
 
 Examples:
 
-* :label="(X.1),*"
-* :label="1.,(a),(i)"
+* -label="(X.1),*"
+* -label="1.,(a),(i)"
 
 
 # Also...
@@ -124,12 +124,12 @@ Examples:
 
 # TODO:
 ##
-# :label-resume -- continue the numbering from the previous list _at the same level_. (The
+# -label-resume -- continue the numbering from the previous list _at the same level_. (The
 #   previous list may be a sibling element, or it may be an 'nth-cousin', sharing any common
 #   ancestor element.)
 #
 #
-# :label-skip -- skips 1 counter value if the attribute value is non-numeric. If the attr value is
+# -label-skip -- skips 1 counter value if the attribute value is non-numeric. If the attr value is
 #   an integer, advances the counter by that amount (_on top of_ the one increment that the counter
 #   would normally advance anyway). If the attr value is '=' followed by an integer (or an
 #   alphabetic count or roman numeral), then the counter value is set to that number.
@@ -139,11 +139,13 @@ from __future__ import annotations
 
 import lamarkdown
 from lamarkdown.ext.label_support.labellers import Labeller
-from lamarkdown.ext.label_support.label_templates import LabelTemplate, LabelTemplateParser
+from lamarkdown.ext.label_support.label_templates import (LabelTemplate, LabelTemplateParser,
+                                                          LabelTemplateException)
 from lamarkdown.ext.label_support.label_renderers import (LabelsRenderer, CssLabelsRenderer,
                                                           HtmlLabelsRenderer, add_css_class)
 from lamarkdown.ext.label_support.ref_resolver import RefResolver
 from lamarkdown.lib.progress import Progress
+from lamarkdown.lib.directives import Directives
 
 import markdown
 
@@ -152,11 +154,15 @@ from xml.etree.ElementTree import Element
 
 NAME = 'la.labels'
 
-LABEL_DIRECTIVE = ':label'
-NO_LABEL_DIRECTIVE = ':no-label'
+LABEL_DIRECTIVE = 'label'
+NO_LABEL_DIRECTIVE = 'no-label'
 
 
 class LabelProcessor(abc.ABC):
+    def init(self, directives: Directives):
+        self.directives = directives
+        self.reset()
+
     def reset(self):
         pass
 
@@ -178,7 +184,7 @@ class HeadingLabelProcessor(LabelProcessor):
 
     def run(self, element: Element, control: 'LabelControl'):
 
-        if element.attrib.pop(NO_LABEL_DIRECTIVE, None):
+        if self.directives.pop_bool(NO_LABEL_DIRECTIVE, element, NAME):
             control.render_none(element.tag, None, element)
             control.resolve_refs(element)
             return
@@ -189,8 +195,8 @@ class HeadingLabelProcessor(LabelProcessor):
         labeller = control.find(element.tag)
 
         if labeller is None:
-            # If no labeller exists, first see if there's a ':label' directive
-            template = element.attrib.pop(LABEL_DIRECTIVE, None)
+            # If no labeller exists, first see if there's a '-label' directive
+            template = self.directives.pop(LABEL_DIRECTIVE, element, NAME)
 
             # Failing that, see if a parent heading labeller specifies an inner template
             if template is None and (
@@ -205,7 +211,7 @@ class HeadingLabelProcessor(LabelProcessor):
             if template is not None:
                 labeller = control.new_labeller(element.tag, 'h', template)
 
-        elif new_template := element.attrib.pop(LABEL_DIRECTIVE, None):
+        elif new_template := self.directives.pop(LABEL_DIRECTIVE, element, NAME):
             # A labeller does already exist, but a new template has been given
             labeller = control.replace_labeller(labeller, element.tag, 'h', new_template)
 
@@ -230,7 +236,7 @@ class ListLabelProcesor(LabelProcessor):
         return element.tag in {'ol', 'ul'}
 
     def run(self, element: Element, control: 'LabelControl'):
-        template: str | LabelTemplate | None = element.attrib.pop(LABEL_DIRECTIVE, None)
+        template: str | LabelTemplate | None = self.directives.pop(LABEL_DIRECTIVE, element, NAME)
 
         outer_labeller = control.find(element.tag)
         if template is None and outer_labeller is not None:
@@ -250,11 +256,11 @@ class ListLabelProcesor(LabelProcessor):
         for li in element:
             # Lists generally contain just <li> elements, but it doesn't hurt to check.
             if li.tag == 'li':
-                if li.attrib.pop(NO_LABEL_DIRECTIVE, None):
+                if self.directives.pop_bool(NO_LABEL_DIRECTIVE, li, NAME):
                     control.render_none(element.tag, element, li)
 
                 else:
-                    if new_template := li.attrib.pop(LABEL_DIRECTIVE, None):
+                    if new_template := self.directives.pop(LABEL_DIRECTIVE, li, NAME):
                         labeller = control.replace_labeller(labeller,
                                                             element.tag, element.tag, new_template)
 
@@ -269,6 +275,7 @@ class ListLabelProcesor(LabelProcessor):
 
 class FigureLabelProcessor(LabelProcessor):
     def reset(self):
+        # super().reset()
         self._first_child = True
         self._level = 0
 
@@ -330,9 +337,9 @@ class FigureLabelProcessor(LabelProcessor):
             add_css_class(element, f'la-{element_type}')
 
 
-        if (element.attrib.pop(NO_LABEL_DIRECTIVE, None)
+        if (self.directives.pop_bool(NO_LABEL_DIRECTIVE, element, NAME)
                 or (fig_caption is not None
-                    and fig_caption.attrib.pop(NO_LABEL_DIRECTIVE, False))):
+                    and self.directives.pop_bool(NO_LABEL_DIRECTIVE, fig_caption, NAME))):
 
             control.resolve_refs(element)
             if fig_caption is None:
@@ -351,18 +358,24 @@ class FigureLabelProcessor(LabelProcessor):
             element.insert(0, fig_caption)
 
 
-        template1 = element.attrib.pop(LABEL_DIRECTIVE, None)
-        template2 = fig_caption.attrib.pop(LABEL_DIRECTIVE, None)
+        template1 = self.directives.pop(LABEL_DIRECTIVE, element, NAME)
+        template2 = self.directives.pop(LABEL_DIRECTIVE, fig_caption, NAME)
         if template1 and template2:
             if template1 == template2:
                 control.progress.warning(
                     NAME,
-                    msg = (f':label="{template1}" given twice for the same {element_type}'))
+                    # msg = (f':label="{template1}" given twice for the same {element_type}'))
+                    msg = (f'{self.directives.format(LABEL_DIRECTIVE, template1)} given twice '
+                           f'for the same {element_type}'))
             else:
+                t1_fmt = self.directives.format(LABEL_DIRECTIVE, template1)
+                t2_fmt = self.directives.format(LABEL_DIRECTIVE, template2)
                 control.progress.warning(
                     NAME,
-                    msg = (f'Conflicting label templates, :label="{template1}" and '
-                           f':label="{template2}", given for the same {element_type}'))
+                    # msg = (f'Conflicting label templates, :label="{template1}" and '
+                    #        f':label="{template2}", given for the same {element_type}'))
+                    msg = (f'Conflicting label templates, {t1_fmt} and {t2_fmt}, given for the '
+                           f'same {element_type}'))
 
         template: str | LabelTemplate | None = template1 or template2
 
@@ -409,6 +422,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
                  ref_resolver: RefResolver,
                  html_renderer: HtmlLabelsRenderer,
                  css_renderer: CssLabelsRenderer | None,
+                 directives: Directives,
                  progress: Progress):
 
         super().__init__(md)
@@ -419,6 +433,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
         self._ref_resolver = ref_resolver
         self._html_renderer = html_renderer
         self._css_renderer = css_renderer
+        self._directives = directives
         self._progress = progress
 
 
@@ -433,7 +448,7 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
 
         self._ref_resolver.find_refs(root)
         for label_proc in self._label_processors:
-            label_proc.reset()
+            label_proc.init(self._directives)
 
         self._apply_labellers(root)
         return root
@@ -505,10 +520,15 @@ class LabelControl(markdown.treeprocessors.Treeprocessor):
                        series_element_type: str,
                        template: str | LabelTemplate,
                        parent: Labeller | None = None,
-                       count: int = 0):
+                       count: int = 0) -> Labeller:
 
-        _template: LabelTemplate = (
-            self._parser.parse(template) if isinstance(template, str) else template)
+        try:
+            _template: LabelTemplate = (
+                self._parser.parse(template) if isinstance(template, str) else template)
+        except LabelTemplateException as e:
+            self._progress.error(NAME, exception = e)
+            _template = self._parser.parse('1')
+
         _parent = (
             self.find(_template.parent_type)
             if parent is None and _template.parent_type is not None
@@ -603,9 +623,16 @@ class LabelsExtension(markdown.Extension):
         except ModuleNotFoundError:
             pass  # Use default defaults
 
+        default_progress = p.progress if p else Progress()
+
         self.config = {
+            'directives': [
+                p.directives if p else Directives(default_progress),
+                'An object that retrieves directives from document elements.'
+            ],
+
             'progress': [
-                p.progress if p else Progress(),
+                default_progress,
                 'An object accepting progress messages.'
             ],
 
@@ -650,7 +677,8 @@ class LabelsExtension(markdown.Extension):
             ref_resolver = RefResolver(),
             html_renderer = HtmlLabelsRenderer(),
             css_renderer = None if css_fn is _FN_DEFAULT else CssLabelsRenderer(css_fn),
-            progress = self.getConfig('progress')
+            directives = self.getConfig('directives'),
+            progress = self.getConfig('progress'),
         )
 
         md.treeprocessors.register(control, 'la-labels-tree', 6)

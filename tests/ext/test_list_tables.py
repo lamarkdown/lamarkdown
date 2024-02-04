@@ -29,7 +29,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_tbody_only(self):
         html = self.run_markdown(
             r'''
-            {::list-table attr="0"}
+            {-list-table attr="0"}
             *   - one
                     {attr="1"}
                 - _two_
@@ -61,7 +61,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_extra_columns(self):
         html = self.run_markdown(
             r'''
-            {::list-table}
+            {-list-table}
             *   one
 
                 - two
@@ -107,7 +107,7 @@ class ListTablesTestCase(unittest.TestCase):
         'Dubious use case, but it should work.'
         html = self.run_markdown(
             r'''
-            {::list-table attr="0"}
+            {-list-table attr="0"}
             *   - # one           {attr="1"}
                 - # _two_         {attr="2"}
             *   - # x **three** x {attr="3"}
@@ -135,7 +135,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_thead_tbody_tfoot(self):
         html = self.run_markdown(
             r'''
-            {::list-table}
+            {-list-table}
             *   - # one
                 - # two
             *   - three
@@ -179,7 +179,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_thead_override(self):
         for text in [
                 r'''
-                {::list-table}
+                {-list-table}
                 *   - # one
                     - # two
                 *   - three
@@ -187,7 +187,7 @@ class ListTablesTestCase(unittest.TestCase):
                 ''',
 
                 r'''
-                {::list-table}
+                {-list-table}
                 * #
                     - # one
                     - # two
@@ -196,7 +196,7 @@ class ListTablesTestCase(unittest.TestCase):
                 ''',
 
                 r'''
-                {::list-table}
+                {-list-table}
                 * #
                     - one
                     - # two
@@ -205,7 +205,7 @@ class ListTablesTestCase(unittest.TestCase):
                 ''',
 
                 r'''
-                {::list-table}
+                {-list-table}
                 * #
                     - # one
                     - two
@@ -214,7 +214,7 @@ class ListTablesTestCase(unittest.TestCase):
                 ''',
 
                 r'''
-                {::list-table}
+                {-list-table}
                 * #
                     - one
                     - two
@@ -245,7 +245,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_thead_multiple_rows(self):
         html = self.run_markdown(
             r'''
-            {::list-table}
+            {-list-table}
             *   - # one
                 - # two
             * #
@@ -303,7 +303,7 @@ class ListTablesTestCase(unittest.TestCase):
     def test_heading_tree(self):
         html = self.run_markdown(
             r'''
-            {::list-table}
+            {-list-table}
             * #
                 - one
                     - oneA
@@ -365,11 +365,11 @@ class ListTablesTestCase(unittest.TestCase):
     def test_nested_tables(self):
         html = self.run_markdown(
             r'''
-            {::list-table}
+            {-list-table}
             * #
                 - one
 
-                    {::list-table}
+                    {-list-table}
                     *   - 1
                         - 2
                     *   - 3
@@ -380,7 +380,7 @@ class ListTablesTestCase(unittest.TestCase):
             *   - three
                 - four
 
-                    {::list-table}
+                    {-list-table}
                     *   - 5
                         - 6
                     *   - 7

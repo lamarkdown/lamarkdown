@@ -12,8 +12,10 @@ import xml.dom
 from xml.etree import ElementTree
 
 NAME = 'images'  # Progress/error messages
-SCALE_DIRECTIVE = ':scale'
-ABS_SCALE_DIRECTIVE = ':abs-scale'
+# SCALE_DIRECTIVE = ':scale'
+# ABS_SCALE_DIRECTIVE = ':abs-scale'
+SCALE_DIRECTIVE = 'scale'
+ABS_SCALE_DIRECTIVE = 'abs-scale'
 
 
 def scale_images(root_element, build_params: BuildParams):
@@ -50,7 +52,8 @@ def scale_images(root_element, build_params: BuildParams):
 
 def _calc_scale(element, type, build_params) -> float:
 
-    s = element.attrib.pop(SCALE_DIRECTIVE, '1')
+    # s = element.attrib.pop(SCALE_DIRECTIVE, '1')
+    s = build_params.directives.pop(SCALE_DIRECTIVE, element, NAME, '1')
     try:
         local_scale = float(s)
     except ValueError:
@@ -59,7 +62,8 @@ def _calc_scale(element, type, build_params) -> float:
             msg = f'Non-numeric value "{s}" given as a scaling factor')
         return 1.0  # Don't scale
 
-    if element.attrib.pop(ABS_SCALE_DIRECTIVE, None) is not None:
+    # if element.attrib.pop(ABS_SCALE_DIRECTIVE, None) is not None:
+    if build_params.directives.pop_bool(ABS_SCALE_DIRECTIVE, element, NAME):
         # TODO: users should be able to provide a scaling value directly through :abs-scale.
         return local_scale
 

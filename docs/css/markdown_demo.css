@@ -29,6 +29,6 @@
     border: 1px solid var(--gray);
 }
 
-.nowrap {
+code, .nowrap {
     white-space: nowrap;
 }
