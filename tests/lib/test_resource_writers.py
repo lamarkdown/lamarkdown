@@ -128,7 +128,7 @@ class ResourceWritersTestCase(unittest.TestCase):
             ('''url('\\'\\69 \\06d\\0061\t\\00067\\000065 \\'')''',
              '', ["'image'"], ["'image'"], fr'url("{data_url}")'),
         ]:
-            def embed_rule(url='', **k):
+            def embed_rule(url, **k):
                 return url in embed
 
             type(mock_build_params).embed_rule = PropertyMock(return_value = embed_rule)
@@ -321,7 +321,6 @@ class ResourceWritersTestCase(unittest.TestCase):
                 @import[_]"data:text/css;base64,{b64_contentB}";
                 @import[_]"dir1/dir2/dir3/fileB.txt";
             ''')
-            # b64_contentA = base64.b64encode(conv_contentA.encode()).decode()
 
 
             mock_build_params = Mock()
@@ -379,7 +378,8 @@ class ResourceWritersTestCase(unittest.TestCase):
             mock_build_params = Mock()
             mock_progress = Mock()
             type(mock_build_params).progress = PropertyMock(return_value = mock_progress)
-            type(mock_build_params).embed_rule = PropertyMock(return_value = lambda *a, **k: True)
+            # type(mock_build_params).embed_rule = PropertyMock(return_value = lambda *a, **k: True)
+            type(mock_build_params).embed_rule = PropertyMock(return_value = lambda **k: True)
             type(mock_build_params).resource_base_url = PropertyMock(return_value = '')
 
             sw = resource_writers.StylesheetWriter(mock_build_params)
@@ -403,10 +403,8 @@ class ResourceWritersTestCase(unittest.TestCase):
 
         # Mock embedding rule that embeds everything, except elements having a special mime
         # type.
-        # type(mock_build_params).embed_rule = PropertyMock(
-        #     return_value = lambda self, type = '', **k: type != 'no/embed')
         type(mock_build_params).embed_rule = PropertyMock(
-            return_value = lambda type = '', **k: type != 'no/embed')
+            return_value = lambda mime, **k: mime != 'no/embed')
 
         live_update_deps = set()
         type(mock_build_params).live_update_deps = PropertyMock(return_value = live_update_deps)

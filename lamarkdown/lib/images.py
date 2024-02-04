@@ -12,10 +12,16 @@ import xml.dom
 from xml.etree import ElementTree
 
 NAME = 'images'  # Progress/error messages
-# SCALE_DIRECTIVE = ':scale'
-# ABS_SCALE_DIRECTIVE = ':abs-scale'
 SCALE_DIRECTIVE = 'scale'
 ABS_SCALE_DIRECTIVE = 'abs-scale'
+
+
+# TODO: We could allow -scale and -abs-scale to appear on container elements (<p>, <div>, etc), in
+# which case they will apply to all their descendants.
+#   - it might create a mechanism in Directives to retrieve such ancestor directives.
+#
+# TODO: We could allow -abs-scale to express a scaling factor directly, in which case it overrides
+# all else.
 
 
 def scale_images(root_element, build_params: BuildParams):
@@ -25,14 +31,14 @@ def scale_images(root_element, build_params: BuildParams):
         if element.tag in ['svg', 'img', 'source']:
 
             content = None
-            type = None
+            mime = None
             if element.tag == 'svg':
-                type = 'image/svg+xml'
+                mime = 'image/svg+xml'
 
             elif element.tag in ['img', 'source']:
                 if 'src' in element.attrib:
                     try:
-                        _, content, type = resources.read_url(element.get('src'),
+                        _, content, mime = resources.read_url(element.get('src'),
                                                               build_params.fetch_cache,
                                                               progress)
                     except Exception as e:
@@ -45,14 +51,13 @@ def scale_images(root_element, build_params: BuildParams):
             else:
                 raise AssertionError
 
-            scale = _calc_scale(element, type, build_params)
+            scale = _calc_scale(element, mime, build_params)
             if scale != 1.0:
-                _rescale_element(element, scale, content, type, css_parser, progress)
+                _rescale_element(element, scale, content, mime, css_parser, progress)
 
 
-def _calc_scale(element, type, build_params) -> float:
+def _calc_scale(element, mime, build_params) -> float:
 
-    # s = element.attrib.pop(SCALE_DIRECTIVE, '1')
     s = build_params.directives.pop(SCALE_DIRECTIVE, element, NAME, '1')
     try:
         local_scale = float(s)
@@ -62,21 +67,21 @@ def _calc_scale(element, type, build_params) -> float:
             msg = f'Non-numeric value "{s}" given as a scaling factor')
         return 1.0  # Don't scale
 
-    # if element.attrib.pop(ABS_SCALE_DIRECTIVE, None) is not None:
     if build_params.directives.pop_bool(ABS_SCALE_DIRECTIVE, element, NAME):
         # TODO: users should be able to provide a scaling value directly through :abs-scale.
         return local_scale
 
     else:
-        return local_scale * build_params.scale_rule(type = type,
+        return local_scale * build_params.scale_rule(url = None,
                                                      tag = element.tag,
+                                                     mime = mime,
                                                      attr = element.attrib)
 
 
 def _rescale_element(element,
                      scale: float,
                      content: bytes | None,
-                     type: str | None,
+                     mime: str | None,
                      css_parser: cssutils.CSSParser,
                      progress: Progress):
     #
@@ -192,13 +197,12 @@ def _rescale_element(element,
         # Scaling all done!
         return
 
-    # if element.tag not in ['img', 'source'] or 'src' not in element.attrib:
     if element.tag not in ['img', 'source'] or content is None:
         progress.warning(NAME, msg = 'Cannot identify image dimensions')
         return
 
 
-    if type == 'image/svg+xml':
+    if mime == 'image/svg+xml':
         svg_root = ElementTree.fromstring(content.decode())
 
         width = None

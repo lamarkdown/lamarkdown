@@ -74,19 +74,13 @@ def _url_resources(url_list: Iterable[str],
 
         def embed_fn():
             if embed is None:
-                if mime_type is None:
-                    return p.embed_rule(url = url, tag = tag, attr = {})
-                else:
-                    return p.embed_rule(url = url, tag = tag, attr = {}, type = mime_type)
+                return p.embed_rule(url = url, tag = tag, mime = mime_type, attr = {})
             else:
                 return embed
 
         def hash_type_fn():
             if hash_type is None:
-                if mime_type is None:
-                    return p.resource_hash_rule(url = url, tag = tag, attr = {})
-                else:
-                    return p.resource_hash_rule(url = url, tag = tag, attr = {}, type = mime_type)
+                return p.resource_hash_rule(url = url, tag = tag, mime = mime_type, attr = {})
             else:
                 return hash_type
 

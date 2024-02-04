@@ -84,44 +84,6 @@ Examples:
 '''
 
 
-# TODO :
-# - number <table><caption>... and <figure><figcaption>...
-# - <figure> could be used to represent several different kinds of numbered constructs: images,
-#   equations, code listings, maybe even tables (though <table><caption> already exists for that).
-#
-# - For each <figure> or <table>, we first figure out what sub-type it is:
-#   - initially, check whether there's a CSS class equal to any of several keywords,
-#     case-insensitive. By default, these are 'figure', 'table', 'equation' and 'listing'
-#     (irrespective of whether <figure> or <table> has been used).
-#   - if not, check whether there's a CSS class _containing_ any of those keywords, or any
-#     abbreviations ('fig', 'tab', 'eq' or 'lst')
-#   - if not, then:
-#     - a <table> is just a table
-#     - for a <figure>, guess from the contents; by default:
-#       - <code>/<pre> -> listing;
-#       - <math> -> equation;
-#       - <table> -> table;
-#       - anything else -> figure.
-#   - Each of these shall be called a 'figure/table type', and has its own independent label
-#     series.
-#
-# - The user shall be able to define additional types, via la.labels configuration option; e.g.,
-#   (for equations)
-#   - figure_types: [{'names': ['example', 'ex'],
-#                       'auto_detect': ['./div[@class="example"]'],
-#                       'default_labels': 'Example H2.1. '}]
-#   - The names become valid class names, as well as valid element types. They must not overlap.
-#
-# - Consolidate the config option for specifying global labelling, into a single dict, indexed by
-#   element type
-#
-# - Create another (simple) markdown extension called 'figures' (or maybe 'captions') that will
-#   find any elements with the ':caption' directive and wrap them in a <figure>, with the value of
-#   ':caption' becoming the content (passed through markdown's inline (tree?) processors) of
-#   <figcaption>.
-
-
-
 # TODO:
 ##
 # -label-resume -- continue the numbering from the previous list _at the same level_. (The

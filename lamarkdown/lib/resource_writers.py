@@ -301,13 +301,12 @@ class StylesheetWriter(ResourceWriter):
                     else:
                         url = urllib.parse.urljoin(base_url, url)
 
-                        if (type := mimetypes.guess_type(url)[0]) is not None:
-                            embed = self.build_params.embed_rule(
-                                url = url, tag = 'style', type = type)
-                        else:
-                            embed = self.build_params.embed_rule(url = url, tag = 'style')
+                        if self.build_params.embed_rule(
+                                url = url,
+                                tag = 'style',
+                                mime = mimetypes.guess_type(url)[0],  # maybe None
+                                attr = None):
 
-                        if embed:
                             # Grab the URL content and make a Data URL (checking for cycles).
                             if self._push_url(url):
                                 add_local_dependency(url, self.build_params)
@@ -458,11 +457,11 @@ def embed_media(root_element, base_url: str, build_params: BuildParams):
                 if element.tag in URL_MIMETYPE_ELEMENTS:
                     mime_type = element.get('type')
 
-                embed_type = mime_type or mimetypes.guess_type(src)[0]
-                if build_params.embed_rule(url = src,
-                                           tag = element.tag,
-                                           attr = element.attrib,
-                                           **(dict(type = embed_type) if embed_type else {})):
+                if build_params.embed_rule(
+                        url = src,
+                        tag = element.tag,
+                        mime = mime_type or mimetypes.guess_type(src)[0],  # maybe None
+                        attr = element.attrib):
 
                     build_params.progress.progress(
                         NAME,

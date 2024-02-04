@@ -59,7 +59,7 @@ class ImageScalingTestCase(unittest.TestCase):
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
         type(mock_build_params).scale_rule = \
-            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
+            PropertyMock(return_value = lambda attr, **k: 2.5 if 'x' in (attr or {}) else 1.0)
 
         # Test input shorthands
         # ---------------------
@@ -248,7 +248,7 @@ class ImageScalingTestCase(unittest.TestCase):
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
         type(mock_build_params).scale_rule = \
-            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
+            PropertyMock(return_value = lambda attr, **k: 2.5 if 'x' in (attr or {}) else 1.0)
 
         # Test input shorthands
         # ---------------------
@@ -492,7 +492,7 @@ class ImageScalingTestCase(unittest.TestCase):
         # Mock scaling rule: scale <svg> elements by 2.5 iff they have an 'x=...' attribute
         # (or 1.0 if they don't).
         type(mock_build_params).scale_rule = \
-            PropertyMock(return_value = lambda attr = {}, **k: 2.5 if 'x' in attr else 1.0)
+            PropertyMock(return_value = lambda attr, **k: 2.5 if 'x' in (attr or {}) else 1.0)
 
         # Test input shorthands
         x = {'x': 'dummy'}  # Arbitrary attribute that invokes the scale rule

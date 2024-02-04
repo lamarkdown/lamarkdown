@@ -111,24 +111,27 @@ R = TypeVar('R', covariant = True)
 
 class Rule(Protocol[R]):
     def __call__(self, *,
-                 url: str = '',
-                 type: str = '',
-                 tag: str = '',
-                 attr: dict[str, str] = {}) -> R:
+                 url: str | None,
+                 mime: str | None,
+                 tag: str | None,
+                 attr: dict[str, str] | None,
+                 **kwargs) -> R:
         ...
 
 
 # Note: all 'rule' callbacks should accept a '**kwargs' parameter. The actual keyword arguments
-# supplied include _some subset_ of: 'url', 'type' (mime type), 'tag' and 'attr', and possibly
+# supplied include _some subset_ of: 'url', 'mime' (mime type), 'tag' and 'attr', and possibly
 # others in the future.
 
 
-def default_embed_rule(type: str = '', tag: str = '', **kwargs) -> bool:
-    return not (
-        tag in ('audio', 'video', 'iframe')
-        or type.startswith('audio/')
-        or type.startswith('video/')
-    )
+def default_embed_rule(mime: str | None, tag: str | None, **kwargs) -> bool:
+    if tag in ('audio', 'video', 'iframe'):
+        return False
+
+    if mime and (mime.startswith('audio/') or mime.startswith('video/')):
+        return False
+
+    return True
 
 
 def default_resource_hash_rule(**kwargs) -> str | None:
