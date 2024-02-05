@@ -4,7 +4,7 @@ import lamarkdown as la
 import pymdownx  # noqa: F401
 
 import copy
-from lxml.etree import SubElement
+from lxml.etree import Element, SubElement
 
 
 def apply(heading_numbers = True):
@@ -108,19 +108,17 @@ def apply(heading_numbers = True):
                 background: var(--la-side-background);
                 margin: 0;
             }
-            #la-doc-parent {
+            body {
                 display: flex;
                 flex-direction: row;
                 width: 100%;
             }
-            #la-doc-area {
+            #la-doc {
                 overflow-x: visible;
                 margin-left: auto;
                 margin-right: auto;
-                width: 58em;
+                width: 50em;
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color);
-            }
-            #la-doc {
                 padding: 4em;
             }
             pre {
@@ -428,19 +426,10 @@ def apply(heading_numbers = True):
         if_selectors = '#la-bibliography'
     )
 
-    def create_flex_structure(root):
-        flex_container = SubElement(root, 'div', attrib={'id': 'la-doc-parent'})
-        doc_area = SubElement(flex_container, 'div', attrib={'id': 'la-doc-area'})
-        doc_element = SubElement(doc_area, 'div',
-                                 attrib={
-                                     'id': 'la-doc',
-                                     'tabindex': '0',  # Supports keyboard focus
-                                 })
-
-        for doc_child in root:
-            if doc_child is not flex_container:
-                # This should move (not just copy) each element into
-                doc_element.append(doc_child)
+    def create_structure(root):
+        doc_element = Element('div', attrib = {'id': 'la-doc'})
+        doc_element[:] = root[:]
+        root[:] = [doc_element]
 
         toc_list = doc_element.xpath('//*[@class="toc"]')
         if toc_list:
@@ -450,11 +439,7 @@ def apply(heading_numbers = True):
 
             inline_toc.attrib['id'] = 'la-toc-inline'
             sidebar_toc.attrib['id'] = 'la-toc-sidebar'
-            flex_container.insert(0, sidebar_toc)
+            root.insert(0, sidebar_toc)
 
 
-    la.with_tree(create_flex_structure)
-
-    # We want the main content to be focused, or else keyboard scrolling won't seem to
-    # work.
-    la.js('document.getElementById("la-doc").focus();')
+    la.with_tree(create_structure)
