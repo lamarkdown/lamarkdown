@@ -1,53 +1,49 @@
----
-title: Build Modules
-nav_order: 50
-has_children: true
----
-
 # Build Modules
 
 Build modules are high-level bundles of settings, with various built-in ones available via `lamarkdown.m.<modulename>()`; e.g.:
 
 ```python
 import lamarkdown as la
-la.m.plots() # Invoke the m.plots build module
+la.m.plots()  # Invoke the m.plots build module
 ```
 
 Here are the standard build modules:
 
-Build Module            | Description                                                                                                  
-------------            | -----------
-[`m.doc()`][]           | Styles output as a professional-looking document, and invokes various extensions. Acts as the set of defaults when no build files exist.
-[`m.plots()`][]         | Adds support for several text-based graphics tools.
-[`m.code()`][]          | Adds styling for syntax-highlighted code, as produced by [Pygments](https://pygments.org/).
-[`m.page_numbers()`][]  | Adds pseudo-page numbers to the output document.
-[`m.teaching()`][]      | Adds styling relevant to an educational environment, for tests or other assessments.
+{-list-table}
+* #
+    - Build Module
+    - Description
+*   - [`m.doc()`](doc.md)
+    - Styles output as a professional-looking document, and invokes various extensions. Acts as the set of defaults when no build files exist.
+*   - [`m.plots()`](plots.md)
+    - Adds support for several text-based graphics tools.
+*   - [`m.code()`](code.md)
+    - Adds styling for syntax-highlighted code, as produced by [Pygments](https://pygments.org/).
+*   - [`m.page_numbers()`](page_numbers.md)
+    - Adds pseudo-page numbers to the output document.
+*   - [`m.teaching()`](teaching.md)
+    - Adds styling relevant to an educational environment, for tests or other assessments.
 
-
-[`m.doc()`]: doc.md
-[`m.plots()`]: plots.md
-[`m.code()`]: code.md
-[`m.page_numbers()`]: page_numbers.md
-[`m.teaching()`]: teaching.md
 
 You can create your own build module as a standard Python module. Within the module, place all Lamarkdown API calls inside a function, and invoke a function from your build file:
 
 ```python
 # my_build_mod.py (custom build module)
 from lamarkdown import la
-def apply(): # Choose any function name you like
+def apply():
     la.css('p { background: black; color: white; }')
 ```
 ```python
 # md_build.py (build file)
 import my_build_mod
-my_build_mod.apply() # Invoke your custom build module
+my_build_mod.apply()  # Invoke your custom build module
 ```
 
-{: .note}
-> The function is required, because putting Lamarkdown API calls into the top-level scope of your custom build module won't work reliably, especially in [live update](live_updating.md) mode. Code in this scope only runs _once_, when the module is first loaded, whereas we want it to run whenever the document is recompiled.
->
-> By contrast, build files (e.g., `md_build.py`) _do_ have code in their top-level scope, because they are loaded/re-loaded via a customised mechanism, not a standard `import` statement. 
+!!! note "Design Notes"
+
+    The function can be called anything. It is required, though, because putting Lamarkdown API calls into the top-level scope of your custom build module won't work reliably, especially in live update (`-l`/`--live`) mode. Code in this scope only runs _once_, when the module is first loaded, whereas we want it to run whenever the document is recompiled.
+
+    By contrast, build files (e.g., `md_build.py`) _do_ have code in their top-level scope, because they are loaded/re-loaded via a customised mechanism, not a standard `import` statement.
 
 
 <!--* `m.code()`: Adds CSS styling for syntax-highlighted code (as produced by [Pygments](https://pygments.org/), which is invoked through either the [`codehilite`](https://python-markdown.github.io/extensions/code_hilite/) or [`pymdownx.superfences`](https://facelessuser.github.io/pymdown-extensions/extensions/superfences/) extensions).

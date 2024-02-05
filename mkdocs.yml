@@ -7,7 +7,7 @@ site_dir: docs_site
 
 nav:
     - Tour: tour.md
-    - Settings and Compilation: process.md
+    - Core Functionality: core.md
     - Extensions:
         - Overview: extensions/index.md
         - la.attr_prefix: extensions/attr_prefix.md
@@ -20,12 +20,12 @@ nav:
         - la.markdown_demo: extensions/markdown_demo.md
         - la.sections: extensions/sections.md
     - Build Modules:
-        - Overview: build_modules/index.md
-        - m.code: build_modules/code.md
-        - m.doc: build_modules/doc.md
-        - m.page_numbers: build_modules/page_numbers.md
-        - m.plots: build_modules/plots.md
-        - m.teaching: build_modules/teaching.md
+        - Overview: modules/index.md
+        - m.code: modules/code.md
+        - m.doc: modules/doc.md
+        - m.page_numbers: modules/page_numbers.md
+        - m.plots: modules/plots.md
+        - m.teaching: modules/teaching.md
     - API: api.md
 
 markdown_extensions:

@@ -67,18 +67,25 @@ $ lamd -l mydocument.md
 
 This will launch a local web-server and a web-browser, and will keep `mydocument.html` in sync with any changes made to `mydocument.md`, until you press Ctrl+C in the terminal.
 
+For detailed usage, Lamarkdown's documentation is structured as follows:
 
-## Concepts
+* The [Tour][tour] gives a glimpse of Lamarkdown's key features, to give you an overall sense of what's possible.
+* The [Core Functionality][core] section describes the essential workings of Lamarkdown, including [build files][] (at a conceptual level), [directives][], [variants][], [`allow_exec`][allow_exec], [resource processing][] and [caching][].
+* The [Extensions][extensions] section covers add-on Markdown functionality. Extensions (often) make changes to the Markdown syntax, to introduce additional capabilities.
+* The [Build Modules][modules] section covers pre-designed bundles of reusable configuration.
+* The [Build File API][api] section specifies all programmatic Lamarkdown functionality accessible to a build file.
+
+<!--## Concepts
 
 To use Lamarkdown effectively, it's helpful to understand the following:
 
-* [Extensions](extensions/index.md). These are plugins for the core Python-Markdown engine, and they can alter the Markdown language in arbitrary ways, generally by adding or modifying certain syntactical constructs. To create an extension, you must be familiar with the Python-Markdown API for doing so, but there are many pre-existing extensions available.
+* [Extensions][]. These are plugins for the core Python-Markdown engine, and they can alter the Markdown language in arbitrary ways, generally by adding or modifying certain syntactical constructs. To create an extension, you must be familiar with the Python-Markdown API for doing so, but there are many pre-existing extensions available.
 
-* [Build Files](build_files.md). These are `.py` scripts that configure options for an individual markdown document, or group of documents. These would generally be written by the author of the document(s), using the [Lamarkdown API](api_reference.md). A build file can cause certain extensions to be loaded (with certain options), specify CSS styles and JS scripts for the document generated, query or alter the output document structure, and define [Variants](variants.md). (Variants are multiple output documents produced from a single input `.md` file, using different build options.)
+* [Build Files][]. These are `.py` scripts that configure options for an individual markdown document, or group of documents. These would generally be written by the author of the document(s), using the [Build File API][api]. A build file can cause certain extensions to be loaded (with certain options), specify CSS styles and JS scripts for the document generated, query or alter the output document structure, and define [Variants](variants.md). (Variants are multiple output documents produced from a single input `.md` file, using different build options.)
 
-* [Build Modules](build_modules/index.md) -- reusable bundles of configuration, to be invoked by build files.
+* [Build Modules][modules] -- reusable bundles of configuration, to be invoked by build files.
 
-* [Output Directives](output_processing/index.md) -- temporary HTML attributes (not part of the actual HTML output) that specify certain output characteristics. They can be used to specify list labels, image scales, and media embedding, for instance. Directive names begin with "`:`", to distinguish them from real HTML attributes.
+* [Output Directives](output_processing/index.md) -- temporary HTML attributes (not part of the actual HTML output) that specify certain output characteristics. They can be used to specify list labels, image scales, and media embedding, for instance. Directive names begin with "`:`", to distinguish them from real HTML attributes.-->
 
 
 ## Why Lamarkdown?
@@ -150,3 +157,16 @@ For more advanced usage, see the following:
     * [Markers](extensions/latex.md)
     * [Sections](extensions/sections.md)
 * [API Reference](api_reference.md)-->
+
+
+[allow_exec]: core.md#allow_exec
+[api]: api.md
+[build files]: core.md#build_files
+[caching]: core.md#caching
+[core]: core.md
+[directives]: core.md#directives
+[extensions]: extensions/index.md
+[modules]: modules/index.md
+[resource processing]: core.md#resources
+[tour]: tour.md
+[variants]: core.md#variants

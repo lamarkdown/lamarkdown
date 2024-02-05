@@ -1,6 +1,3 @@
----
-parent: Extensions
----
-
 # `la.cite`
 
+TBD

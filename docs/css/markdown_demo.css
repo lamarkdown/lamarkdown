@@ -1,3 +1,8 @@
+h2 .la-label, h3 .la-label {
+    font-size: smaller;
+    color: gray;
+}
+
 .markdown-demo {
     width: 100%;
     display: flex;

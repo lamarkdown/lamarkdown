@@ -389,5 +389,5 @@ To support a common use case, Lamarkdown also provides a [`prune()`][prune] API 
 [prune]:            api.md#prune
 [variants_call]:    api.md#variants
 
-[m.doc]:            modules/doc.md
-[m.plots]:          modules/plots.md
+[doc]:              modules/doc.md
+[plots]:            modules/plots.md

@@ -1,4 +1,4 @@
-# Settings and Compilation
+# Core Functionality
 
 Here we describe Lamarkdown's core functionality in detail, and how to use it.
 
@@ -22,7 +22,7 @@ import lamarkdown as la
 la.m.doc()
 ```
 
-The [`m.doc()` build module][m.doc] adds a certain set of Markdown extensions, as well as styling the output to better resemble a conventional document. When writing a build file, you can include or omit `m.doc()`, as per your preference.
+The [`m.doc()` build module][doc] adds a certain set of Markdown extensions, as well as styling the output to better resemble a conventional document. When writing a build file, you can include or omit `m.doc()`, as per your preference.
 
 To add a Markdown extension, you call the [`lamarkdown` module][lamarkdown_call] itself. Many extensions have their own settings, which you can configure by passing keyword arguments. If you don't need to supply any extension options, you can list multiple extensions in one call:
 
@@ -220,7 +220,7 @@ def embed_rule(url: str | None,
 la.embed(embed_rule)
 ```
 
-This function will be called whenever Lamarkdown encounters an embeddable resource, and must return `True` or `False`. See [Resource Rules](#rules) below for more details.
+This function will be called whenever Lamarkdown encounters an embeddable resource, and must return `True` to embed the resource, or `False` to keep it separate. See [Resource Rules](#rules) below for more details.
 
 !!! note "Efficiency Notes"
 
@@ -276,7 +276,7 @@ Lamarkdown can adjust the size of images in a document by a linear scaling facto
 
 * The standard Markdown notation: `![Alt text](http://example.com/image.jpg)`.
 * Latex code compiled into SVG using the [`la.latex`][latex] extension.
-* SVGs produced by Graphviz, matplotlib, etc., via the [`m.plots`][m.plots] build module.
+* SVGs produced by Graphviz, matplotlib, etc., via the [`m.plots`][plots] build module.
 * Anything else that creates `<svg>` or `<img>` elements.
 
 For any given image, there are (potentially) two different scaling factors:
@@ -315,7 +315,7 @@ However, Lamarkdown only scales "absolutely"-sized images---those whose sizes ar
 
 ### Resource Rules {#rules}
 
-Resource rule functions are defined within build files and supplied to one of [`embed_rule()`][embed_rule], [`resource_hash_rule()`][resource_hash_rule] or [`scale_rule()`][scale_rule] as appropriate. Lamarkdown will then call the function for each of various resources (images, etc.) that _may_ need to be embedded, hashed, or scaled.
+Resource rules are functions defined within build files and passed to one of [`embed_rule()`][embed_rule], [`resource_hash_rule()`][resource_hash_rule] or [`scale_rule()`][scale_rule] as appropriate. Lamarkdown will then call the function for each of various resources (images, etc.) that _may_ need to be embedded, hashed, or scaled.
 
 Such functions can accept the following keyword parameters, to help them determine what kind of resource they are dealing with, and so decide what to do with it:
 
@@ -330,7 +330,7 @@ Each of these may be `None` in certain circumstances, and a rule function must b
 
 A rule function _should_ also accept a `**kwargs` parameter, for future-proofing, should a future version of Lamarkdown provide additional keyword arguments.
 
-A rule function returns a value specific to the type of processing it governs: embed rules return `bool`, hasing rules return `str` or `None`, and scale rules return `float` or `int`.
+A rule function returns a value specific to the type of processing it governs: embed rules return `bool`, hashing rules return `str` or `None`, and scale rules return `float` or `int`.
 
 
 ## Caching {#caching}
@@ -380,5 +380,5 @@ To avoid unnecessary delays during compilation, Lamarkdown uses two caches:
 [scale_rule]:           api.md#scale_rule
 [variants_call]:        api.md#variants
 
-[m.doc]:                modules/doc.md
-[m.plots]:              modules/plots.md
+[doc]:                modules/doc.md
+[plots]:              modules/plots.md

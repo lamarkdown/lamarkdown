@@ -1,12 +1,10 @@
----
-parent: Extensions
----
-
 # `la.latex`
 
-This extension lets you embed Latex code directly in markdown documents. It invokes external commands to compile Latex to PDF, and to convert the PDF to SVG. It then embeds the SVG into the output HTML, using either an `<svg>` or `<img>` element.
+This extension lets you embed LaTeX code in Markdown documents. The intention is to support LaTeX-based diagrams, as well as LaTeX mathematical code, and there is a different syntactical approach for each.
 
-The extension (and hence the Latex syntax) is enabled in the following cases:
+<!-- It invokes external commands to compile LaTeX to PDF, and to convert the PDF to SVG. It then embeds the SVG into the output HTML. -->
+
+<!--The extension (and hence the LaTeX syntax) is enabled in the following cases:
 
 * By default if you have no build files;
 
@@ -20,138 +18,162 @@ The extension (and hence the Latex syntax) is enabled in the following cases:
     ```python
     import lamarkdown as la
     la('la.latex')
-    ```
+    ```-->
 
-{: .note}
-Some may argue that embedding Latex within markdown pollutes a simple and readable format with less-readable, esoteric symbols. Nonetheless, this approach does allow you to create diagrams, and other visual elements, all within a single file, without having to manage a collection of external resources.
-
-
-## Syntax
-
-Assuming you are comfortable with Latex syntax, this extension supports two approaches for embedding it in markdown:
-
-1. You can write a complete Latex document within your `.md` file. It must begin with `\documentclass{...}`, contain `\begin{document}` and end with `\end{document}`.
-
-    ```
-    # My Document
-   
-    \documentclass{article}
-    \usepackage{ulem}
-    \begin{document}
-        \emph{Compiled with Latex.}
-    \end{document}
-    { alt="Textual explanation" }
-
-    Resuming the markdown syntax here.
-    ```
-
-2. You can write an abbreviated form. This must start with one of `\usepackage{...}`, `\usetikzlibrary{...}` or `\begin{...}`, contain `\begin{...}`, and end with a corresponding `\end{...}`.
-
-    In this abbreviated form, Lamarkdown will use `\documentclass{standalone}`, and insert `\begin{document}` and `\end{document}` if not already present. The `tikz` package will be included automatically.
-
-    ```
-    # My Document
-   
-    Important diagram:
-
-    \begin{tikzpicture}
-        \path (0,0) node(a) {Start} -- (2,0) node(b) {End};
-        \draw[->] (a) -- (b);
-    \end{tikzpicture}
-    { alt="Textual explanation" }
-
-    Please contact us for details.
-    ```
-Both forms must begin on a new line (though not necessarily a new paragraph).
-
-Both forms also accept an [attribute list](https://python-markdown.github.io/extensions/attr_list/), on a new line and enclosed in braces, _after_ the closing `\end{...}`. This will attach HTML attributes to the resulting HTML output element, and may be important for accessibility (among other things). For instance, if your Latex code represents a diagram, you could write `{ alt="My Diagram" }` at the bottom.
-
-Here is a complete example `.md` file with embedded Latex:
+<!--{: .note}
+Some may argue that embedding LaTeX within markdown pollutes a simple and readable format with less-readable, esoteric symbols. Nonetheless, this approach does allow you to create diagrams, and other visual elements, all within a single file, without having to manage a collection of external resources.-->
 
 
-## Processing and Embedding
+## Diagrammatic (or Textual) LaTeX Code {#whole}
 
-Lamarkdown invokes `xelatex` (by default), or `pdflatex`, or any other command of your choosing, to compile each separate Latex snippet:
+You can write either an entire LaTeX document, or a single LaTeX environment, directly within an `.md` file. This is intended for diagram-generating code, though you can in theory embed any arbitrary LaTeX output.
 
-```python
-import lamarkdown as la
-la('la.latex', tex = 'pdflatex')
-```
-```python
-import lamarkdown as la
-la('la.latex', tex = 'my-custom-tex in.tex out.pdf')
-# Note: 'in.tex' and 'out.pdf' are placeholders that will be automatically replaced with the actual file names.
+The extension will:
+
+1. Pass the LaTeX code to an external LaTeX compiler, retrieving output in PDF form;
+2. Pass the PDF file to another external command to convert it to SVG; and
+3. Embed the SVG in the output HTML.
+
+The LaTeX code must begin on a new line (though not necessarily a new paragraph).
+
+Immediately underneath the LaTeX code, on a new line, you may write an [attribute list](https://python-markdown.github.io/extensions/attr_list/). This will attach HTML attributes to the resulting HTML output element, and may be important for accessibility (among other things). For instance, you could write `{ alt="A diagram showing ..." }` at the bottom.
+
+
+!!! note "Design Notes"
+
+    We choose to allow direct embedding of LaTeX code (for non-mathematical purposes), without any extra delimiter syntax. This results in some additional internal design complexity within Lamarkdown, considering it could have used [PyMdown's blocks mechanism](https://facelessuser.github.io/pymdown-extensions/extensions/blocks/), or its [superfences extension](https://facelessuser.github.io/pymdown-extensions/extensions/superfences/).
+
+    However, LaTeX effectively comes with its own delimiter syntax, and its direct inclusion seems unambiguous, given the requirements above. Thus, any extra syntax might feel like clutter to readers and authors.
+
+    There is also a precedent, in a sense. Markdown already permits embedded HTML without any delimiters, because it too is unambiguous.
+
+
+### Whole Document
+
+If you embed an entire LaTeX document, it is expected to begin with `\documentclass` and end with `\end{document}`. For instance:
+
+```markdown
+# Embedding a Whole LaTeX Document
+
+\documentclass{article}
+\usepackage{ulem}
+\begin{document}
+    \emph{Compiled with LaTeX.}
+\end{document}
+{ alt="Textual explanation" }
+
+Resuming the markdown syntax here.
 ```
 
-Compiling Latex can add significantly to the total compilation time of the markdown document. Therefore, if [live updating](./LiveUpdating) is enabled, Lamarkdown caches the output of `xelatex`/`pdflatex`, and only reruns the command if/when there are changes to the Latex code (or various configuration options).
+### Single Environment
 
-These commands produce PDF output, which cannot be directly embedded in HTML. Therefore, Lamarkdown converts it to scalable vector graphics (SVG) using `dvisvgm` (by default), `pdf2svg`, `inkscape` or (again) another command of your choosing.
+To embed just a single environment (with optional preamble), your LaTeX code must:
 
-```python
-import lamarkdown as la
-la('la.latex', pdf_svg_converter = 'pdf2svg')
+* Start with one of `\usepackage`, `\usetikzlibrary` or `\begin{`_name_`}` (where _name_ is any LaTeX environment);
+* Contain `\begin{`_name_`}` (if it didn't start with it); and
+* End with `\end{`_name_`}`.
+
+For instance:
+
+```markdown
+# Embedding a LaTeX Environment
+
+Important diagram:
+
+\begin{tikzpicture}
+    \path (0,0) node(a) {Start} -- (2,0) node(b) {End};
+    \draw[->] (a) -- (b);
+\end{tikzpicture}
+{ alt="Textual explanation" }
+
+Please contact us for details.
 ```
-```python
-import lamarkdown as la
-la('la.latex', pdf_svg_converter = 'my-custom-converter in.pdf out.svg')
-# Note: 'in.pdf' and 'out.svg' are placeholders, automatically replaced with the actual file names.
-```
 
-Lamarkdown also supports two methods of inserting the SVG image into the output HTML:
+The extension fills in the remaining syntax (`\documentclass` and `\begin{document}...\end{document}`, as needed) to form a valid LaTeX document.
 
-1. It can insert an `<img>` tag, containing the SVG as a base64 `data:` URI.
 
-    ```python
-    import lamarkdown as la
-    la('la.latex', embedding = 'data_uri') # The default
-    ```
 
-2. It can contain an `<svg>` element (and its child elements). 
 
-    ```python
-    import lamarkdown as la
-    la('la.latex', embedding = 'svg_element')
-    ```
+## Mathematics
 
-There may not be much to distinguish these two approaches from a practical point of view.
+You can also embed LaTeX mathematical code within `$...$` (for inline maths) or `$$...$$` (for block-form equations).
+
+By default (or if `math="mathml"`), the extension uses [latex2mathml](https://github.com/roniemartinez/latex2mathml) to produce MathML code, which is included directly in the output document.
+
+If `math="latex"`, then mathematical code will instead be compiled and converted using the same external commands as in [section ##](#whole), just in math mode.
+
+Processing of math code can also be turned off with `math="ignore"` (either to restore the literal meaning of `$`, or to use an alternate math code processor like `pymdownx.arithmatex`).
+
 
 ## Options
 
 Here's a full list of supported config options:
 
-* `build_dir`: the location to write Latex's various temporary/intermediate files. By default, Lamarkdown creates a directory called `build` for this purpose.
+{-list-table}
+* #
+    - Option
+    - Description
 
-* `tex`: either "`xelatex`" (the default), or "`pdflatex`", or a complete command containing `in.tex` and/or `out.pdf` (which will be replaced with the appropriate temporary input/output files).
+*   - `build_dir`
+    - The location to write LaTeX's various temporary/intermediate files. By default, the extension uses Lamarkdown's own build directory (by default, `build/`).
 
-* `pdf_svg_converter`: either "`dvisvgm`" (the default), or "`pdf2svg`", or "`inkscape`", or a complete command containing `in.pdf` and/or `out.svg` (which will be replaced with the appropriate temporary input/output files).
+*   - `cache`
+    - A dictionary-like object for caching the output of the LaTeX compiler and PDF-to-SVG converter. Invoking these programs can take significant time, so they are only invoked when the contents of a given LaTeX section changes, _or_ when a file included by the LaTeX code changes.
 
-* `embedding`: either "`data_uri`" (to use an `<img>` element with a `data:` URI), or "`svg_element`".
+        By default, the extension uses Lamarkdown's [build cache](../core.md#caching).
 
-* `prepend`: any common Latex code (by default, none) to be added to the front of each Latex snippet, immediately after `\documentclass{...}`. You can use this to add common packages (e.g., `\usepackage[default]{opensans}`), define `\newcommand`s, etc.
+*   - `doc_class`
+    - The `documentclass` to use when not explicitly given. By default, this is `standalone`.
 
-    ```python
-    import lamarkdown as la
-    la('la.latex',
-        prepend = r'''
-            \usepackage[default]{opensans}
-            \newcommand{\mycmd}{xyz}
-        '''
-    )
-    ```
+*   - `doc_class_options`
+    - Options to be passed to the `documentclass`, as a single string (comma-separated, as per LaTeX syntax). By default, this is empty.
 
-* `doc_class`: the `documentclass` to use when not explicitly given. By default, this is "`standalone`".
+*   - `embedding`
+    - Either `data_uri` or `svg_element`. If `data_uri` is chosen, the output is embedded using an `<img>` element with a `data:` URI. Otherwise, it is included as an `<svg>` element.
 
-* `doc_class_options`: options to be passed to the `documentclass`, as a single string (comma-separated, as per Latex syntax). By default, this is empty.
+        This is separate from Lamarkdown's core [resource embedding](../core.md#embedding) functionality; LaTeX output is _always_ embedded, but there is a choice of mechanism.
 
-* `strip_html_comments`: `True` (the default) to remove HTML-style comments `<!-- ... -->` from within Latex code, for consistency with the rest of the `.md` file. If `False`, such comments will be considered ordinary text and passed to the Latex compiler, for whatever it will make of them. The normal Latex `%` comments are available in either case.
+*   - `live_update_deps`
+    - A set-like object into which the extension records the names of any files that the given TeX code depends on, such as images or other included TeX code (but not including the TeX installation itself). By default, if available, the extension will use Lamarkdown's "current" set of such dependencies.
 
-For example (in your [build file](./BuildFiles)):
-```python
-import lamarkdown as la
-la('la.latex',
-    tex = 'pdflatex',
-    pdf_svg_converter = 'inkscape',
-    embedding = 'svg_element',
-    prepend = r'\usepackage[default]{opensans}'
-)
-```
+        This has no effect on the output produced, but assists Lamarkdown in understanding when it should recompile the `.md` document.
+
+*   - `math`
+    - Specifies how to handle `$...$` and `$$...$$` sequences. The options are:
+
+        * `mathml` (the default), where mathematical code is converted to MathML `<math>` elements, to be rendered by the browser;
+        * `latex`, where mathematical code is compiled in essentially the same way as for `\begin{}...\end{}` blocks, but in LaTeX math mode; and
+        * `ignore`, where mathematical code is left untouched by this extension, which may be needed if you're using another extension (like `pymdownx.arithmatex`) to handle it.
+
+*   - `pdf_svg_converter`
+    - The command to use to convert LaTeX PDF output to SVG form. This can be either `dvisvgm` (the default), or `pdf2svg`, or `inkscape`, _or_ a complete command that contains the special placeholders `in.pdf` and/or `out.svg`. These will be replaced with the appropriate temporary input/output files.
+
+*   - `prepend`
+    - Any common LaTeX code (by default, none) to be added to the front of each LaTeX snippet, immediately after `\documentclass{...}`. You can use this to add common packages, define `\newcommand`s, etc.
+
+        ```python
+        import lamarkdown as la
+        la('la.latex',
+            prepend = r'''
+                \usepackage[default]{opensans}
+                \newcommand{\mycmd}{xyz}
+            '''
+        )
+        ```
+
+*   - `progress`
+    - An object accepting error, warning and progress messages. This should be an instance of `lamarkdown.lib.Progress`, and the extension will reuse Lamarkdown's "current" instance by default, if available.
+
+
+*   - `strip_html_comments`
+    - `True` (the default) to remove HTML-style comments `<!-- ... -->` from within LaTeX code, for consistency with the rest of the `.md` file. If `False`, such comments will be considered ordinary text and passed to the LaTeX compiler, for whatever it will make of them. The normal LaTeX `%` comments are available in either case.
+
+*   - `tex`
+    - The command to use to compile LaTeX code. This can be either `xelatex` (the default), or `pdflatex`, _or_ a complete command that contains the special placeholders `in.tex` and/or `out.pdf`. These will be replaced with the appropriate temporary input/output files.
+
+*   - `timeout`
+    - The amount of time to wait (in seconds) before the TeX command will be terminated, _after_ it stops outputting messages. This is 3 seconds by default.
+
+*   - `verbose_errors`
+    - If `True`, then everything the TeX command writes to standard output will be included in any error messages. If `False` (the default), the extension will try to detect the start of any actual error message, and only output that.
+

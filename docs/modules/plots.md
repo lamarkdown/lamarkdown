@@ -25,5 +25,5 @@ The name after ```` ``` ```` indicates which notation/tool is to be used. Lamark
 * [`matplotlib`](https://matplotlib.org/); and
 * `r-plot` (R-based graphics). You will need to manually install these tools yourself (whichever one(s) you intend to use).
 
-Note: Lamarkdown also supports embedding Latex code, but as a separate feature not requiring fence notation.
+Note: Lamarkdown also supports [embedding LaTeX code](../extensions/latex.md), but this does not require fence notation.
 

@@ -258,5 +258,5 @@ Also see the functions below for ways to create structural differences between v
     Returns the `BuildParams` object encapsulating the complete set of arguments to the build process (apart from the actual markdown code).
 
 
-[build files]: process.md#build_files
+[build files]: core.md#build_files
 [build modules]: modules/index.md
