@@ -21,14 +21,16 @@ class LabelTemplate:
     inner_template: 'LabelTemplate' | None
 
     def __repr__(self):
-        ptype = self.parent_type or ''
-        parent_spec = {'': 'X', 'ol': 'L'}.get(ptype, ptype)
+        css_id = self.counter_type.css_id if self.counter_type else ''
         inner_spec = (
             ',*'    if self.inner_template is self
             else '' if self.inner_template is None
             else repr(self.inner_template)
         )
-        css_id = self.counter_type.css_id if self.counter_type else ''
+        if self.parent_type is None:
+            return (f'{self.prefix}{css_id}{self.suffix}{inner_spec}')
+
+        parent_spec = {'': 'X', 'ol': 'L'}.get(self.parent_type, self.parent_type)
         return (f'{self.prefix}{parent_spec}{self.separator}{css_id}{self.suffix}{inner_spec}')
 
 
@@ -45,7 +47,7 @@ QUOTED_LITERAL = r'''
 LITERAL = fr'''
     (
         [^a-zA-Z0-9,'"] | {QUOTED_LITERAL}
-    )*+
+    )++
 '''
 
 # Notes:
@@ -53,14 +55,14 @@ LITERAL = fr'''
 #   part of the prefix, separator or suffix.
 TEMPLATE_REGEX = re.compile(fr'''(?x)
     \s*
-    (?P<prefix> {LITERAL} )
+    (?P<prefix> {LITERAL} )?
     (
         (
             (?P<parent> [XxLl] | [Hh][1-6]? )
             (?P<separator> {LITERAL} )
         )?+
         (?P<format> [a-zA-Z0-9] ([a-zA-Z0-9-]* [a-zA-Z0-9])? )
-        (?P<suffix> {LITERAL} )
+        (?P<suffix> {LITERAL} )?
     )?
     \s*
 ''')
@@ -114,7 +116,7 @@ class LabelTemplateParser:
                     f'Invalid counter type "{counter_name}" in label template "{template_str}"')
 
         template = LabelTemplate(
-            prefix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix')),
+            prefix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('prefix') or ''),
             separator    = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('separator') or ''),
             suffix       = QUOTED_LITERAL_REGEX.sub(_repl_literal, match.group('suffix') or ''),
             parent_type  = parent_type,

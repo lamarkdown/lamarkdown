@@ -28,8 +28,21 @@ class LabelTemplatesTestCase(unittest.TestCase):
             ('(H3.a)',  template('(',   '.', ')', get_counter_type('a'), 'h3', None)),
             ('(L.a)',   template('(',   '.', ')', get_counter_type('a'), 'ol', None)),
 
-            # Handling of '-' (allowed as an internal character within counter names)
-            ('-X-lower-alpha-', template('-', '-', '-', get_counter_type('lower-alpha'), '', None)),
+            # Multicharacter counter names and handling of internal '-'
+            ('octal',      template('',  '',  '',   get_counter_type('octal'), None, None)),
+            ('(octal)',    template('(', '',  ')',  get_counter_type('octal'), None, None)),
+            ('X-octal',    template('',  '-', '',   get_counter_type('octal'), '',   None)),
+            ('(X-octal)',  template('(', '-', ')',  get_counter_type('octal'), '',   None)),
+
+            # Counter names that happen to start with a valid parent specifier
+            ('hebrew',     template('', '', '',    get_counter_type('hebrew'), None, None)),
+            ('-H-hebrew-', template('-', '-', '-', get_counter_type('hebrew'), 'h', None)),
+            ('lao',        template('', '', '',    get_counter_type('lao'),    None, None)),
+            ('-L-lao-',    template('-', '-', '-', get_counter_type('lao'),    'ol', None)),
+
+            # Handling of internal '-' (part of the counter-name)
+            ('lower-alpha',     template('', '', '', get_counter_type('lower-alpha'), None, None)),
+            ('-X-lower-alpha-', template('-','-','-', get_counter_type('lower-alpha'), '', None)),
 
             # Quoted literals
             ('"(a)"',         template('(a)',       '', '',    None,                  None, None)),
