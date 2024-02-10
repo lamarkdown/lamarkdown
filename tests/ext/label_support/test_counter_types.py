@@ -1,5 +1,5 @@
 from lamarkdown.ext.label_support.counter_types import (
-    AdditiveCounter, AlphabeticCounter, CyclicCounter, FixedCounter, NumericCounter,
+    AdditiveCounter, AlphabeticCounter, CounterType, CyclicCounter, FixedCounter, NumericCounter,
     SymbolicCounter)
 from lamarkdown.ext.label_support.standard_counter_types import get_counter_type
 import unittest
@@ -264,3 +264,110 @@ class CounterTypesTestCase(unittest.TestCase):
             (11,    '11'),  # Fallback
         ]:
             assert_that(counter.format(value), equal_to(string))
+
+
+    def test_range_fallback(self):
+
+        '''
+        We construct different pairs of counter types, where the 'main' counter type has a certain
+        range, and should fall back to the 'fallback' counter type outside that range. It _also_
+        falls back for the special value '1'.
+        '''
+
+        for range_min, range_max, expected_seq in [
+            (None, None, ['main0', 'main1', 'fbk2', 'main3', 'main4', 'main5']),
+            (1,    None, ['fbk0',  'main1', 'fbk2', 'main3', 'main4', 'main5']),
+            (None, 4,    ['main0', 'main1', 'fbk2', 'main3', 'main4', 'fbk5']),
+            (1,    4,    ['fbk0',  'main1', 'fbk2', 'main3', 'main4', 'fbk5'])
+        ]:
+            class FallbackCounter(CounterType):
+                def __init__(self):
+                    super().__init__('fallback_mock_css_id',
+                                     range = (None, None))
+
+                def format_impl(self, count: int) -> str:
+                    return f'fbk{count}'
+
+            class MainCounter(CounterType):
+                def __init__(self):
+                    super().__init__('main_mock_css_id',
+                                    range = (range_min, range_max),
+                                    fallback = FallbackCounter())
+
+                def format_impl(self, count: int) -> str:
+                    return None if count == 2 else f'main{count}'
+
+            counter_type = MainCounter()
+            for count, expected_label in zip(range(0, 6), expected_seq):
+                assert_that(counter_type.format(count),
+                            equal_to(expected_label))
+
+
+    def test_negative(self):
+
+        for negative, abs_negative, expected_seq in [
+            (('[', ']'), False, ['[x]', 'y', 'z']),
+            (('[', ']'), True,  ['[z]', 'y', 'z'])
+        ]:
+            class TestCounter(CounterType):
+                def __init__(self):
+                    super().__init__('mock_css_id',
+                                     range = (None, None),
+                                     negative = negative,
+                                     abs_negative = abs_negative)
+
+                def format_impl(self, count: int) -> str:
+                    return {-1: 'x', 0: 'y', 1: 'z'}[count]
+
+            counter_type = TestCounter()
+            for count, expected_label in zip(range(-1, 2), expected_seq):
+                assert_that(counter_type.format(count),
+                            equal_to(expected_label))
+
+
+    def test_prefix_suffix(self):
+
+        class TestCounter(CounterType):
+            def __init__(self):
+                super().__init__('mock_css_id',
+                                 prefix = 'prefix-',
+                                 suffix = '-suffix')
+
+            def format_impl(self, count: int) -> str:
+                return 'label'
+
+        assert_that(
+            TestCounter().format(1),
+            equal_to('prefix-label-suffix'))
+
+
+    def test_pad(self):
+
+        for pad,       core_label, expected_label in [
+            ((0, '#'), 'a',        'a'),
+            ((0, '#'), 'aa',       'aa'),
+            ((0, '#'), 'aaa',      'aaa'),
+            ((1, '#'), 'a',        'a'),
+            ((1, '#'), 'aa',       'aa'),
+            ((1, '#'), 'aaa',      'aaa'),
+            ((2, '#'), 'a',        '#a'),
+            ((2, '#'), 'aa',       'aa'),
+            ((2, '#'), 'aaa',      'aaa'),
+            ((3, '#'), 'a',        '##a'),
+            ((3, '#'), 'aa',       '#aa'),
+            ((3, '#'), 'aaa',      'aaa'),
+            ((4, '#'), 'a',        '###a'),
+            ((4, '#'), 'aa',       '##aa'),
+            ((4, '#'), 'aaa',      '#aaa')
+        ]:
+            class TestCounter(CounterType):
+                def __init__(self):
+                    super().__init__('mock_css_id',
+                                     pad = pad)
+
+                def format_impl(self, count: int) -> str:
+                    return core_label
+
+            assert_that(
+                TestCounter().format(1),
+                equal_to(expected_label))

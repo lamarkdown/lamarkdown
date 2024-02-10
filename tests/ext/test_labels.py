@@ -1,4 +1,4 @@
-from ..util.markdown_ext import entry_point_cls, HtmlInsert
+from ..util.markdown_ext import entry_point_cls, HtmlInsert, assert_regex
 from ..util.hamcrest_elements import is_element
 import lamarkdown.ext
 
@@ -528,53 +528,52 @@ class LabelsTestCase(unittest.TestCase):
                                  labels = {'ol': 'L.1 ,*'},
                                  css_fn = css.write)
 
-        self.assertRegex(
+        assert_regex(
             html,
-            r'''(?xs)
-            \s* <ol[ ]class="la-labelled[ ]la-label0">
-            \s* <li>ItemA
-            \s*     <ol[ ]class="la-labelled[ ]la-label1">
-            \s*         <li>ItemAA</li>
-            \s*         <li>ItemAB
-            \s*             <ol[ ]class="la-labelled[ ]la-label2">
-            \s*                 <li>ItemABA</li>
-            \s*             </ol>
-            \s*         </li>
-            \s*     </ol>
-            \s* </li>
-            \s* <li>ItemB
-            \s*     <ol[ ]class="la-labelled[ ]la-label1">
-            \s*         <li>ItemBA
-            \s*             <ol[ ]class="la-labelled[ ]la-label2">
-            \s*                 <li>ItemBAA</li>
-            \s*             </ol>
-            \s*         </li>
-            \s*         <li>ItemBB</li>
-            \s*     </ol>
-            \s* </li>
-            \s* <li>ItemC</li>
-            \s* <li>ItemD</li>
-            \s* </ol>
-            \s*
+            r'''
+            <ol[ ]class="la-labelled[ ]la-label0">
+            <li>ItemA
+                <ol[ ]class="la-labelled[ ]la-label1">
+                    <li>ItemAA</li>
+                    <li>ItemAB
+                        <ol[ ]class="la-labelled[ ]la-label2">
+                            <li>ItemABA</li>
+                        </ol>
+                    </li>
+                </ol>
+            </li>
+            <li>ItemB
+                <ol[ ]class="la-labelled[ ]la-label1">
+                    <li>ItemBA
+                        <ol[ ]class="la-labelled[ ]la-label2">
+                            <li>ItemBAA</li>
+                        </ol>
+                    </li>
+                    <li>ItemBB</li>
+                </ol>
+            </li>
+            <li>ItemC</li>
+            <li>ItemD</li>
+            </ol>
             ''')
 
-        li = r'li:not\(\.la-no-label\)'
-        self.assertRegex(
+        li = r'li:not\(\.la-no-label\):not\(\.la-labelled\)'
+        assert_regex(
             css.getvalue(),
-            fr'''(?xs)
-            \s* \.la-labelled>li\{{         list-style-type:none;                           \}}
-            \s* \.la-label0\{{              counter-reset:la-label0;                        \}}
-            \s* \.la-label0>{li}\{{         counter-increment:la-label0;                    \}}
-            \s* \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}}
-            \s* \.la-label1\{{              counter-reset:la-label1;                        \}}
-            \s* \.la-label1>{li}\{{         counter-increment:la-label1;                    \}}
-            \s* \.la-label1>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-                                                    counter\(la-label1,decimal\)[ ]"[ ]";   \}}
-            \s* \.la-label2\{{              counter-reset:la-label2;                        \}}
-            \s* \.la-label2>{li}\{{         counter-increment:la-label2;                    \}}
-            \s* \.la-label2>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
-                                                    counter\(la-label1,decimal\)[ ]"."[ ]
-                                                    counter\(la-label2,decimal\)[ ]"[ ]";   \}}
+            fr'''
+            \.la-labelled>li\{{         list-style-type:none;                           \}}
+            \.la-label0\{{              counter-reset:la-label0;                        \}}
+            \.la-label0>{li}\{{         counter-increment:la-label0;                    \}}
+            \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"[ ]";   \}}
+            \.la-label1\{{              counter-reset:la-label1;                        \}}
+            \.la-label1>{li}\{{         counter-increment:la-label1;                    \}}
+            \.la-label1>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                counter\(la-label1,decimal\)[ ]"[ ]";   \}}
+            \.la-label2\{{              counter-reset:la-label2;                        \}}
+            \.la-label2>{li}\{{         counter-increment:la-label2;                    \}}
+            \.la-label2>{li}::before\{{ content:counter\(la-label0,decimal\)[ ]"."[ ]
+                                                counter\(la-label1,decimal\)[ ]"."[ ]
+                                                counter\(la-label2,decimal\)[ ]"[ ]";   \}}
             '''
         )
 
@@ -590,54 +589,54 @@ class LabelsTestCase(unittest.TestCase):
                                  labels = {'h2': 'X.A,*', 'ol': 'X.1,*'},
                                  css_fn = css.write)
 
-        self.assertRegex(
+        assert_regex(
             html,
-            r'''(?xs)
-            \s* <h1>Section1</h1>
-            \s* <ol[ ]class="la-labelled[ ]la-label0">
-            \s*   <li>ItemA</li>
-            \s*   <li>
-            \s*     <p>ItemB</p>
-            \s*     <h2><span[ ]class="la-label">2.A</span>Section2</h2>
-            \s*     <ol[ ]class="la-labelled[ ]la-label1">
-            \s*       <li>
-            \s*         <p>ItemC</p>
-            \s*         <ol[ ]class="la-labelled[ ]la-label2">
-            \s*           <li>
-            \s*             <p>ItemD</p>
-            \s*             <h3><span[ ]class="la-label">2.A.1.1.A</span>Section3</h3>
-            \s*           </li>
-            \s*           <li>
-            \s*             <p>ItemE</p>
-            \s*             <h3><span[ ]class="la-label">2.A.1.2.A</span>Section4</h3>
-            \s*             <h4><span[ ]class="la-label">2.A.1.2.A.A</span>Section5</h4>
-            \s*           </li>
-            \s*         </ol>
-            \s*       </li>
-            \s*     </ol>
-            \s*   </li>
-            \s* </ol>
-            \s*
+            r'''
+            <h1>Section1</h1>
+            <ol[ ]class="la-labelled[ ]la-label0">
+              <li>ItemA</li>
+              <li>
+                <p>ItemB</p>
+                <h2><span[ ]class="la-label">2.A</span>Section2</h2>
+                <ol[ ]class="la-labelled[ ]la-label1">
+                  <li>
+                    <p>ItemC</p>
+                    <ol[ ]class="la-labelled[ ]la-label2">
+                      <li>
+                        <p>ItemD</p>
+                        <h3><span[ ]class="la-label">2.A.1.1.A</span>Section3</h3>
+                      </li>
+                      <li>
+                        <p>ItemE</p>
+                        <h3><span[ ]class="la-label">2.A.1.2.A</span>Section4</h3>
+                        <h4><span[ ]class="la-label">2.A.1.2.A.A</span>Section5</h4>
+                      </li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+            </ol>
+
             '''
         )
 
-        li = r'li:not\(\.la-no-label\)'
-        self.assertRegex(
+        li = r'li:not\(\.la-no-label\):not\(\.la-labelled\)'
+        assert_regex(
             css.getvalue(),
-            fr'''(?xs)
-            \s* \.la-labelled>li\{{         list-style-type:none;                   \}}
-            \s* \.la-label0\{{              counter-reset:la-label0;                \}}
-            \s* \.la-label0>{li}\{{         counter-increment:la-label0;            \}}
-            \s* \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\);   \}}
-            \s* \.la-label1\{{              counter-reset:la-label1;                \}}
-            \s* \.la-label1>{li}\{{         counter-increment:la-label1;            \}}
-            \s* \.la-label1>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
-                                            counter\(la-label1,decimal\);           \}}
-            \s* \.la-label2\{{              counter-reset:la-label2;                \}}
-            \s* \.la-label2>{li}\{{         counter-increment:la-label2;            \}}
-            \s* \.la-label2>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
-                                            counter\(la-label1,decimal\)[ ]"\."[ ]
-                                            counter\(la-label2, decimal\);          \}}
+            fr'''
+            \.la-labelled>li\{{         list-style-type:none;                   \}}
+            \.la-label0\{{              counter-reset:la-label0;                \}}
+            \.la-label0>{li}\{{         counter-increment:la-label0;            \}}
+            \.la-label0>{li}::before\{{ content:counter\(la-label0,decimal\);   \}}
+            \.la-label1\{{              counter-reset:la-label1;                \}}
+            \.la-label1>{li}\{{         counter-increment:la-label1;            \}}
+            \.la-label1>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
+                                        counter\(la-label1,decimal\);           \}}
+            \.la-label2\{{              counter-reset:la-label2;                \}}
+            \.la-label2>{li}\{{         counter-increment:la-label2;            \}}
+            \.la-label2>{li}::before\{{ content:"2\.A"[ ]"\."[ ]
+                                        counter\(la-label1,decimal\)[ ]"\."[ ]
+                                        counter\(la-label2, decimal\);          \}}
             '''
         )
 
@@ -735,43 +734,42 @@ class LabelsTestCase(unittest.TestCase):
                                  labels = {'ul': '@@,:::'},
                                  css_fn = css.write)
 
-        self.assertRegex(
+        assert_regex(
             html,
-            r'''(?xs)
-            \s* <ul[ ]class="la-labelled[ ]la-label0">
-            \s*   <li>ItemA
-            \s*       <ul[ ]class="la-labelled[ ]la-label1">
-            \s*           <li>ItemAA</li>
-            \s*           <li>ItemAB
-            \s*               <ul>
-            \s*                   <li>ItemABA</li>
-            \s*               </ul>
-            \s*           </li>
-            \s*       </ul>
-            \s*   </li>
-            \s*   <li>ItemB
-            \s*       <ul[ ]class="la-labelled[ ]la-label1">
-            \s*           <li>ItemBA
-            \s*               <ul>
-            \s*                   <li>ItemBAA</li>
-            \s*               </ul>
-            \s*           </li>
-            \s*           <li>ItemBB</li>
-            \s*       </ul>
-            \s*   </li>
-            \s*   <li>ItemC</li>
-            \s*   <li>ItemD</li>
-            \s* </ul>
-            \s*
+            r'''
+            <ul[ ]class="la-labelled[ ]la-label0">
+              <li>ItemA
+                  <ul[ ]class="la-labelled[ ]la-label1">
+                      <li>ItemAA</li>
+                      <li>ItemAB
+                          <ul>
+                              <li>ItemABA</li>
+                          </ul>
+                      </li>
+                  </ul>
+              </li>
+              <li>ItemB
+                  <ul[ ]class="la-labelled[ ]la-label1">
+                      <li>ItemBA
+                          <ul>
+                              <li>ItemBAA</li>
+                          </ul>
+                      </li>
+                      <li>ItemBB</li>
+                  </ul>
+              </li>
+              <li>ItemC</li>
+              <li>ItemD</li>
+            </ul>
             '''
         )
 
-        self.assertRegex(
+        assert_regex(
             css.getvalue(),
-            r'''(?xs)
-            \s* \.la-labelled>li\{list-style-type:none;\}
-            \s* \.la-label0>li:not\(\.la-no-label\)::before\{content:"@@";\}
-            \s* \.la-label1>li:not\(\.la-no-label\)::before\{content:":::";\}
+            r'''
+            \.la-labelled>li\{list-style-type:none;\}
+            \.la-label0>li:not\(\.la-no-label\):not\(\.la-labelled\)::before\{content:"@@";\}
+            \.la-label1>li:not\(\.la-no-label\):not\(\.la-labelled\)::before\{content:":::";\}
             '''
         )
 
@@ -822,32 +820,48 @@ class LabelsTestCase(unittest.TestCase):
                     <figure><figcaption>Caption22</figcaption><p>FigText22</p></figure>
                 </figure>
                 <figure><figcaption>Caption3</figcaption><p>FigText3</p></figure>
+                <figure md-label="-A-"><figcaption>CaptionA</figcaption><p>FigTextA</p>
+                    <figure><figcaption>Caption</figcaption><p>FigText</p></figure>
+                </figure>
+                <figure><figcaption>CaptionB</figcaption><p>FigTextB</p></figure>
                 ''')]
         )
 
-        self.assertRegex(
+        assert_regex(
             html,
-            r'''(?xs)
-            \s* <figure[ ]class="la-figure">
-            \s*     <figcaption><span[ ]class="la-label">-1-</span>Caption1</figcaption>
-            \s*     <p>FigText1</p>
-            \s* </figure>
-            \s* <figure[ ]class="la-figure">
-            \s*     <figcaption><span[ ]class="la-label">-2-</span>Caption2</figcaption>
-            \s*     <p>FigText2</p>
-            \s*     <figure[ ]class="la-figure">
-            \s*         <figcaption><span[ ]class="la-label">-2-1-</span>Caption21</figcaption>
-            \s*         <p>FigText21</p>
-            \s*     </figure>
-            \s*     <figure[ ]class="la-figure">
-            \s*         <figcaption><span[ ]class="la-label">-2-2-</span>Caption22</figcaption>
-            \s*         <p>FigText22</p>
-            \s*     </figure>
-            \s* </figure>
-            \s* <figure[ ]class="la-figure">
-            \s*     <figcaption><span[ ]class="la-label">-3-</span>Caption3</figcaption>
-            \s*     <p>FigText3</p>
-            \s* </figure>
+            r'''
+            <figure[ ]class="la-figure">
+                <figcaption><span[ ]class="la-label">-1-</span>Caption1</figcaption>
+                <p>FigText1</p>
+            </figure>
+            <figure[ ]class="la-figure">
+                <figcaption><span[ ]class="la-label">-2-</span>Caption2</figcaption>
+                <p>FigText2</p>
+                <figure[ ]class="la-figure">
+                    <figcaption><span[ ]class="la-label">-2-1-</span>Caption21</figcaption>
+                    <p>FigText21</p>
+                </figure>
+                <figure[ ]class="la-figure">
+                    <figcaption><span[ ]class="la-label">-2-2-</span>Caption22</figcaption>
+                    <p>FigText22</p>
+                </figure>
+            </figure>
+            <figure[ ]class="la-figure">
+                <figcaption><span[ ]class="la-label">-3-</span>Caption3</figcaption>
+                <p>FigText3</p>
+            </figure>
+            <figure[ ]class="la-figure">
+                <figcaption><span[ ]class="la-label">-A-</span>CaptionA</figcaption>
+                <p>FigTextA</p>
+                <figure[ ]class="la-figure">
+                    <figcaption>Caption</figcaption>
+                    <p>FigText</p>
+                </figure>
+            </figure>
+            <figure[ ]class="la-figure">
+                <figcaption><span[ ]class="la-label">-B-</span>CaptionB</figcaption>
+                <p>FigTextB</p>
+            </figure>
             ''')
 
     def test_tables(self):
@@ -866,35 +880,50 @@ class LabelsTestCase(unittest.TestCase):
                     <table><caption>Caption41</caption><tr><td>CellText41</td></tr></table>
                     <table><caption>Caption42</caption><tr><td>CellText42</td></tr></table>
                 </figure>
+                <table md-label="-A-"><caption>CaptionA</caption><tr><td>CellTextA</td></tr></table>
+                <figure><figcaption>CaptionB</figcaption>
+                    <table><caption>Caption</caption><tr><td>CellText</td></tr></table>
+                </figure>
                 ''')]
         )
 
-        self.assertRegex(
+        assert_regex(
             html,
-            r'''(?xs)
-            \s* <table>
-            \s*     <caption><span[ ]class="la-label">-1-</span>Caption1</caption>
-            \s*     <tr>\s*<td>CellText1</td>\s*</tr>
-            \s* </table>
-            \s* <figure[ ]class="table[ ]la-table">
-            \s*     <figcaption><span[ ]class="la-label">-2-</span>Caption2</figcaption>
-            \s*     <p>CellText2</p>
-            \s* </figure>
-            \s* <figure[ ]class="la-table">
-            \s*     <figcaption><span[ ]class="la-label">-3-</span>Caption3</figcaption>
-            \s*     <table>
-            \s*         <tr>\s*<td>CellText3</td>\s*</tr>
-            \s*     </table>
-            \s* </figure>
-            \s* <figure[ ]class="la-table">
-            \s*     <figcaption><span[ ]class="la-label">-4-</span>Caption4</figcaption>
-            \s*     <table><caption><span[ ]class="la-label">-4-1-</span>Caption41</caption>
-            \s*         <tr>\s*<td>CellText41</td>\s*</tr>
-            \s*     </table>
-            \s*     <table><caption><span[ ]class="la-label">-4-2-</span>Caption42</caption>
-            \s*         <tr>\s*<td>CellText42</td>\s*</tr>
-            \s*     </table>
-            \s* </figure>
+            r'''
+            <table>
+                <caption><span[ ]class="la-label">-1-</span>Caption1</caption>
+                <tr>\s*<td>CellText1</td>\s*</tr>
+            </table>
+            <figure[ ]class="table[ ]la-table">
+                <figcaption><span[ ]class="la-label">-2-</span>Caption2</figcaption>
+                <p>CellText2</p>
+            </figure>
+            <figure[ ]class="la-table">
+                <figcaption><span[ ]class="la-label">-3-</span>Caption3</figcaption>
+                <table>
+                    <tr>\s*<td>CellText3</td>\s*</tr>
+                </table>
+            </figure>
+            <figure[ ]class="la-table">
+                <figcaption><span[ ]class="la-label">-4-</span>Caption4</figcaption>
+                <table><caption><span[ ]class="la-label">-4-1-</span>Caption41</caption>
+                    <tr>\s*<td>CellText41</td>\s*</tr>
+                </table>
+                <table><caption><span[ ]class="la-label">-4-2-</span>Caption42</caption>
+                    <tr>\s*<td>CellText42</td>\s*</tr>
+                </table>
+            </figure>
+            <table>
+                <caption><span[ ]class="la-label">-A-</span>CaptionA</caption>
+                <tr>\s*<td>CellTextA</td>\s*</tr>
+            </table>
+            <figure[ ]class="la-table">
+                <figcaption><span[ ]class="la-label">-B-</span>CaptionB</figcaption>
+                <table>
+                    <caption>Caption</caption>
+                    <tr>\s*<td>CellText</td>\s*</tr>
+                </table>
+            </figure>
             ''')
 
 

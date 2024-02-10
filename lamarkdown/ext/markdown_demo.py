@@ -22,6 +22,7 @@ from pymdownx.blocks import BlocksExtension  # type: ignore
 from pymdownx.blocks.block import Block      # type: ignore
 
 import diskcache  # type: ignore
+import lxml
 import pygments
 import pygments.lexers
 import pygments.formatters
@@ -44,16 +45,38 @@ TARGET_FILE   = 'example.html'
 
 SEPARATOR = re.compile(r'(?m)^\s*---\s*$')
 
+HTML_SEMI_NEWLINE_TAGS = {'caption', 'figcaption', 'p'}
+HTML_NEWLINE_TAGS = {'div', 'figure', 'picture', 'table', 'tbody', 'tfoot', 'thead'}
+HTML_NEWLINE_TAG_REGEX = re.compile(
+    fr'<\s*(?P<end>/)?(?P<tag>{"|".join(HTML_NEWLINE_TAGS.union(HTML_SEMI_NEWLINE_TAGS))})>')
+HTML_BLANK_LINES_REGEX = re.compile(r'(\s*\n){2,}')
 
 def extra_files(file_list):
     if not (isinstance(file_list, list) or isinstance(file_list, tuple)):
         raise ValueError
 
-    for file_name, description, language in file_list:
-        if any(not isinstance(v, str) for v in [file_name, description, language]):
+    for file_name, description, language, visible in file_list:
+        if any(not isinstance(v, str) for v in [file_name, description, language, visible]):
             raise ValueError
 
     return file_list
+
+
+def pretty_print_html(html: str) -> str:
+
+    def repl(match):
+        both_newlines = match.group('tag') in HTML_NEWLINE_TAGS
+        start_tag = match.group('end') is None
+        return (
+            ('\n' if both_newlines or start_tag else '')
+            + match.group(0)
+            + ('\n' if both_newlines or not start_tag else '')
+        )
+
+    html = HTML_NEWLINE_TAG_REGEX.sub(repl, html)
+    html = HTML_BLANK_LINES_REGEX.sub('\n', html)
+    return html
+
 
 
 class MarkdownDemoBlock(Block):
@@ -61,16 +84,22 @@ class MarkdownDemoBlock(Block):
     OPTIONS = {
         'output_height': ['', str],
         'file_labels': [False, bool],
+        'show_build_file': [True, bool],
         'extra_files': [[], extra_files],
+        'show_extra_files': [True, lambda v: v],
+        'resources': [[], list],
+        'show_html_body': [False, bool],
     }
 
     def on_init(self):
-        build_dir = tempfile.mkdtemp()
-        self._build_dir = build_dir
+        # FIXME: move the tmp directory creation into on_end, because otherwise it creates a /tmp leak.
 
-        @atexit.register
-        def cleanup():
-            shutil.rmtree(build_dir)
+        # build_dir = tempfile.mkdtemp()
+        # self._build_dir = build_dir
+        #
+        # @atexit.register
+        # def cleanup():
+        #     shutil.rmtree(build_dir)
 
         p = BuildParams.current
         self._build_cache = p.build_cache if p else {}
@@ -97,67 +126,100 @@ class MarkdownDemoBlock(Block):
         if output_height := self.options['output_height']:
             output_col.set('style', f'height: {output_height}')
 
-        files = [(BUILD_FILE, 'Build file', 'python'),
+        files = [(BUILD_FILE, 'Build file', 'python', self.options['show_build_file']),
                  *self.options['extra_files'],
-                 (MARKDOWN_FILE, 'Markdown', 'markdown')]
+                 (MARKDOWN_FILE, 'Markdown', 'markdown', True)]
 
-        for (filename, descrip, lang), content in zip(files, SEPARATOR.split(text)):
-            if self.options['file_labels']:
-                header = ElementTree.SubElement(input_col, 'p')
-                header.text = descrip
+        # files = [(BUILD_FILE, 'Build file', 'python'),
+        #          *self.options['extra_files'],
+        #          *[self.options['extra_hidden_files'],
+        #          (MARKDOWN_FILE, 'Markdown', 'markdown')]
 
-            if content.strip() != '':
-                placeholder_text = self.md.htmlStash.store(pygments.highlight(
-                    content,
-                    pygments.lexers.get_lexer_by_name(lang),
-                    self._html_formatter))
+        # files_shown = {f for f, _, _ in files}
+        # if not self.options['show_build_file']:
+        #     files_shown.remove(BUILD_FILE)
 
-                if len(input_col) == 0:
-                    input_col.text = (input_col.text or '') + placeholder_text
-                else:
-                    input_col[-1].tail = placeholder_text
+        with tempfile.TemporaryDirectory() as build_dir:
 
-            with open(os.path.join(self._build_dir, filename), 'w') as writer:
-                writer.write(content)
+            for (filename, descrip, lang, visible), content in zip(files, SEPARATOR.split(text)):
+                # if filename in files_shown:
+                if visible:
+                    if self.options['file_labels']:
+                        header = ElementTree.SubElement(input_col, 'p')
+                        header.text = descrip
 
-        target_dir = os.path.join(self._build_dir, 'output')
-        target_file = os.path.join(target_dir, TARGET_FILE)
-        os.makedirs(target_dir, exist_ok = True)
+                    if content.strip() != '':
+                        placeholder_text = self.md.htmlStash.store(pygments.highlight(
+                            content,
+                            pygments.lexers.get_lexer_by_name(lang),
+                            self._html_formatter))
 
-        progress = Progress()
-        build_params = BuildParams(
-            src_file = os.path.join(self._build_dir, MARKDOWN_FILE),
-            target_file = target_file,
-            build_files = [os.path.join(self._build_dir, BUILD_FILE)],
-            build_dir = self._build_dir,
-            build_defaults = False,
-            build_cache = self._build_cache,
-            fetch_cache = self._fetch_cache,
-            progress = progress,
-            directives = Directives(progress),
-            is_live = False,
-            allow_exec_cmdline = True,
-            allow_exec = True
-        )
+                        if len(input_col) == 0:
+                            input_col.text = (input_col.text or '') + placeholder_text
+                        else:
+                            input_col[-1].tail = placeholder_text
 
-        preserve_cwd = os.getcwd()
-        os.chdir(self._build_dir)
-        compile(build_params)
-        os.chdir(preserve_cwd)
+                with open(os.path.join(build_dir, filename), 'w') as writer:
+                    writer.write(content)
 
-        # TODO: look for variants, not just one target_file
+            for res_filename in self.options['resources']:
+                shutil.copy(res_filename, build_dir)
 
-        output_files = os.listdir(target_dir)
-        for output_file in output_files:
-            if len(output_files) > 1:
-                header = ElementTree.SubElement(output_col, 'p')
-                header.text = output_file
+            target_dir = os.path.join(build_dir, 'output')
+            target_file = os.path.join(target_dir, TARGET_FILE)
+            os.makedirs(target_dir, exist_ok = True)
 
-            with open(os.path.join(target_dir, output_file), 'rb') as reader:
-                output_bytes = reader.read()
+            progress = Progress()
+            build_params = BuildParams(
+                src_file = os.path.join(build_dir, MARKDOWN_FILE),
+                target_file = target_file,
+                build_files = [os.path.join(build_dir, BUILD_FILE)],
+                build_dir = build_dir,
+                build_defaults = False,
+                build_cache = self._build_cache,
+                fetch_cache = self._fetch_cache,
+                progress = progress,
+                directives = Directives(progress),
+                is_live = False,
+                allow_exec_cmdline = True,
+                allow_exec = True
+            )
 
-            data_uri = f'data:text/html;base64,{base64.b64encode(output_bytes).decode()}'
-            ElementTree.SubElement(output_col, 'iframe', src = data_uri)
+            preserve_cwd = os.getcwd()
+            os.chdir(build_dir)
+            compile(build_params)
+            os.chdir(preserve_cwd)
+
+            output_files = os.listdir(target_dir)
+            for output_file in output_files:
+                if len(output_files) > 1:
+                    header = ElementTree.SubElement(output_col, 'p')
+                    header.text = output_file
+
+                with open(os.path.join(target_dir, output_file), 'rb') as reader:
+                    output_bytes = reader.read()
+
+                if self.options['show_html_body']:
+                    output_html = output_bytes.decode()
+                    if body := lxml.html.fromstring(output_html).find('.//body'):
+                        output_html = pretty_print_html(
+                            ''.join(lxml.html.tostring(element,
+                                                    encoding = 'unicode',
+                                                    pretty_print = True)
+                                    for element in body))
+
+                    placeholder_text = self.md.htmlStash.store(pygments.highlight(
+                        output_html,
+                        pygments.lexers.get_lexer_by_name('html'),
+                        self._html_formatter))
+
+                    if len(output_col) == 0:
+                        output_col.text = (output_col.text or '') + placeholder_text
+                    else:
+                        output_col[-1].tail = placeholder_text
+
+                data_uri = f'data:text/html;base64,{base64.b64encode(output_bytes).decode()}'
+                ElementTree.SubElement(output_col, 'iframe', src = data_uri)
 
 
 class MarkdownDemoExtension(BlocksExtension):

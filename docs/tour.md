@@ -49,7 +49,7 @@ Here's a couple of examples:
 
 The [la.cite][cite] extension formats in-text citations and builds a reference list. You provide a BibTeX-formatted file containing reference information, and insert citations of the form `[@refkey]`, or `[@abc, @xyz, p. 5]`, for instance.
 
-(This citation format was inspired by [Pandoc's citation syntax](https://pandoc.org/MANUAL.html#citation-syntax). The extension uses the [Pybtex!](https://pybtex.org/) library to read `.bib` files and construct a bibliography.)
+(This citation format was inspired by [Pandoc's citation syntax](https://pandoc.org/MANUAL.html#citation-syntax). The extension uses the [Pybtex](https://pybtex.org/) library to read `.bib` files and construct a bibliography.)
 
 
 /// markdown-demo

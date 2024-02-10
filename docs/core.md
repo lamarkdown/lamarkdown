@@ -88,7 +88,7 @@ Directives have a long(er) form, starting with `md-` (e.g., `md-caption`). The s
 
 !!! note "Design Notes"
 
-    The `-` at the start of directives is intended to minimise confusion relative to other possible syntactic choices, while requiring no extra Markdown parsing code beyond the existing `attr_list` extension.
+    The `-` at the start of directives is intended to minimise confusion relative to other possible syntactic choices, while requiring no extra Markdown parsing code beyond the existing `attr_list` extension (though sometimes directives need to appear in places that require the [`la.attr_prefix`][attr_prefix] extension).
 
     It's useful to have _some_ means of distinguishing directives from ordinary HTML attributes, because:
 
@@ -172,7 +172,7 @@ Lamarkdown performs certain transformations on parts of the HTML document _after
 
     There are problems with designing extensions to perform these actions:
 
-    1. They rely on identifying and modifying specific HTML elements, which requires a document tree. Python-Markdown makes such trees available during the "tree processing" stage, but some of the kinds of resources don't appear until the later "postprocessing" stage (having been represented only with special placeholder text, and otherwise kept isolated up until then).
+    1. They rely on identifying and modifying specific HTML elements, which requires a document tree. Python-Markdown makes such trees available during the "tree processing" stage, but some kinds of resources don't appear until the later "postprocessing" stage (having been represented only with special placeholder text, and otherwise kept isolated up until then).
 
     2. They involve styles and scripts, which are essentially outside the scope of Python-Markdown's operation altogether.
 
@@ -184,7 +184,7 @@ By default, Lamarkdown will embed external resources in the output HTML file (wi
 In most cases, the resources being embedded will be CSS styles, fonts, scripts, and images. Embedding is performed automatically, by either:
 
 * Moving the contents of directly-referenced `.css` and `.js` files into `<style>` and `<script>` elements, as appropriate, within the HTML document; or
-* In other cases, converting the resource into a [data URL](https://developer.mozilla.org/en-US/docs/web/http/basics_of_http/data_urls).
+* In other cases, converting a resource into a [data URL](https://developer.mozilla.org/en-US/docs/web/http/basics_of_http/data_urls).
 
 Font files will be subsetted (unused characters removed) before being embedded. Styles will be _recursively_ embedded, since CSS files can reference other resources, including other CSS files. Lamarkdown will not currently attempt to resolve resources referenced by scripts, though.
 
