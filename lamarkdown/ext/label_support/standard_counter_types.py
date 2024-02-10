@@ -19,7 +19,7 @@ SPECIAL_COUNTER_TYPES: CounterTypeFactory = CounterTypeFactory({
         fallback = COUNTER_TYPES['cjk-decimal']),
 
     'simp-chinese-formal': lambda: ChineseCounter(
-        'sisimp-chinese-formal',
+        'simp-chinese-formal',
         digit_symbols = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'],
         power_symbols = ['', '拾', '佰', '仟'],
         negative = ('负', ''),

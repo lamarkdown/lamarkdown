@@ -237,7 +237,6 @@ class ListLabelProcesor(LabelProcessor):
 
 class FigureLabelProcessor(LabelProcessor):
     def reset(self):
-        # super().reset()
         self._first_child = True
         self._level = 0
 
@@ -326,7 +325,6 @@ class FigureLabelProcessor(LabelProcessor):
             if template1 == template2:
                 control.progress.warning(
                     NAME,
-                    # msg = (f':label="{template1}" given twice for the same {element_type}'))
                     msg = (f'{self.directives.format(LABEL_DIRECTIVE, template1)} given twice '
                            f'for the same {element_type}'))
             else:
@@ -334,17 +332,17 @@ class FigureLabelProcessor(LabelProcessor):
                 t2_fmt = self.directives.format(LABEL_DIRECTIVE, template2)
                 control.progress.warning(
                     NAME,
-                    # msg = (f'Conflicting label templates, :label="{template1}" and '
-                    #        f':label="{template2}", given for the same {element_type}'))
                     msg = (f'Conflicting label templates, {t1_fmt} and {t2_fmt}, given for the '
                            f'same {element_type}'))
 
         template: str | LabelTemplate | None = template1 or template2
 
-        maybe_labeller = control.find(element_type)
-        if self._first_child or maybe_labeller is None:
-            if maybe_labeller is not None:
-                template = maybe_labeller.template.inner_template
+        labeller = control.find(element_type)
+        if self._first_child or labeller is None:
+            if template is None and labeller is not None:
+                # There's an existing labeller, but it's for an outer level. Maybe it has an inner
+                # specification...
+                template = labeller.template.inner_template
 
             if template is None and self._level == 0:
                 template = control.get_default_template(element_type)
@@ -358,9 +356,6 @@ class FigureLabelProcessor(LabelProcessor):
 
         elif template is not None:
             labeller = control.replace_labeller(labeller, element_type, element_type, template)
-
-        else:
-            labeller = maybe_labeller
 
         control.render(labeller, None, fig_caption)
         control.resolve_refs(element)

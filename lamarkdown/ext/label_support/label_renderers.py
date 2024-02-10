@@ -80,14 +80,16 @@ class CssLabelsRenderer(LabelsRenderer):
 
             first = prev_labeller is None
             if first:
-                add_css_class(container, f'{LABELLED_CSS_CLASS} {css_class}')
+                add_css_class(container, LABELLED_CSS_CLASS, css_class)
+
+                li_selector = (
+                    f'.{css_class}>li:not(.{NO_LABEL_CSS_CLASS}):not(.{LABELLED_CSS_CLASS})')
+
                 if labeller.template.counter_type is not None:
                     self._css(f'.{css_class}{{counter-reset:{css_class};}}\n')
-                    self._css(f'.{css_class}>li:not(.{NO_LABEL_CSS_CLASS}){{'
-                              f'counter-increment:{css_class};}}\n')
+                    self._css(f'{li_selector}{{counter-increment:{css_class};}}\n')
 
-                self._css(f'.{css_class}>li:not(.{NO_LABEL_CSS_CLASS})::before{{'
-                          f'content:{labeller.as_css_expr()};}}')
+                self._css(f'{li_selector}::before{{content:{labeller.as_css_expr()};}}')
 
             if new and not first:
                 if labeller.template.counter_type is not None:
@@ -99,7 +101,7 @@ class CssLabelsRenderer(LabelsRenderer):
                 self._labellers_changed.add(container)
 
             if container in self._labellers_changed:
-                add_css_class(element, css_class)
+                add_css_class(element, LABELLED_CSS_CLASS, css_class)
 
 
 class HtmlLabelsRenderer(LabelsRenderer):
