@@ -43,7 +43,9 @@ BUILD_FILE    = 'example.py'
 MARKDOWN_FILE = 'example.md'
 TARGET_FILE   = 'example.html'
 
-SEPARATOR = re.compile(r'(?m)^\s*---\s*$')
+SEPARATOR = '---'
+SEPARATOR_REGEX = re.compile(fr'(?m)^\s*{SEPARATOR}\s*$')
+LITERAL_SEPARATOR_REGEX = re.compile(fr'(?m)^[ ]*\\{SEPARATOR}[ ]*$')
 
 HTML_SEMI_NEWLINE_TAGS = {'caption', 'figcaption', 'p'}
 HTML_NEWLINE_TAGS = {'div', 'figure', 'picture', 'table', 'tbody', 'tfoot', 'thead'}
@@ -92,15 +94,6 @@ class MarkdownDemoBlock(Block):
     }
 
     def on_init(self):
-        # FIXME: move the tmp directory creation into on_end, because otherwise it creates a /tmp leak.
-
-        # build_dir = tempfile.mkdtemp()
-        # self._build_dir = build_dir
-        #
-        # @atexit.register
-        # def cleanup():
-        #     shutil.rmtree(build_dir)
-
         p = BuildParams.current
         self._build_cache = p.build_cache if p else {}
         self._fetch_cache = p.fetch_cache if p else diskcache.Cache(get_fetch_cache_dir())
@@ -130,19 +123,12 @@ class MarkdownDemoBlock(Block):
                  *self.options['extra_files'],
                  (MARKDOWN_FILE, 'Markdown', 'markdown', True)]
 
-        # files = [(BUILD_FILE, 'Build file', 'python'),
-        #          *self.options['extra_files'],
-        #          *[self.options['extra_hidden_files'],
-        #          (MARKDOWN_FILE, 'Markdown', 'markdown')]
-
-        # files_shown = {f for f, _, _ in files}
-        # if not self.options['show_build_file']:
-        #     files_shown.remove(BUILD_FILE)
-
         with tempfile.TemporaryDirectory() as build_dir:
 
-            for (filename, descrip, lang, visible), content in zip(files, SEPARATOR.split(text)):
-                # if filename in files_shown:
+            all_file_content = zip(files, SEPARATOR_REGEX.split(text))
+            for (filename, descrip, lang, visible), content in all_file_content:
+                content = LITERAL_SEPARATOR_REGEX.sub(SEPARATOR, content)
+
                 if visible:
                     if self.options['file_labels']:
                         header = ElementTree.SubElement(input_col, 'p')

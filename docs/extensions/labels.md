@@ -5,7 +5,7 @@ This extension assigns counter-based (or fixed) labels to headings, lists, figur
 You can specify where and how labels should appear by:
 
 1. Adding the `-label=...` directive to headings, lists, figures and tables; or
-2. Specifying the `labels` configuration option.
+2. Specifying the [`labels` configuration option](#labels-opt).
 
 In both cases, you provide a _label template_.
 
@@ -13,7 +13,7 @@ In both cases, you provide a _label template_.
 
     Remember that, while the following examples all use the `-label` directive, you can just as easily write templates using the `labels` configuration option. In the latter case, you may not need to modify the `.md` file at all in order to produce the labelling systems you want.
 
-## Label Templates
+## Label Templates {#templates}
 
 
 A label template has several parts.
@@ -86,7 +86,7 @@ Literals can consist of:
 
 * `-`, when not between alphanumeric characters (where it is considered part of a counter type).
 
-* `*`, when not the final character (where it has a special meaning, explained below).
+* `*`, when not the final character following `,` (where it has a special meaning, [explained below](#inner)).
 
 * Characters within an additional pair of quotation marks. There will already be a pair of quotation marks around the entire template (whether `-label='...'` or `label="..."`), so the _inner_ quotation marks must be different. For instance:
 
@@ -200,7 +200,7 @@ Similarly, the parent indicator `H` refers to the label of the next higher _head
     ## Heading
 ///
 
-Meanwhile, if you desire your heading and list labels to build on one another, `X` refers to the next label label of _any_ kind. For example, here are some `<h3>` headings, within an `<ol>` list, underneath another `<h2>` heading, where the labels are arranged hierarchically:
+Meanwhile, `X` refers to the next label label of _any_ kind. For example, here are some `<h3>` headings, within an `<ol>` list, underneath another `<h2>` heading, where the labels are arranged hierarchically:
 
 /// markdown-demo
     show_build_file: False
@@ -226,7 +226,8 @@ Meanwhile, if you desire your heading and list labels to build on one another, `
 ///
 
 
-### Inner Templates
+
+### Inner Templates {#inner}
 
 An inner template is the part of a template after the first (non-quoted) `,`. A full label template consists of a `,`-separated sequence of components (each of which is as described above), optionally ending in `,*`.
 
@@ -469,3 +470,50 @@ Examples:
 * -label="(X.1),*"
 * -label="1.,(a),(i)"
 -->
+
+
+
+## Options
+
+The [`labels`](#labels-opt) option is the one key option for influencing document-wide labelling conventions. The remainder of the options below concern the technical implementation details.
+
+
+{-list-table}
+* #
+    - Option
+    - Description
+
+*   - `css_fn`
+    - A function taking a single string parameter, which the extension will call to deliver CSS code, under the assumption that it will be applied to the output document. The extension needs this capability in order to implement CSS-based labels, particularly for ordered/unordered lists.
+
+        By default, and if it's available, this will be [`lamarkdown.css()`][css].
+
+        If `css_fn` is `None`, or if it's left unspecified and `lamarkdown.css()` is _not_ available (because the extension is being run externally), then CSS-based labels will be disabled. In this case, the extension will fall back to hard-coding list labels in the HTML document. This may be visually indistinguishable, though not necessarily semantically equivalent.
+
+*   - `css_rendering`
+    - A set containing element types that will receive CSS-based label rendering, if it's available, rather than hard-coded labels. It's not currently recommended to change this, because the underlying implementation only currently supports CSS-based rendering for list labels.
+
+*   - `directives`
+    - An object for retrieving directives from HTML tree elements. This should be an instance of `lamarkdown.lib.directives.Directives`, and the extension will reuse Lamarkdown's "current" instance by default, if available.
+
+*   - `label_processors`
+    - A list of `LabelProcessor` objects responsible for orchestrating the labelling of different kinds of HTML elements. It's not currently recommended to change this.
+
+*   - `labels`
+        {#labels-opt}
+
+    - A dictionary specifying label templates to use in the absence of `-label` directives.
+
+        The dictionary keys are `h` (for headings), "`h`_n_" (for level-_n_ headings specifically), `ol` (for ordered lists), `ul` (for unordered lists), `figure` and `table`.
+
+        The dictionary values are [label templates](#templates). Just as for the `-label` directive, these templates can also include [parent indicators](#parents) and [inner templates](#inner). For instance, you can arrange for a multilevel heading labels, beginning at level-2 headings, with `labels = {'h2': 'H.1. ,*'}`.
+
+        By default, `labels` is `{}`.
+
+*   - `progress`
+    - An object accepting error, warning and progress messages. This should be an instance of `lamarkdown.lib.Progress`, and the extension will reuse Lamarkdown's "current" instance by default, if available.
+
+
+    -
+
+[css]: ../api.md#css

@@ -5,10 +5,9 @@ are collected to generate a bibliography, based on an external database file.
 
 (This citation format was inspired by [Pandoc's citation syntax](https://pandoc.org/MANUAL.html#citation-syntax), though it currently has less semantic structure. The extension uses the [Pybtex](https://pybtex.org/) library to read `.bib` files and construct a bibliography.)
 
-
 /// markdown-demo
     extra_files:
-        - ['references.bib', 'Reference database', 'bibtex']
+        - ['references.bib', 'Reference database', 'bibtex', 'true']
 
     import lamarkdown as la
     la('la.cite', file = 'references.bib')
@@ -26,6 +25,7 @@ are collected to generate a bibliography, based on an external database file.
 
     ### References
     ///References Go Here///
+
 ///
 
 
@@ -56,7 +56,7 @@ If necessary, a citation key _with_ braces can contain any non-brace characters,
 It is a future ambition to integrate an implementation of CiteProc into `la.cite`.
 
 
-## Bibliography files in Document Metadata
+<!-- ## Bibliography files in Document Metadata -->
 
 <!--
 
@@ -64,14 +64,14 @@ In conjunction with the `meta` extension...
 
 -->
 
-In conjunction with the `meta` extension, you can specify relevant BibTeX files at the top of your Markdown document:
+<!--In conjunction with the `meta` extension, you can specify relevant BibTeX files at the top of your Markdown document:
 
 /// markdown-demo
 
     import lamarkdown as la
     la('la.cite', 'meta')
     ---
-///
+///-->
 
 
 ## Options
@@ -119,7 +119,7 @@ In conjunction with the `meta` extension, you can specify relevant BibTeX files 
 *   - `style`
     - One of `alpha`, `plain`, `unsrt` or `unsrtalpha`, indicating how to format citations and references.
 
-
+<!--
 ---
 
             'label_style': [
@@ -141,4 +141,4 @@ In conjunction with the `meta` extension, you can specify relevant BibTeX files 
             'min_crossrefs': [
                 2,
                 '...'
-            ],
+            ],-->

@@ -11,7 +11,7 @@ When compiling a given Markdown file, Lamarkdown first looks for _build files_. 
 
 If both of these exist, both will be loaded, `md_build.py` first.
 
-Build files contain executable Python code that makes calls to the [Build File API](api_reference.md), to apply Markdown extensions, provide document style information, and otherwise programmatically hook into the compilation process.
+Build files contain executable Python code that makes calls to the [Build File API][api], to apply Markdown extensions, provide document style information, and otherwise programmatically hook into the compilation process.
 
 If build file(s) exist, but are empty, Lamarkdown will revert to the most basic syntax and functionality supported by Python-Markdown, and produce unstyled output.
 
@@ -99,12 +99,13 @@ Directives have a long(er) form, starting with `md-` (e.g., `md-caption`). The s
 
     * Simply always using `md-` creates extra clutter.
     * Using a different special character (e.g., `!directive=...`) runs into the problem that `attr_list` converts almost all special characters to `_`, so we wouldn't be able to narrowly define which character we're actually using.
-    * Using `_` itself (e.g., `_directive=...`) also seems to imply "private/internal use", especially in connection with Python.
-    * Using `:` (which isn't converted to `_`) conflicts somewhat with the enclosing list syntax; e.g., in `{:directive=...}`, the the `:` will be interpreted as the start of the list, not part of the name. We could insist that authors put a space after the `{`, but this still leaves room for confusion.
-    * A _trailing_ `:` would result in the syntax `directive:=...`, in which `:=` has the misleading appearance of a special operator.
+    * A leading or trailing `_` itself (e.g., `_directive=...` or `directive_=...`), even if we could accept the ambiguity, may also imply "private/internal/auxiliary use", especially in connection with Python.
+    * A leading `:` (which isn't converted to `_`) conflicts somewhat with the enclosing list syntax; e.g., in `{:directive=...}`, the the `:` will be parsed as the start of the list, not part of the name. We could insist that authors put a space after the `{`, but this still leaves room for confusion.
+    * A trailing `-` or `:` would result in `directive-=...` or `directive:=...`, where `-=` and `:=` both have the misleading appearance of a special operator.
     * A XML namespace (e.g., `md:directive=...`) creates extra clutter, and would also raise questions about how to formally define that namespace, and how it formally relates to HTML.
-    * HTML attributes are case-insensitive, so a convention based on casing (e.g., `Directive=...`) risks unforeseen conflicts.
+    * HTML attributes are case-insensitive, so a convention based on casing (e.g., `Directive=...`) risks unforeseen conflicts in the event of case folding.
     * Anything more elaborate is unlikely to be recognised by `attr_list`, and would require separate parsing.
+
 
 
 ## Variants {#variants}
@@ -139,17 +140,7 @@ By default, the output filenames will have the function name appended. In the ab
 
 ## The `allow_exec` Option {#allow_exec}
 
-It's currently not recommended to run Lamarkdown on untrusted documents, unless your entire execution environment is sandboxed.
-
-Nevertheless, the `allow_exec` flag _attempts_ to provide some measure of safety in such situations. By default, `allow_exec == False`, in which case certain actions will not be permitted:
-
-* Use of the [`la.eval`][eval] extension will be restricted to text substitutions (not code execution);
-* Use of the [`la.markdown_demo`][markdown_demo] extension will be prohibited;
-* Use of Matplotlib and R-plotting, by means of `m.plots()`, will be prohibited.
-
-In general, these restrictions rely on the cooperation of relevant Markdown extensions. Thus, if you rely on `allow_exec` being `False`, you are _also_ relying on each individual extension to prohibit executable code. Non-Lamarkdown extensions won't generally even be aware of the `allow_exec` flag, so you must exercise care.
-
-If you're just compiling your own documents, it's perfectly fine and useful to set `allow_exec == True`. There are two ways:
+If you're just compiling your own (or trusted) documents, it's perfectly fine and useful to set `allow_exec == True`. There are two ways:
 
 * Add the `-e` / `--allow-exec` command-line option; and/or
 * Assign to the `allow_exec` property:
@@ -160,6 +151,17 @@ If you're just compiling your own documents, it's perfectly fine and useful to s
     la.allow_exec = True
     ...
     ```
+
+It's currently **not recommended to run Lamarkdown on untrusted documents at all**, unless your entire execution environment is sandboxed.
+
+Nevertheless, the `allow_exec` flag _attempts_ to provide some measure of safety in such situations. By default, `allow_exec == False`, in which case certain actions will not be permitted:
+
+* Use of the [`la.eval`][eval] extension will be restricted to text substitutions (not code execution);
+* Use of the [`la.markdown_demo`][markdown_demo] extension will be prohibited;
+* Use of Matplotlib and R-plotting, by means of `m.plots()`, will be prohibited.
+
+In general, these restrictions rely on the cooperation of relevant Markdown extensions and build modules. Thus, if you rely on `allow_exec` being `False`, you are _also_ relying on each individual extension/module to prohibit executable code. Non-Lamarkdown extensions won't generally even be aware of the `allow_exec` flag, so you must exercise care.
+
 
 
 ## Resource Processing {#resources}
@@ -281,7 +283,7 @@ Lamarkdown can adjust the size of images in a document by a linear scaling facto
 
 For any given image, there are (potentially) two different scaling factors:
 
-* You can give a per-image scaling factor using the `-scale=...` directive; e.g.:
+* You can give a per-image scaling factor using the `-scale=...` [directive](#directives); e.g.:
 
     ```markdown
     ![Alt text](http://example.com/image.jpg){-scale="2.5"}
@@ -365,12 +367,13 @@ To avoid unnecessary delays during compilation, Lamarkdown uses two caches:
 [captions]:             extensions/captions.md
 [cite]:                 extensions/cite.md
 [eval]:                 extensions/eval.md
-[labels]:               extentions/labels.md
-[latex]:                extentions/latex.md
-[list_tables]:          extentions/list_tables.md
-[markdown_demo]:        extentions/markdown_demo.md
-[sections]:             extentions/sections.md
+[labels]:               extensions/labels.md
+[latex]:                extensions/latex.md
+[list_tables]:          extensions/list_tables.md
+[markdown_demo]:        extensions/markdown_demo.md
+[sections]:             extensions/sections.md
 
+[api]:                  api.md
 [lamarkdown_call]:      api.md#lamarkdown_call
 [basename]:             api.md#basename
 [css]:                  api.md#css

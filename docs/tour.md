@@ -1,6 +1,6 @@
 # Lamarkdown Tour
 
-Many Lamarkdown features are available out-of-the-box, without any configuration. You need only write the actual `.md` file, and compile it. However, by providing a [build file](process.md#build_files), even a blank one, these defaults are put aside, and you can more precisely specify the settings you want.
+Many Lamarkdown features are available out-of-the-box, without any configuration. You need only write the actual `.md` file, and compile it. However, by providing a [build file][], even a blank one, these defaults are put aside, and you can more precisely specify the settings you want.
 
 The following examples include a minimal build file (consisting of Python code), to provide context for each feature, even though many features are still available by default if no build file exists.
 
@@ -54,7 +54,7 @@ The [la.cite][cite] extension formats in-text citations and builds a reference l
 
 /// markdown-demo
     extra_files:
-        - ['references.bib', 'Reference database', 'bibtex']
+        - ['references.bib', 'Reference database', 'bibtex', 'true']
 
     import lamarkdown as la
     la('la.cite', file = 'references.bib')
@@ -372,17 +372,17 @@ To support a common use case, Lamarkdown also provides a [`prune()`][prune] API 
 
 
 
-
+[build file]:       core.md#build_files
 
 [attr_prefix]:      extensions/attr_prefix.md
 [captions]:         extensions/captions.md
 [cite]:             extensions/cite.md
 [eval]:             extensions/eval.md
-[labels]:           extentions/labels.md
-[latex]:            extentions/latex.md
-[list_tables]:      extentions/list_tables.md
-[markdown_demo]:    extentions/markdown_demo.md
-[sections]:         extentions/sections.md
+[labels]:           extensions/labels.md
+[latex]:            extensions/latex.md
+[list_tables]:      extensions/list_tables.md
+[markdown_demo]:    extensions/markdown_demo.md
+[sections]:         extensions/sections.md
 
 [lamarkdown_call]:  api.md#lamarkdown_call
 [basename]:         api.md#basename
