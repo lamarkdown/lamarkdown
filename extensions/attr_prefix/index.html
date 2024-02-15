@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.attr_prefix - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../captions/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/attr_prefix.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#laattr_prefix" class="nav-link">la.attr_prefix</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="laattr_prefix"><code>la.attr_prefix</code></h1>
+<p>This extension permits attributes to be written above a block (perhaps with intervening whitespace). This can be compared to the <code>attr_list</code> extension, where attributes can be written below a block (or to the right of an inline element).</p>
+<p><code>la.attr_prefix</code> can assign styles and <a href="../../core/#directives">directives</a> to elements that are inaccessible to <code>attr_list</code>, including lists, block quotes, and tables. To illustrate:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.attr_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;tables&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;.blue { background: #80c0ff; }&#39;</span>
+       <span class="s1">&#39;.orange { background: #ffc080; }&#39;</span>
+       <span class="s1">&#39;.fancy { background: #80c0ff; padding: 1em; }&#39;</span>
+       <span class="s1">&#39;.fancy * { background: #ffc080; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Ordinary text.
+
+{.blue}
+Text with styling.
+
+{.orange}
+
+More text with styling.
+
+{.fancy}
+<span class="k">*</span><span class="w"> </span>Styled list item 1
+<span class="k">*</span><span class="w"> </span>Styled list item 2
+
+{.fancy}
+<span class="k">&gt; </span><span class="ge">Here&#39;s a block</span>
+<span class="k">&gt; </span><span class="ge">quote.</span>
+
+{.fancy}
+Column A | Column B
+-------- | --------
+One      | Two
+Three    | Four
+
+Ordinary text.
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmJsdWUgeyBiYWNrZ3JvdW5kOiAjODBjMGZmOyB9Lm9yYW5nZSB7IGJhY2tncm91bmQ6ICNmZmMwODA7IH0uZmFuY3kgeyBiYWNrZ3JvdW5kOiAjODBjMGZmOyBwYWRkaW5nOiAxZW07IH0uZmFuY3kgKiB7IGJhY2tncm91bmQ6ICNmZmMwODA7IH0KPC9zdHlsZT48L2hlYWQ+Cjxib2R5Pgo8cD5PcmRpbmFyeSB0ZXh0LjwvcD4KPHAgY2xhc3M9ImJsdWUiPlRleHQgd2l0aCBzdHlsaW5nLjwvcD4KPHAgY2xhc3M9Im9yYW5nZSI+TW9yZSB0ZXh0IHdpdGggc3R5bGluZy48L3A+Cjx1bCBjbGFzcz0iZmFuY3kiPjxsaT5TdHlsZWQgbGlzdCBpdGVtIDE8L2xpPgo8bGk+U3R5bGVkIGxpc3QgaXRlbSAyPC9saT4KPC91bD48YmxvY2txdW90ZSBjbGFzcz0iZmFuY3kiPgo8cD5IZXJlJ3MgYSBibG9jawpxdW90ZS48L3A+CjwvYmxvY2txdW90ZT4KPHRhYmxlIGNsYXNzPSJmYW5jeSI+PHRoZWFkPjx0cj48dGg+Q29sdW1uIEE8L3RoPgo8dGg+Q29sdW1uIEI8L3RoPgo8L3RyPjwvdGhlYWQ+PHRib2R5Pjx0cj48dGQ+T25lPC90ZD4KPHRkPlR3bzwvdGQ+CjwvdHI+PHRyPjx0ZD5UaHJlZTwvdGQ+Cjx0ZD5Gb3VyPC90ZD4KPC90cj48L3Rib2R5PjwvdGFibGU+PHA+T3JkaW5hcnkgdGV4dC48L3A+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<p>With the <code>attr_list</code> extension, <code>{.blue}</code> and <code>{.orange}</code> could be written <em>below</em> their respective elements to achieve the same effect. However, there&rsquo;s no way to do the same for lists, block quotes or tables; <code>attr_list</code> will only assign attributes to individual list <em>items</em>, or elements within a block quote, or table cells.</p>
+<p>The extension addresses another weakness in <code>attr_list</code>: other inline parsing logic.</p>
+<div class="admonition note">
+<p class="admonition-title">Terminology Note</p>
+<p>An <em>attribute list</em> refers to the syntax <code>{...}</code>, generally consisting of style-related information. A fuller example of this is <code>{.blue #someid attr="value"}</code>, where <code>.blue</code> indicates a CSS class name, <code>#someid</code> an element ID, and <code>attr="value"</code> is an arbitrary attribute assignment.</p>
+<p>A <em>list element</em> refers to actual document content to be shown to the reader (rendered in HTML as <code>&lt;ol&gt;</code> or <code>&lt;ul&gt;</code>). In Markdown, this is simply:
+<div class="highlight"><pre><span></span><code><span class="k">*</span><span class="w"> </span>List item 1
+<span class="k">*</span><span class="w"> </span>List item 2
+</code></pre></div></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p><a href="https://kramdown.gettalong.org/syntax.html#block-ials">Kramdown&rsquo;s syntax</a> provides a precedent for attribute lists appearing above blocks.</p>
+<p><code>la.attr_prefix</code> avoids interfering with (or being interfered with by) existing parsing logic, using a two-step process:</p>
+<ol>
+<li>
+<p>It finds and parses attribute lists early in Python-Markdown&rsquo;s &ldquo;block processing&rdquo; phase (during which raw blocks of text are converted into tree elements), creating placeholder tree elements for them without, yet, attaching them to anything else.</p>
+</li>
+<li>
+<p>During the &ldquo;tree processing&rdquo; stage, it finally associates each set of attributes with the next (sibling) element in the tree, whatever it is.</p>
+</li>
+</ol>
+</div></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

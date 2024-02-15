@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.latex - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../labels/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../list_tables/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/latex.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lalatex" class="nav-link">la.latex</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#whole" class="nav-link">1. Diagrammatic (or Textual) LaTeX Code</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-mathematics" class="nav-link">2. Mathematics</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-options" class="nav-link">3. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lalatex"><code>la.latex</code></h1>
+<p>This extension lets you embed LaTeX code in Markdown documents. The intention is to support LaTeX-based diagrams, as well as LaTeX mathematical code, and there is a different syntactical approach for each.</p>
+<!-- It invokes external commands to compile LaTeX to PDF, and to convert the PDF to SVG. It then embeds the SVG into the output HTML. -->
+
+<!--The extension (and hence the LaTeX syntax) is enabled in the following cases:
+
+* By default if you have no build files;
+
+* If any of your build files specify `m.doc()`:
+    <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">doc</span><span class="p">()</span>
+</code></pre></div>
+
+* If any of your build files specify this extension directly:
+    ```python
+    import lamarkdown as la
+    la('la.latex')
+    ```-->
+
+<!--{: .note}
+Some may argue that embedding LaTeX within markdown pollutes a simple and readable format with less-readable, esoteric symbols. Nonetheless, this approach does allow you to create diagrams, and other visual elements, all within a single file, without having to manage a collection of external resources.-->
+
+<h2 id="whole"><span class="la-label">1. </span>Diagrammatic (or Textual) LaTeX Code</h2>
+<p>You can write either an entire LaTeX document, or a single LaTeX environment, directly within an <code>.md</code> file. This is intended for diagram-generating code, though you can in theory embed any arbitrary LaTeX output.</p>
+<p>The extension will:</p>
+<ol>
+<li>Pass the LaTeX code to an external LaTeX compiler, retrieving output in PDF form;</li>
+<li>Pass the PDF file to another external command to convert it to SVG; and</li>
+<li>Embed the SVG in the output HTML.</li>
+</ol>
+<p>The LaTeX code must begin on a new line (though not necessarily a new paragraph).</p>
+<p>Immediately underneath the LaTeX code, on a new line, you may write an <a href="https://python-markdown.github.io/extensions/attr_list/">attribute list</a>. This will attach HTML attributes to the resulting HTML output element, and may be important for accessibility (among other things). For instance, you could write <code>{ alt="A diagram showing ..." }</code> at the bottom.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>We choose to allow direct embedding of LaTeX code (for non-mathematical purposes), without any extra delimiter syntax. This results in some additional internal design complexity within Lamarkdown, considering it could have used <a href="https://facelessuser.github.io/pymdown-extensions/extensions/blocks/">PyMdown&rsquo;s blocks mechanism</a>, or its <a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">superfences extension</a>.</p>
+<p>However, LaTeX effectively comes with its own delimiter syntax, and its direct inclusion seems unambiguous, given the requirements above. Thus, any extra syntax might feel like clutter to readers and authors.</p>
+<p>There is also a precedent, in a sense. Markdown already permits embedded HTML without any delimiters, because it too is unambiguous.</p>
+</div>
+<h3 id="11-whole-document"><span class="la-label">1.1. </span>Whole Document</h3>
+<p>If you embed an entire LaTeX document, it is expected to begin with <code>\documentclass</code> and end with <code>\end{document}</code>. For instance:</p>
+<div class="highlight"><pre><span></span><code><span class="gh"># Embedding a Whole LaTeX Document</span>
+
+\documentclass{article}
+\usepackage{ulem}
+\begin{document}
+    \emph{Compiled with LaTeX.}
+\end{document}
+{ alt=&quot;Textual explanation&quot; }
+
+Resuming the markdown syntax here.
+</code></pre></div>
+<h3 id="12-single-environment"><span class="la-label">1.2. </span>Single Environment</h3>
+<p>To embed just a single environment (with optional preamble), your LaTeX code must:</p>
+<ul>
+<li>Start with one of <code>\usepackage</code>, <code>\usetikzlibrary</code> or <code>\begin{</code><em>name</em><code>}</code> (where <em>name</em> is any LaTeX environment);</li>
+<li>Contain <code>\begin{</code><em>name</em><code>}</code> (if it didn&rsquo;t start with it); and</li>
+<li>End with <code>\end{</code><em>name</em><code>}</code>.</li>
+</ul>
+<p>For instance:</p>
+<div class="highlight"><pre><span></span><code><span class="gh"># Embedding a LaTeX Environment</span>
+
+Important diagram:
+
+\begin{tikzpicture}
+    \path (0,0) node(a) {Start} -- (2,0) node(b) {End};
+    \draw[-&gt;] (a) -- (b);
+\end{tikzpicture}
+{ alt=&quot;Textual explanation&quot; }
+
+Please contact us for details.
+</code></pre></div>
+<p>The extension fills in the remaining syntax (<code>\documentclass</code> and <code>\begin{document}...\end{document}</code>, as needed) to form a valid LaTeX document.</p>
+<h2 id="2-mathematics"><span class="la-label">2. </span>Mathematics</h2>
+<p>You can also embed LaTeX mathematical code within <code>$...$</code> (for inline maths) or <code>$$...$$</code> (for block-form equations).</p>
+<p>By default (or if <code>math="mathml"</code>), the extension uses <a href="https://github.com/roniemartinez/latex2mathml">latex2mathml</a> to produce MathML code, which is included directly in the output document.</p>
+<p>If <code>math="latex"</code>, then mathematical code will instead be compiled and converted using the same external commands as in <a href="#whole">section <span class="la-ref">1</span></a>, just in math mode.</p>
+<p>Processing of math code can also be turned off with <code>math="ignore"</code> (either to restore the literal meaning of <code>$</code>, or to use an alternate math code processor like <code>pymdownx.arithmatex</code>).</p>
+<h2 id="3-options"><span class="la-label">3. </span>Options</h2>
+<p>Here&rsquo;s a full list of supported config options:</p>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>build_dir</code></td>
+<td>The location to write LaTeX&rsquo;s various temporary/intermediate files. By default, the extension uses Lamarkdown&rsquo;s own build directory (by default, <code>build/</code>).</td>
+</tr><tr><td><code>cache</code></td>
+<td>
+<p>A dictionary-like object for caching the output of the LaTeX compiler and PDF-to-SVG converter. Invoking these programs can take significant time, so they are only invoked when the contents of a given LaTeX section changes, <em>or</em> when a file included by the LaTeX code changes.</p>
+<p>By default, the extension uses Lamarkdown&rsquo;s <a href="../../core/#caching">build cache</a>.</p>
+</td>
+</tr><tr><td><code>doc_class</code></td>
+<td>The <code>documentclass</code> to use when not explicitly given. By default, this is <code>standalone</code>.</td>
+</tr><tr><td><code>doc_class_options</code></td>
+<td>Options to be passed to the <code>documentclass</code>, as a single string (comma-separated, as per LaTeX syntax). By default, this is empty.</td>
+</tr><tr><td><code>embedding</code></td>
+<td>
+<p>Either <code>data_uri</code> or <code>svg_element</code>. If <code>data_uri</code> is chosen, the output is embedded using an <code>&lt;img&gt;</code> element with a <code>data:</code> URI. Otherwise, it is included as an <code>&lt;svg&gt;</code> element.</p>
+<p>This is separate from Lamarkdown&rsquo;s core <a href="../../core/#embedding">resource embedding</a> functionality; LaTeX output is <em>always</em> embedded, but there is a choice of mechanism.</p>
+</td>
+</tr><tr><td><code>live_update_deps</code></td>
+<td>
+<p>A set-like object into which the extension records the names of any files that the given TeX code depends on, such as images or other included TeX code (but not including the TeX installation itself). By default, if available, the extension will use Lamarkdown&rsquo;s &ldquo;current&rdquo; set of such dependencies.</p>
+<p>This has no effect on the output produced, but assists Lamarkdown in understanding when it should recompile the <code>.md</code> document.</p>
+</td>
+</tr><tr><td><code>math</code></td>
+<td>
+<p>Specifies how to handle <code>$...$</code> and <code>$$...$$</code> sequences. The options are:</p>
+<ul>
+<li><code>mathml</code> (the default), where mathematical code is converted to MathML <code>&lt;math&gt;</code> elements, to be rendered by the browser;</li>
+<li><code>latex</code>, where mathematical code is compiled in essentially the same way as for <code>\begin{}...\end{}</code> blocks, but in LaTeX math mode; and</li>
+<li><code>ignore</code>, where mathematical code is left untouched by this extension, which may be needed if you&rsquo;re using another extension (like <code>pymdownx.arithmatex</code>) to handle it.</li>
+</ul>
+</td>
+</tr><tr><td><code>pdf_svg_converter</code></td>
+<td>The command to use to convert LaTeX PDF output to SVG form. This can be either <code>dvisvgm</code> (the default), or <code>pdf2svg</code>, or <code>inkscape</code>, <em>or</em> a complete command that contains the special placeholders <code>in.pdf</code> and/or <code>out.svg</code>. These will be replaced with the appropriate temporary input/output files.</td>
+</tr><tr><td><code>prepend</code></td>
+<td>
+<p>Any common LaTeX code (by default, none) to be added to the front of each LaTeX snippet, immediately after <code>\documentclass{...}</code>. You can use this to add common packages, define <code>\newcommand</code>s, etc.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.latex&#39;</span><span class="p">,</span>
+    <span class="n">prepend</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        \usepackage[default]</span><span class="si">{opensans}</span>
+<span class="s1">        \newcommand{\mycmd}</span><span class="si">{xyz}</span>
+<span class="s1">    &#39;&#39;&#39;</span>
+<span class="p">)</span>
+</code></pre></div>
+</td>
+</tr><tr><td><code>progress</code></td>
+<td>An object accepting error, warning and progress messages. This should be an instance of <code>lamarkdown.lib.Progress</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr><tr><td><code>strip_html_comments</code></td>
+<td><code>True</code> (the default) to remove HTML-style comments <code>&lt;!-- ... --&gt;</code> from within LaTeX code, for consistency with the rest of the <code>.md</code> file. If <code>False</code>, such comments will be considered ordinary text and passed to the LaTeX compiler, for whatever it will make of them. The normal LaTeX <code>%</code> comments are available in either case.</td>
+</tr><tr><td><code>tex</code></td>
+<td>The command to use to compile LaTeX code. This can be either <code>xelatex</code> (the default), or <code>pdflatex</code>, <em>or</em> a complete command that contains the special placeholders <code>in.tex</code> and/or <code>out.pdf</code>. These will be replaced with the appropriate temporary input/output files.</td>
+</tr><tr><td><code>timeout</code></td>
+<td>The amount of time to wait (in seconds) before the TeX command will be terminated, <em>after</em> it stops outputting messages. This is 3 seconds by default.</td>
+</tr><tr><td><code>verbose_errors</code></td>
+<td>If <code>True</code>, then everything the TeX command writes to standard output will be included in any error messages. If <code>False</code> (the default), the extension will try to detect the start of any actual error message, and only output that.</td>
+</tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

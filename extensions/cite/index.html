@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.cite - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../captions/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../eval/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/cite.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lacite" class="nav-link">la.cite</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-citation-syntax" class="nav-link">1. Citation Syntax</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-citation-and-reference-formats" class="nav-link">2. Citation and Reference Formats</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-options" class="nav-link">3. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lacite"><code>la.cite</code></h1>
+<p>This extension lets you embed citations (e.g., <code>[@author1990]</code> or <code>[see @author1; @author2; @{abc;def!}]</code>), which
+are collected to generate a bibliography, based on an external database file.</p>
+<p>(This citation format was inspired by <a href="https://pandoc.org/MANUAL.html#citation-syntax">Pandoc&rsquo;s citation syntax</a>, though it currently has less semantic structure. The extension uses the <a href="https://pybtex.org/">Pybtex</a> library to read <code>.bib</code> files and construct a bibliography.)</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.cite&#39;</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="s1">&#39;references.bib&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;#la-bibliography { display: table }&#39;</span>
+       <span class="s1">&#39;#la-bibliography dt { display: table-cell; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c"># references.bib</span>
+<span class="nc">@article</span><span class="p">{</span><span class="nl">refA</span><span class="p">,</span><span class="w"> </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&quot;An Author&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&quot;A Title&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="na">journal</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&quot;The Journal&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&quot;1990&quot;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="gu">## Referencing Example</span>
+Here&#39;s a citation [@refA].
+
+<span class="gu">### References</span>
+///References Go Here///
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+UmVmZXJlbmNpbmcgRXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KI2xhLWJpYmxpb2dyYXBoeSB7IGRpc3BsYXk6IHRhYmxlIH0jbGEtYmlibGlvZ3JhcGh5IGR0IHsgZGlzcGxheTogdGFibGUtY2VsbDsgfQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj5SZWZlcmVuY2luZyBFeGFtcGxlPC9oMj4KPHA+SGVyZSdzIGEgY2l0YXRpb24gPGNpdGU+WzxhIGhyZWY9IiNsYS1yZWY6MSIgaWQ9ImxhLWNpdGU6MS0xIj4xPC9hPl08L2NpdGU+LjwvcD4KPGgzPlJlZmVyZW5jZXM8L2gzPgo8ZGwgaWQ9ImxhLWJpYmxpb2dyYXBoeSI+PGR0IGlkPSJsYS1yZWY6MSI+MTwvZHQ+IDxkZD5BbsKgQXV0aG9yLiBBIHRpdGxlLiA8ZW0+VGhlIEpvdXJuYWw8L2VtPiwgMTk5MC4gPGEgaHJlZj0iI2xhLWNpdGU6MS0xIj7ihqk8L2E+PC9kZD4gPC9kbD4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<h2 id="1-citation-syntax"><span class="la-label">1. </span>Citation Syntax</h2>
+<p>A citation consists of <code>[...]</code> containing one or more citation keys of the form <code>@xyz</code> or <code>@{xyz}</code>, at least one of which matches an entry in the reference database. There can be free-form text within the brackets, before, after and in-between citation keys.</p>
+<p>In practice, most citations <em>probably</em> contain just one citation key (e.g., <code>[@author1990]</code>), or a comma-separated list of them (e.g., <code>[@abc, @def, @ghi]</code>).</p>
+<p>Without braces, a citation key can consider of letters, digits and <code>_</code>, with selected other characters available as single-char internal punctuation (e.g., a key can contain <code>.</code> and/or <code>-</code>, but cannot start or end with them, nor contain <code>..</code> or <code>--</code>).</p>
+<p>If necessary, a citation key <em>with</em> braces can contain any non-brace characters, as well as singly-nested, matching pairs of braces.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p><code>la.cite</code> takes care to check this syntax does not conflict with existing link or image syntax (e.g., <code>[...](...)</code>).</p>
+<p>In permitting (nearly) arbitrary special characters within braces, <code>la.cite</code> does not permit multiply-nested braces, as this would add implementation complexity for marginal benefit.</p>
+<p>The <a href="https://metacpan.org/dist/Text-BibTeX/view/btparse/doc/bt_language.pod">BibTeX format</a> describes permitted citation key characters within <code>.bib</code> files. However, Pandoc may be the better reference point, being another Markdown implementation.</p>
+</div>
+<h2 id="2-citation-and-reference-formats"><span class="la-label">2. </span>Citation and Reference Formats</h2>
+<p><code>la.cite</code>&rsquo;s formatting capabilites are a work-in-progress. It currently has quite limited capabilities regarding the way citations and references are displayed in the output HTML.</p>
+<p>It is a future ambition to integrate an implementation of CiteProc into <code>la.cite</code>.</p>
+<!-- ## Bibliography files in Document Metadata -->
+
+<!--
+
+In conjunction with the `meta` extension...
+
+-->
+
+<!--In conjunction with the `meta` extension, you can specify relevant BibTeX files at the top of your Markdown document:
+
+/// markdown-demo
+
+    import lamarkdown as la
+    la('la.cite', 'meta')
+    ---
+///-->
+
+<h2 id="3-options"><span class="la-label">3. </span>Options</h2>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>encoding</code></td>
+<td>The encoding of reference file(s). By default, this is <code>utf-8-sig</code> (which represents UTF-8, but expects and skips over any &ldquo;byte order mark&rdquo;).</td>
+</tr><tr><td><code>file</code></td>
+<td>
+<p>A filename, or a list of filenames, of BibTeX-formatted reference list(s). By default, <code>la.cite</code> looks for a file called <code>references.bib</code>.</p>
+<p>See also <code>references</code>.</p>
+</td>
+</tr><tr><td><code>format</code></td>
+<td>It&rsquo;s currently recommended to just leave this at the default, <code>bibtex</code>.</td>
+</tr><tr><td><code>hyperlinks</code></td>
+<td>One of <code>both</code> (the default), <code>forward</code>, <code>back</code> or <code>none</code>, indicating whether to create hyperlinks from citation to reference (forward/both) and from reference back to citation(s) (back/both).</td>
+</tr><tr><td><code>ignore_missing_file</code></td>
+<td>If <code>True</code> (the default), missing reference files are ignored, rather than reported as errors.</td>
+</tr><tr><td><code>live_update_deps</code></td>
+<td>
+<p>A set-like object into which the extension records all external BibTeX files, including those supplied via the <code>file</code> option, and also any supplied via document metadata (using the <code>meta</code> extension).</p>
+<p>By default, if available, the extension will use Lamarkdown&rsquo;s &ldquo;current&rdquo; set of such dependencies.</p>
+<p>This has no effect on the output produced, but assists Lamarkdown in understanding when it should recompile the <code>.md</code> document.</p>
+</td>
+</tr><tr><td><code>place_marker</code></td>
+<td>The string marking where bibliography entries will be placed. By default, this is <code>///References Go Here///</code>. If this is missing, the bibliography will simply be appended to the end of the document.</td>
+</tr><tr><td><code>progress</code></td>
+<td>An object accepting error, warning and progress messages. This should be an instance of <code>lamarkdown.lib.Progress</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr><tr><td><code>references</code></td>
+<td>
+<p>Either <code>None</code> (the default), or a string directly containing BibTeX-formatted references (or None).</p>
+<p>See also <code>file</code>.</p>
+</td>
+</tr><tr><td><code>style</code></td>
+<td>One of <code>alpha</code>, <code>plain</code>, <code>unsrt</code> or <code>unsrtalpha</code>, indicating how to format citations and references.</td>
+</tr></tbody></table>
+<!--
+---
+
+            'label_style': [
+                '',
+                '"" (default), "alpha" or "number".'
+            ],
+            'name_style': [
+                '',
+                '"" (default), "lastfirst" or "plain".'
+            ],
+            'sorting_style': [
+                '',
+                '"" (default), "author_year_title" or "none".'
+            ],
+            'abbreviate_names': [
+                False,
+                'If True, use initials for first/middle names. If False (default), use full names.'
+            ],
+            'min_crossrefs': [
+                2,
+                '...'
+            ],--></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

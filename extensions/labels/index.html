@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.labels - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../eval/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../latex/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/labels.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lalabels" class="nav-link">la.labels</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#templates" class="nav-link">1. Label Templates</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-cross-references" class="nav-link">2. Cross References</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-suppressing-labels-no-label" class="nav-link">3. Suppressing Labels: -no-label</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#4-changing-labels" class="nav-link">4. Changing Labels</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#5-options" class="nav-link">5. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lalabels"><code>la.labels</code></h1>
+<p>This extension assigns counter-based (or fixed) labels to headings, lists, figures and tables, and lets you use those labels in links to labelled elements.</p>
+<p>You can specify where and how labels should appear by:</p>
+<ol>
+<li>Adding the <code>-label=...</code> directive to headings, lists, figures and tables; or</li>
+<li>Specifying the <a href="#labels-opt"><code>labels</code> configuration option</a>.</li>
+</ol>
+<p>In both cases, you provide a <em>label template</em>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Remember that, while the following examples all use the <code>-label</code> directive, you can just as easily write templates using the <code>labels</code> configuration option. In the latter case, you may not need to modify the <code>.md</code> file at all in order to produce the labelling systems you want.</p>
+</div>
+<h2 id="templates"><span class="la-label">1. </span>Label Templates</h2>
+<p>A label template has several parts.</p>
+<h3 id="11-counter-types"><span class="la-label">1.1. </span>Counter Types</h3>
+<p>A counter type is a system for counting integers. Given <code>-label="1"</code>, the <code>1</code> is a counter type representing base-10 Arabic numerals. You can also provide <code>A</code> or <code>a</code> for upper/lower-case alphabetic numbering, <code>I</code> or <code>i</code> for upper/lower-case Roman numerals, or one of various longer-form names corresponding to CSS counter styles (e.g., <code>simp-chinese-informal</code>, <code>lower-greek</code>, <code>lower-hexadecimal</code>, etc.).</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="gu">## Heading {-label=&quot;i &quot;}</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;simp-chinese-formal &quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 12em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgfWxpID4gcCB7IGRpc3BsYXk6IGlubGluZTsgfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDpjb3VudGVyKGxhLWxhYmVsMCxzaW1wLWNoaW5lc2UtZm9ybWFsKSAiICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPmkgPC9zcGFuPkhlYWRpbmc8L2gyPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5paSA8L3NwYW4+SGVhZGluZzwvaDI+CjxvbCBjbGFzcz0ibGEtbGFiZWxsZWQgbGEtbGFiZWwwIj48bGk+TGlzdCBpdGVtPC9saT4KPGxpPkxpc3QgaXRlbTwvbGk+Cjwvb2w+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>The available counter types are essentially the same as the values supported by the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/list-style-type"><code>list-style-type</code> CSS property</a>, <em>except for</em>:</p>
+<ul>
+<li>Bullet-points like <code>disc</code>, <code>circle</code>, <code>square</code>, <code>disclosure-open</code> and <code>disclosure-closed</code> (which would simply duplicate literal Unicode characters);</li>
+<li>Global CSS values like <code>inherit</code>, <code>initial</code>, etc.;</li>
+<li>The value <code>none</code>;</li>
+<li>Custom counter styles.</li>
+</ul>
+<p>The use of CSS belies some internal complexity. <em>Lists</em> are numbered by generating CSS code that itself produces the labels (because this seems the conventional approach to HTML/CSS lists). However, headings (and figures and tables) are labelled <em>at compile time</em>, the labels becoming part of the HTML document content.</p>
+<p>This is partly because the <code>toc</code> extension will read heading text (at compile time, of course), and reproduce it inside the table-of-contents, and we&rsquo;d ideally like the table-of-contents to contain the same heading labels that the headings themselves do.</p>
+<p>To support compile-time labelling, <code>la.labels</code> must implement much of the same counter logic as browsers do to support <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@counter-style">CSS&rsquo;s <code>@counter-style</code> construct</a>.</p>
+<p>A future version of Lamarkdown may:</p>
+<ul>
+<li>Provide a configuration option to determine which implementation approach to use for which type of element; and/or</li>
+<li>Provide a way to define custom counter types, similar to <code>@counter-style</code>.</li>
+</ul>
+</div>
+<h3 id="12-literals"><span class="la-label">1.2. </span>Literals</h3>
+<p>Literal strings can appear as the prefix and suffix of a label. In <code>-label="(1) "</code>, the <code>(</code> is a prefix, and <code>)</code> is a suffix. Literals may contain any number of characters, including zero: e.g.:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;@@@ A @@@&quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+<span class="k">3.</span> List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KbGkgeyBkaXNwbGF5OiB0YWJsZTsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgZGlzcGxheTogdGFibGUtY2VsbDsgcGFkZGluZy1yaWdodDogMC41ZW19bGkgPiBwIHsgZGlzcGxheTogaW5saW5lOyB9Ci5sYS1sYWJlbGxlZD5saXtsaXN0LXN0eWxlLXR5cGU6bm9uZTt9Ci5sYS1sYWJlbDB7Y291bnRlci1yZXNldDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpe2NvdW50ZXItaW5jcmVtZW50OmxhLWxhYmVsMDt9Ci5sYS1sYWJlbDA+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCk6OmJlZm9yZXtjb250ZW50OiJAQEAgIiBjb3VudGVyKGxhLWxhYmVsMCx1cHBlci1hbHBoYSkgIiBAQEAiO30KPC9zdHlsZT48L2hlYWQ+Cjxib2R5Pgo8b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpPkxpc3QgaXRlbTwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8bGk+TGlzdCBpdGVtPC9saT4KPC9vbD4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<p>Literals can consist of:</p>
+<ul>
+<li>
+<p>Spaces and all printable symbols <em>other than</em> ASCII digits, letters, quotation marks, <code>,</code>, <code>-</code> and <code>*</code>.</p>
+</li>
+<li>
+<p><code>-</code>, when not between alphanumeric characters (where it is considered part of a counter type).</p>
+</li>
+<li>
+<p><code>*</code>, when not the final character following <code>,</code> (where it has a special meaning, <a href="#inner">explained below</a>).</p>
+</li>
+<li>
+<p>Characters within an additional pair of quotation marks. There will already be a pair of quotation marks around the entire template (whether <code>-label='...'</code> or <code>label="..."</code>), so the <em>inner</em> quotation marks must be different. For instance:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;&#39;Table&#39; 1.&quot;}
+Column A | Column B
+-------- | --------
+One      | Two
+Three    | Four
+
+Column C | Column D
+-------- | --------
+Five     | Six
+Seven    | Eight
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 16em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KdGFibGUgeyBtYXJnaW46IDFlbSB9dGQsIHRoIHsgYm9yZGVyOiAxcHggc29saWQgYmx1ZSB9bGkgeyBkaXNwbGF5OiB0YWJsZTsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgZGlzcGxheTogdGFibGUtY2VsbDsgcGFkZGluZy1yaWdodDogMC41ZW19bGkgPiBwIHsgZGlzcGxheTogaW5saW5lOyB9Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHRhYmxlPjxjYXB0aW9uPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+VGFibGUgMS48L3NwYW4+PC9jYXB0aW9uPgo8dGhlYWQ+PHRyPjx0aD5Db2x1bW4gQTwvdGg+Cjx0aD5Db2x1bW4gQjwvdGg+CjwvdHI+PC90aGVhZD48dGJvZHk+PHRyPjx0ZD5PbmU8L3RkPgo8dGQ+VHdvPC90ZD4KPC90cj48dHI+PHRkPlRocmVlPC90ZD4KPHRkPkZvdXI8L3RkPgo8L3RyPjwvdGJvZHk+PC90YWJsZT48dGFibGU+PGNhcHRpb24+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5UYWJsZSAyLjwvc3Bhbj48L2NhcHRpb24+Cjx0aGVhZD48dHI+PHRoPkNvbHVtbiBDPC90aD4KPHRoPkNvbHVtbiBEPC90aD4KPC90cj48L3RoZWFkPjx0Ym9keT48dHI+PHRkPkZpdmU8L3RkPgo8dGQ+U2l4PC90ZD4KPC90cj48dHI+PHRkPlNldmVuPC90ZD4KPHRkPkVpZ2h0PC90ZD4KPC90cj48L3Rib2R5PjwvdGFibGU+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+</li>
+<li>
+<p>Quotation marks, when doubled-up within other quotation marks; e.g., <code>-label="''''1''''"</code> produces a base-10 arabic number inside a <em>single</em> set of quotation marks: <code>'1'</code>, <code>'2'</code>, etc.</p>
+<p>Note: the attribute syntax (the general form <code>attr="value"</code>) has its own separate way of escaping characters with <code>\</code>, but this is invisible to the template syntax, so cannot be used to designate literal characters.</p>
+</li>
+</ul>
+<p>A label <em>may</em> consist of just a literal string, with no counter type, which can be useful in unordered lists:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;$$ &quot;}
+<span class="k">*</span><span class="w"> </span>List item
+<span class="k">*</span><span class="w"> </span>List item
+<span class="k">*</span><span class="w"> </span>List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KbGkgeyBkaXNwbGF5OiB0YWJsZTsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgZGlzcGxheTogdGFibGUtY2VsbDsgcGFkZGluZy1yaWdodDogMC41ZW19Ci5sYS1sYWJlbGxlZD5saXtsaXN0LXN0eWxlLXR5cGU6bm9uZTt9Ci5sYS1sYWJlbDA+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCk6OmJlZm9yZXtjb250ZW50OiIkJCAiO30KPC9zdHlsZT48L2hlYWQ+Cjxib2R5Pgo8dWwgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpPkxpc3QgaXRlbTwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8bGk+TGlzdCBpdGVtPC9saT4KPC91bD4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<h3 id="parents"><span class="la-label">1.3. </span>Hierarchical Labels</h3>
+<p>A <em>parent indicator</em> (if present) is used to make hierarchical labels. It acts as a placeholder for a higher-level label, which then forms part of the lower-level label, preceeding the lower-level counter. (The higher-level label&rsquo;s own prefix and suffix are removed.)</p>
+<p>A template with a parent indicator has a form similar to <code>-label="(L.1) "</code>, where <code>L</code> is the parent indicator, and <code>.</code> is a separator literal (which can be any valid literal). <code>L</code> specifically refers to the label of the next higher <em>list</em>, if one exists.</p>
+<p>For instance:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;L.1. &quot;}
+<span class="k">1.</span> Item
+<span class="k">2.</span> Item
+
+    {-label=&quot;[L.A] &quot;}
+<span class="w">    </span><span class="k">1.</span> Item
+<span class="w">    </span><span class="k">2.</span> Item
+
+        {-label=&quot;_L_i_ &quot;}
+<span class="w">        </span><span class="k">1.</span> Item
+<span class="w">        </span><span class="k">2.</span> Item
+
+<span class="w">    </span><span class="k">3.</span> Item
+
+<span class="k">3.</span> Item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KbGk6OmJlZm9yZSB7IGNvbG9yOiBibHVlOyB9bGkgPiBwIHsgZGlzcGxheTogaW5saW5lOyB9Ci5sYS1sYWJlbGxlZD5saXtsaXN0LXN0eWxlLXR5cGU6bm9uZTt9Ci5sYS1sYWJlbDB7Y291bnRlci1yZXNldDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpe2NvdW50ZXItaW5jcmVtZW50OmxhLWxhYmVsMDt9Ci5sYS1sYWJlbDA+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCk6OmJlZm9yZXtjb250ZW50OmNvdW50ZXIobGEtbGFiZWwwLGRlY2ltYWwpICIuICI7fQoubGEtbGFiZWwxe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwxO30KLmxhLWxhYmVsMT5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDE7fQoubGEtbGFiZWwxPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiWyIgY291bnRlcihsYS1sYWJlbDAsZGVjaW1hbCkgIi4iIGNvdW50ZXIobGEtbGFiZWwxLHVwcGVyLWFscGhhKSAiXSAiO30KLmxhLWxhYmVsMntjb3VudGVyLXJlc2V0OmxhLWxhYmVsMjt9Ci5sYS1sYWJlbDI+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCl7Y291bnRlci1pbmNyZW1lbnQ6bGEtbGFiZWwyO30KLmxhLWxhYmVsMj5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKTo6YmVmb3Jle2NvbnRlbnQ6Il8iIGNvdW50ZXIobGEtbGFiZWwwLGRlY2ltYWwpICIuIiBjb3VudGVyKGxhLWxhYmVsMSx1cHBlci1hbHBoYSkgIl8iIGNvdW50ZXIobGEtbGFiZWwyLGxvd2VyLXJvbWFuKSAiXyAiO30KPC9zdHlsZT48L2hlYWQ+Cjxib2R5Pgo8b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpPkl0ZW08L2xpPgo8bGk+CjxwPkl0ZW08L3A+CjxvbCBjbGFzcz0ibGEtbGFiZWxsZWQgbGEtbGFiZWwxIj48bGk+SXRlbTwvbGk+CjxsaT4KPHA+SXRlbTwvcD4KPG9sIGNsYXNzPSJsYS1sYWJlbGxlZCBsYS1sYWJlbDIiPjxsaT5JdGVtPC9saT4KPGxpPkl0ZW08L2xpPgo8L29sPjwvbGk+CjxsaT4KPHA+SXRlbTwvcD4KPC9saT4KPC9vbD48L2xpPgo8bGk+CjxwPkl0ZW08L3A+CjwvbGk+Cjwvb2w+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<p>In the first label template above, the <code>L.</code> part will be ignored, because there is no higher list level.</p>
+<p>Similarly, the parent indicator <code>H</code> refers to the label of the next higher <em>heading</em> (if one exists):</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;H.1. &quot;}
+<span class="gu">## Heading</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;[H.A] &quot;}
+<span class="gu">### Heading</span>
+<span class="gu">### Heading</span>
+
+{-label=&quot;_H_i_ &quot;}
+<span class="gu">#### Heading</span>
+<span class="gu">#### Heading</span>
+
+<span class="gu">### Heading</span>
+
+<span class="gu">## Heading</span>
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 25em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuIDwvc3Bhbj5IZWFkaW5nPC9oMj4KPGgyPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+Mi4gPC9zcGFuPkhlYWRpbmc8L2gyPgo8aDM+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5bMi5BXSA8L3NwYW4+SGVhZGluZzwvaDM+CjxoMz48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPlsyLkJdIDwvc3Bhbj5IZWFkaW5nPC9oMz4KPGg0PjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+XzIuQl9pXyA8L3NwYW4+SGVhZGluZzwvaDQ+CjxoND48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPl8yLkJfaWlfIDwvc3Bhbj5IZWFkaW5nPC9oND4KPGgzPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+WzIuQ10gPC9zcGFuPkhlYWRpbmc8L2gzPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj4zLiA8L3NwYW4+SGVhZGluZzwvaDI+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<p>Meanwhile, <code>X</code> refers to the next label label of <em>any</em> kind. For example, here are some <code>&lt;h3&gt;</code> headings, within an <code>&lt;ol&gt;</code> list, underneath another <code>&lt;h2&gt;</code> heading, where the labels are arranged hierarchically:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;1. &quot;}
+<span class="gu">## Heading</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;[X.A] &quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+
+    {-label=&quot;_X_i_ &quot;}
+    ### Heading
+    ### Heading
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 18em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpIHsgZGlzcGxheTogdGFibGU7IH1saTo6YmVmb3JlIHsgZGlzcGxheTogdGFibGUtY2VsbDsgY29sb3I6IGJsdWU7IHBhZGRpbmctcmlnaHQ6IDAuNWVtIH0KLmxhLWxhYmVsbGVkPmxpe2xpc3Qtc3R5bGUtdHlwZTpub25lO30KLmxhLWxhYmVsMHtjb3VudGVyLXJlc2V0OmxhLWxhYmVsMDt9Ci5sYS1sYWJlbDA+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCl7Y291bnRlci1pbmNyZW1lbnQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKTo6YmVmb3Jle2NvbnRlbnQ6IlsiICIyIiAiLiIgY291bnRlcihsYS1sYWJlbDAsdXBwZXItYWxwaGEpICJdICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuIDwvc3Bhbj5IZWFkaW5nPC9oMj4KPGgyPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+Mi4gPC9zcGFuPkhlYWRpbmc8L2gyPgo8b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpPkxpc3QgaXRlbTwvbGk+CjxsaT4KPHA+TGlzdCBpdGVtPC9wPgo8aDM+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5fMi5CX2lfIDwvc3Bhbj5IZWFkaW5nPC9oMz4KPGgzPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+XzIuQl9paV8gPC9zcGFuPkhlYWRpbmc8L2gzPgo8L2xpPgo8L29sPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<h3 id="inner"><span class="la-label">1.4. </span>Inner Templates</h3>
+<p>An inner template is the part of a template after the first (non-quoted) <code>,</code>. A full label template consists of a <code>,</code>-separated sequence of components (each of which is as described above), optionally ending in <code>,*</code>.</p>
+<p>Inner label templates help make label specification neater. They apply to nested elements of the same type. For instance, <code>-label="1. ,(a) ,(i) "</code> assigns labels <code>1.</code>, <code>2.</code>, etc. to the current level, <code>(a)</code>, <code>(b)</code> to singly-nested elements, and <code>(i)</code>, <code>(ii)</code> to doubly-nested elements (all of the same type).</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;1. ,(a), (i) &quot;}
+<span class="k">1.</span> List item
+<span class="w">    </span><span class="k">1.</span> List item
+<span class="w">        </span><span class="k">1.</span> List item
+<span class="w">        </span><span class="k">2.</span> List item
+<span class="w">    </span><span class="k">2.</span> List item
+<span class="k">2.</span> List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KbGkgeyBkaXNwbGF5OiB0YWJsZTsgfWxpOjpiZWZvcmUgeyBkaXNwbGF5OiB0YWJsZS1jZWxsOyBjb2xvcjogYmx1ZTsgcGFkZGluZy1yaWdodDogMC41ZW0gfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDpjb3VudGVyKGxhLWxhYmVsMCxkZWNpbWFsKSAiLiAiO30KLmxhLWxhYmVsMXtjb3VudGVyLXJlc2V0OmxhLWxhYmVsMTt9Ci5sYS1sYWJlbDE+bGk6bm90KC5sYS1uby1sYWJlbCk6bm90KC5sYS1sYWJlbGxlZCl7Y291bnRlci1pbmNyZW1lbnQ6bGEtbGFiZWwxO30KLmxhLWxhYmVsMT5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKTo6YmVmb3Jle2NvbnRlbnQ6IigiIGNvdW50ZXIobGEtbGFiZWwxLGxvd2VyLWFscGhhKSAiKSI7fQoubGEtbGFiZWwye2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwyO30KLmxhLWxhYmVsMj5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDI7fQoubGEtbGFiZWwyPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiKCIgY291bnRlcihsYS1sYWJlbDIsbG93ZXItcm9tYW4pICIpICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxvbCBjbGFzcz0ibGEtbGFiZWxsZWQgbGEtbGFiZWwwIj48bGk+TGlzdCBpdGVtPG9sIGNsYXNzPSJsYS1sYWJlbGxlZCBsYS1sYWJlbDEiPjxsaT5MaXN0IGl0ZW08b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMiI+PGxpPkxpc3QgaXRlbTwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8L29sPjwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8L29sPjwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8L29sPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<p>When <code>,*</code> occurs after the final template component, it applies that template to <em>all</em> more-deeply nested elements indefinitely (until otherwise overridden).</p>
+<p>Together with parent indicators, this lets you produce a typical multilevel decimal numbering system with little overhead:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-label=&quot;H.1. ,*&quot;}
+<span class="gu">## Heading</span>
+<span class="gu">### Heading</span>
+<span class="gu">#### Heading</span>
+<span class="gu">#### Heading</span>
+<span class="gu">### Heading</span>
+<span class="gu">## Heading</span>
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 20em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuIDwvc3Bhbj5IZWFkaW5nPC9oMj4KPGgzPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+MS4xLiA8L3NwYW4+SGVhZGluZzwvaDM+CjxoND48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuMS4xLiA8L3NwYW4+SGVhZGluZzwvaDQ+CjxoND48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuMS4yLiA8L3NwYW4+SGVhZGluZzwvaDQ+CjxoMz48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjEuMi4gPC9zcGFuPkhlYWRpbmc8L2gzPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj4yLiA8L3NwYW4+SGVhZGluZzwvaDI+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<h2 id="2-cross-references"><span class="la-label">2. </span>Cross References</h2>
+<p>Once elements are labelled, you can create links to them (or parts of them) that include those labels in the link text. Specifically, you must:</p>
+<ul>
+<li>Assign an ID to the target of a link, e.g., by writing <code>{#myid}</code> before or after it. The ID <em>does not</em> need to be on precisely the element that actually has the label; it may also be on any element inside it.</li>
+<li>Create a link to that ID, where the link text contains <code>##</code>.</li>
+</ul>
+<p>For instance:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>Some references to headings [<span class="nt">##</span>](<span class="na">#secX</span>) and
+[<span class="nt">##</span>](<span class="na">#secY</span>), and to [<span class="nt">list item ##</span>](<span class="na">#itemU</span>) and
+[<span class="nt">list item ##</span>](<span class="na">#itemV</span>).
+
+{-label=&quot;1. &quot;}
+<span class="gu">## Heading {#secX}</span>
+<span class="gu">## Heading {#secY}</span>
+
+{-label=&quot;(a) &quot;}
+<span class="k">1.</span> List item
+    {#itemU}
+<span class="k">2.</span> List item
+    {#itemV}
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 16em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgfWxpID4gcCB7IGRpc3BsYXk6IGlubGluZTsgfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiKCIgY291bnRlcihsYS1sYWJlbDAsbG93ZXItYWxwaGEpICIpICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxwPlNvbWUgcmVmZXJlbmNlcyB0byBoZWFkaW5ncyA8YSBocmVmPSIjc2VjWCI+PHNwYW4gY2xhc3M9ImxhLXJlZiI+MTwvc3Bhbj48L2E+IGFuZAo8YSBocmVmPSIjc2VjWSI+PHNwYW4gY2xhc3M9ImxhLXJlZiI+Mjwvc3Bhbj48L2E+LCBhbmQgdG8gPGEgaHJlZj0iI2l0ZW1VIj5saXN0IGl0ZW0gPHNwYW4gY2xhc3M9ImxhLXJlZiI+YTwvc3Bhbj48L2E+IGFuZAo8YSBocmVmPSIjaXRlbVYiPmxpc3QgaXRlbSA8c3BhbiBjbGFzcz0ibGEtcmVmIj5iPC9zcGFuPjwvYT4uPC9wPgo8aDIgaWQ9InNlY1giPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+MS4gPC9zcGFuPkhlYWRpbmc8L2gyPgo8aDIgaWQ9InNlY1kiPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+Mi4gPC9zcGFuPkhlYWRpbmc8L2gyPgo8b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpIGlkPSJpdGVtVSI+TGlzdCBpdGVtPC9saT4KPGxpIGlkPSJpdGVtViI+TGlzdCBpdGVtPC9saT4KPC9vbD4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<p>You can be more specific about what <em>kind</em> of label you want to refer to, by appending a <a href="#parents">parent indicator</a> to the <code>##</code>; e.g., <code>##H</code> or <code>##L</code>. You can also have multiple such placeholders for a single link.</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>A reference to [<span class="nt">list item ##L in section ##H</span>](<span class="na">#item</span>).
+
+{-label=&quot;1. &quot;}
+<span class="gu">## Heading</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;(a) &quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+    {#item}
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 16em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgfWxpID4gcCB7IGRpc3BsYXk6IGlubGluZTsgfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiKCIgY291bnRlcihsYS1sYWJlbDAsbG93ZXItYWxwaGEpICIpICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxwPkEgcmVmZXJlbmNlIHRvIDxhIGhyZWY9IiNpdGVtIj5saXN0IGl0ZW0gPHNwYW4gY2xhc3M9ImxhLXJlZiI+Yjwvc3Bhbj4gaW4gc2VjdGlvbiA8c3BhbiBjbGFzcz0ibGEtcmVmIj4yPC9zcGFuPjwvYT4uPC9wPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj4xLiA8L3NwYW4+SGVhZGluZzwvaDI+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPjIuIDwvc3Bhbj5IZWFkaW5nPC9oMj4KPG9sIGNsYXNzPSJsYS1sYWJlbGxlZCBsYS1sYWJlbDAiPjxsaT5MaXN0IGl0ZW08L2xpPgo8bGkgaWQ9Iml0ZW0iPkxpc3QgaXRlbTwvbGk+Cjwvb2w+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>The use of <code>##</code> has the advantage that:</p>
+<ul>
+<li>It is concise, without being too likely to require routine escaping (as a single <code>#</code> may);</li>
+<li>It appears to reflect a number;</li>
+<li>It also seems visually-related to the element IDs syntax (<code>#myid</code>), while not being exactly the same; and</li>
+<li>Since it only applies inside link text, it does not conflict with heading syntax.</li>
+</ul>
+<p>One might compare the approach to LaTeX, which uses <code>\label</code> and <code>\ref</code>:</p>
+<div class="highlight"><pre><span></span><code>A reference to Section <span class="k">\ref</span><span class="nb">{</span>xyz<span class="nb">}</span>.
+
+<span class="k">\section</span><span class="nb">{</span>First<span class="nb">}</span>
+...
+
+<span class="k">\section</span><span class="nb">{</span>Second<span class="nb">}</span>
+<span class="k">\label</span><span class="nb">{</span>xyz<span class="nb">}</span>
+...
+</code></pre></div>
+<p>Markdown and HTML have element IDs in place of <code>\label</code>. They do not have an exact equivalent of <code>\ref</code> (which just grabs a label). But rather than trying to recreate <code>\ref</code> exactly, we accept the preeminence of hyperlinks in Markdown and HTML, and work within them.</p>
+<p>One theoretical weakness of the <code>la.labels</code> approach is that you cannot make a label reference <em>outside</em> of a hyperlink. There seems little practical drawback to this, though.</p>
+<p><code>la.labels</code> does not replace or directly alter the Markdown link-parsing logic, but rather looks for the text inside <code>&lt;a&gt;</code> (anchor) elements once they&rsquo;ve already been parsed.</p>
+</div>
+<h2 id="3-suppressing-labels-no-label"><span class="la-label">3. </span>Suppressing Labels: <code>-no-label</code></h2>
+<p>The <code>-no-label</code> directive will suppress a label in places where one would otherwise occur. The counter will be paused, and carry on at the next applicable element.</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="gu">## Heading {-label=&quot;(i) &quot;}</span>
+<span class="gu">## Heading {-no-label}</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;(i) &quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+    {-no-label}
+<span class="k">3.</span> List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 20em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgfWxpID4gcCB7IGRpc3BsYXk6IGlubGluZTsgfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiKCIgY291bnRlcihsYS1sYWJlbDAsbG93ZXItcm9tYW4pICIpICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPihpKSA8L3NwYW4+SGVhZGluZzwvaDI+CjxoMj5IZWFkaW5nPC9oMj4KPGgyPjxzcGFuIGNsYXNzPSJsYS1sYWJlbCI+KGlpKSA8L3NwYW4+SGVhZGluZzwvaDI+CjxvbCBjbGFzcz0ibGEtbGFiZWxsZWQgbGEtbGFiZWwwIj48bGk+TGlzdCBpdGVtPC9saT4KPGxpIGNsYXNzPSJsYS1uby1sYWJlbCI+TGlzdCBpdGVtPC9saT4KPGxpPkxpc3QgaXRlbTwvbGk+Cjwvb2w+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<h2 id="4-changing-labels"><span class="la-label">4. </span>Changing Labels</h2>
+<p>The label format may be changed part-way through a sequence of elements, simply by assigning a new <code>-label</code> template to one of the elements. For instance:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="gu">## Heading {-label=&quot;(i) &quot;}</span>
+<span class="gu">## Heading</span>
+<span class="gu">## Heading {-label=&quot;[A] &quot;}</span>
+<span class="gu">## Heading</span>
+
+{-label=&quot;(i) &quot;}
+<span class="k">1.</span> List item
+<span class="k">2.</span> List item
+<span class="k">3.</span> List item
+    {-label=&quot;[A] &quot;}
+<span class="k">4.</span> List item
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 20em">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KLmxhLWxhYmVsIHsgY29sb3I6IHJlZDsgfWxpOjpiZWZvcmUgeyBjb2xvcjogYmx1ZTsgfWxpID4gcCB7IGRpc3BsYXk6IGlubGluZTsgfQoubGEtbGFiZWxsZWQ+bGl7bGlzdC1zdHlsZS10eXBlOm5vbmU7fQoubGEtbGFiZWwwe2NvdW50ZXItcmVzZXQ6bGEtbGFiZWwwO30KLmxhLWxhYmVsMD5saTpub3QoLmxhLW5vLWxhYmVsKTpub3QoLmxhLWxhYmVsbGVkKXtjb3VudGVyLWluY3JlbWVudDpsYS1sYWJlbDA7fQoubGEtbGFiZWwwPmxpOm5vdCgubGEtbm8tbGFiZWwpOm5vdCgubGEtbGFiZWxsZWQpOjpiZWZvcmV7Y29udGVudDoiKCIgY291bnRlcihsYS1sYWJlbDAsbG93ZXItcm9tYW4pICIpICI7fQpsaS5sYS1sYWJlbDF7Y291bnRlci1pbmNyZW1lbnQ6bGEtbGFiZWwxO30KbGkubGEtbGFiZWwxOjpiZWZvcmV7Y29udGVudDoiWyIgY291bnRlcihsYS1sYWJlbDEsdXBwZXItYWxwaGEpICJdICI7fQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPihpKSA8L3NwYW4+SGVhZGluZzwvaDI+CjxoMj48c3BhbiBjbGFzcz0ibGEtbGFiZWwiPihpaSkgPC9zcGFuPkhlYWRpbmc8L2gyPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5bQV0gPC9zcGFuPkhlYWRpbmc8L2gyPgo8aDI+PHNwYW4gY2xhc3M9ImxhLWxhYmVsIj5bQl0gPC9zcGFuPkhlYWRpbmc8L2gyPgo8b2wgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMCI+PGxpPkxpc3QgaXRlbTwvbGk+CjxsaT5MaXN0IGl0ZW08L2xpPgo8bGkgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMSIgc3R5bGU9ImNvdW50ZXItcmVzZXQ6bGEtbGFiZWwxIj5MaXN0IGl0ZW08L2xpPgo8bGkgY2xhc3M9ImxhLWxhYmVsbGVkIGxhLWxhYmVsMSI+TGlzdCBpdGVtPC9saT4KPC9vbD4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<!--## Template syntax
+
+Label templates can create complex labelling schemes, with minimal specification. The syntax is
+defined as follows:
+
+template := template_part ( ',' template_part )* [ ',' '*' ]
+template_part := literal* [ [ ('X' | 'L' | 'H' [level] ) literal+ ] format_spec literal* ]
+
+format_spec := any alphanumeric sequence (including '-', but not at the start or end position)
+
+level := an integer from 1 to 6, inclusive
+literal := ( unquoted_literal | quoted_literal )*
+unquoted_literal := any single character _other than_ ',', quotation marks, alphanumeric
+    characters, or '-' if surrounded by alphanumeric characters
+quoted_literal := any sequence of characters surrounded by double or single quotes, and possibly
+    including doubled-up quotes to represent literal quotation marks.
+
+Thus, a template consists of one or more comma-separated parts, optionally ending in a '*'. The
+first (mandatory) part applies directly to the current list or list element. Subsequent parts apply
+to successive levels of child lists, _of the same fundamental type_ (nested lists for lists, and
+sub-headings for headings). If present, the '*' causes the final template to apply indefinitely to
+any more deeply-nested lists/headings. (If '*' is omitted, then any lists nested more deeply are
+outside the scope of this template list.)
+
+The `format_spec` refers to the core numbering system for a given list or list element. It can be:
+
+* `1`, for arabic numerals;
+* `a`/`A`, for lower/uppercase English alphabetic numbering;
+* `i`/`I`, for lower/uppercase Roman numerals; or
+* one of various terms accepted by the list-style-type CSS property; e.g., `lower-greek`,
+    `armenian`, etc.
+
+(This extension seeks to support _most_ numbering schemes available in CSS.)
+
+For <ul> elements, there's generally no numbering system required, and `format_spec` can be
+omitted, so that the entire template consists just of a literal `prefix`.
+
+(This extension _does not_ directly support the CSS terms 'disc', 'circle', 'square', as these can
+be directly represented with literal characters; e.g., '•', '◦', '▪'.)
+
+If `X`, `L` or `H` is given, it refers to the label of the nearest _numbered_ ancestor element.
+Specifically, `X` means _any_ such element (though, again, only those with numbering systems, so
+generally not <ul> elements), `L` means a list element (almost certainly <ol>), `H` means any
+heading element, and `H1`-`H6` mean the corresponding heading level. If such an ancestor element
+exists, its core label (minus any prefix/suffix literals) will be inserted prior to the element's
+own number, along with an delimiting literal.
+
+If X, L or H is given, but no such element exists, then no ancestor label will be inserted, _and_
+the delimiting literal will be omitted too.
+
+Examples:
+
+* -label="(X.1),*"
+* -label="1.,(a),(i)"
+-->
+
+<h2 id="5-options"><span class="la-label">5. </span>Options</h2>
+<p>The <a href="#labels-opt"><code>labels</code></a> option is the one key option for influencing document-wide labelling conventions. The remainder of the options below concern the technical implementation details.</p>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+<th>
+</th></tr></thead><tbody><tr><td><code>css_fn</code></td>
+<td>
+<p>A function taking a single string parameter, which the extension will call to deliver CSS code, under the assumption that it will be applied to the output document. The extension needs this capability in order to implement CSS-based labels, particularly for ordered/unordered lists.</p>
+<p>By default, and if it&rsquo;s available, this will be <a href="../../api/#css"><code>lamarkdown.css()</code></a>.</p>
+<p>If <code>css_fn</code> is <code>None</code>, or if it&rsquo;s left unspecified and <code>lamarkdown.css()</code> is <em>not</em> available (because the extension is being run externally), then CSS-based labels will be disabled. In this case, the extension will fall back to hard-coding list labels in the HTML document. This may be visually indistinguishable, though not necessarily semantically equivalent.</p>
+</td>
+<td>
+</td></tr><tr><td><code>css_rendering</code></td>
+<td>A set containing element types that will receive CSS-based label rendering, if it&rsquo;s available, rather than hard-coded labels. It&rsquo;s not currently recommended to change this, because the underlying implementation only currently supports CSS-based rendering for list labels.</td>
+<td>
+</td></tr><tr><td><code>directives</code></td>
+<td>An object for retrieving directives from HTML tree elements. This should be an instance of <code>lamarkdown.lib.directives.Directives</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+<td>
+</td></tr><tr><td><code>label_processors</code></td>
+<td>A list of <code>LabelProcessor</code> objects responsible for orchestrating the labelling of different kinds of HTML elements. It&rsquo;s not currently recommended to change this.</td>
+<td>
+</td></tr><tr><td id="labels-opt"><code>labels</code></td>
+<td>
+<p>A dictionary specifying label templates to use in the absence of <code>-label</code> directives.</p>
+<p>The dictionary keys are <code>h</code> (for headings), &ldquo;<code>h</code><em>n</em>&rdquo; (for level-<em>n</em> headings specifically), <code>ol</code> (for ordered lists), <code>ul</code> (for unordered lists), <code>figure</code> and <code>table</code>.</p>
+<p>The dictionary values are <a href="#templates">label templates</a>. Just as for the <code>-label</code> directive, these templates can also include <a href="#parents">parent indicators</a> and <a href="#inner">inner templates</a>. For instance, you can arrange for a multilevel heading labels, beginning at level-2 headings, with <code>labels = {'h2': 'H.1. ,*'}</code>.</p>
+<p>By default, <code>labels</code> is <code>{}</code>.</p>
+</td>
+<td>
+</td></tr><tr><td><code>progress</code></td>
+<td>An object accepting error, warning and progress messages. This should be an instance of <code>lamarkdown.lib.Progress</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+<td>-</td></tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

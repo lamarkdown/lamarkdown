@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Documentation for Lamarkdown, a tool for creating standalone HTML documents from Markdown source, intended to fulfil a similar use case to Latex.">
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>Lamarkdown</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link href="css/pygments.css" rel="stylesheet">
+        <link href="css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body class="homepage">
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href=".">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="extensions/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="extensions/attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="extensions/captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="extensions/cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="extensions/eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="extensions/labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="extensions/latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="extensions/list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="extensions/markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="extensions/sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/index.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#introduction" class="nav-link">Introduction</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-requirements-and-installation" class="nav-link">1. Requirements and Installation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-basic-usage" class="nav-link">2. Basic Usage</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-why-lamarkdown" class="nav-link">3. Why Lamarkdown?</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<!--# Welcome to MkDocs
+
+For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+
+## Commands
+
+* `mkdocs new [dir-name]` - Create a new project.
+* `mkdocs serve` - Start the live-reloading docs server.
+* `mkdocs build` - Build the documentation site.
+* `mkdocs -h` - Print help message and exit.
+
+## Project layout
+
+    mkdocs.yml    # The configuration file.
+    docs/
+        index.md  # The documentation homepage.
+        ...       # Other markdown pages, images and other files.-->
+
+<h1 id="introduction">Introduction</h1>
+<p>Lamarkdown is a command-line markdown document compiler based on <a href="https://python-markdown.github.io">Python-Markdown</a>.</p>
+<p>The goal is to provide a tool comparable to LaTeX, but with the Markdown and HTML formats in
+place of TeX and PDF. It is <em>not</em> a goal to build static websites, though Lamarkdown&rsquo;s <a href="extensions/">extensions</a> can be reused in <a href="https://www.mkdocs.org/">MkDocs</a> (or in other applications based on Python-Markdown).</p>
+<p>Take the <a href="tour/">Lamarkdown tour</a> to get a first impression.</p>
+<h2 id="1-requirements-and-installation"><span class="la-label">1. </span>Requirements and Installation</h2>
+<p>Lamarkdown depends on Python 3.8+. To install via pip:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>lamarkdown
+</code></pre></div>
+<p>There are optional dependencies that you&rsquo;ll need to install separately, to make use of certain Lamarkdown features.</p>
+<ul>
+<li>
+<p>For embedding LaTeX diagramming code, you need a Latex distribution (e.g., <a href="https://tug.org/texlive/">TeX Live</a>), and a PDF-to-SVG conversion tool. (Lamarkdown can embed LaTeX mathematical expressions <em>without</em> a LaTeX distribution, and does not require LaTeX for any part of its core operation.)</p>
+</li>
+<li>
+<p>Similarly, to embed the output of <a href="https://graphviz.org/">Graphviz</a>, <a href="https://matplotlib.org/">Matplotlib</a>, <a href="https://www.r-project.org/">R (for plotting)</a>, or <a href="https://plantuml.com/">PlantUML</a>, you will also need to install these yourself.</p>
+</li>
+</ul>
+<h2 id="2-basic-usage"><span class="la-label">2. </span>Basic Usage</h2>
+<p>To compile <code>mydocument.md</code> into <code>mydocument.html</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>lamd<span class="w"> </span>mydocument.md
+</code></pre></div>
+<p>You can enable the live-update mode using <code>-l</code>/<code>--live</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>lamd<span class="w"> </span>-l<span class="w"> </span>mydocument.md
+</code></pre></div>
+<p>This will launch a local web-server and a web-browser, and will keep <code>mydocument.html</code> in sync with any changes made to <code>mydocument.md</code>, until you press Ctrl+C in the terminal.</p>
+<p>For detailed usage, Lamarkdown&rsquo;s documentation is structured as follows:</p>
+<ul>
+<li>The <a href="tour/">Tour</a> gives a glimpse of Lamarkdown&rsquo;s key features, to give you an overall sense of what&rsquo;s possible.</li>
+<li>The <a href="core/">Core Functionality</a> section describes the essential workings of Lamarkdown, including <a href="core/#build_files">build files</a> (at a conceptual level), <a href="core/#directives">directives</a>, <a href="core/#variants">variants</a>, <a href="core/#allow_exec"><code>allow_exec</code></a>, <a href="core/#resources">resource processing</a> and <a href="core/#caching">caching</a>.</li>
+<li>The <a href="extensions/">Extensions</a> section covers add-on Markdown functionality. Extensions (often) make changes to the Markdown syntax, to introduce additional capabilities.</li>
+<li>The <a href="modules/">Build Modules</a> section covers pre-designed bundles of reusable configuration.</li>
+<li>The <a href="api/">Build File API</a> section specifies all programmatic Lamarkdown functionality accessible to a build file.</li>
+</ul>
+<!--## Concepts
+
+To use Lamarkdown effectively, it's helpful to understand the following:
+
+* [Extensions][]. These are plugins for the core Python-Markdown engine, and they can alter the Markdown language in arbitrary ways, generally by adding or modifying certain syntactical constructs. To create an extension, you must be familiar with the Python-Markdown API for doing so, but there are many pre-existing extensions available.
+
+* [Build Files][]. These are `.py` scripts that configure options for an individual markdown document, or group of documents. These would generally be written by the author of the document(s), using the [Build File API][api]. A build file can cause certain extensions to be loaded (with certain options), specify CSS styles and JS scripts for the document generated, query or alter the output document structure, and define [Variants](variants.md). (Variants are multiple output documents produced from a single input `.md` file, using different build options.)
+
+* [Build Modules][modules] -- reusable bundles of configuration, to be invoked by build files.
+
+* [Output Directives](output_processing/index.md) -- temporary HTML attributes (not part of the actual HTML output) that specify certain output characteristics. They can be used to specify list labels, image scales, and media embedding, for instance. Directive names begin with "`:`", to distinguish them from real HTML attributes.-->
+
+<h2 id="3-why-lamarkdown"><span class="la-label">3. </span>Why Lamarkdown?</h2>
+<p>Lamarkdown addresses a need for creating accessible, portable (and optionally scriptable) documents, using a maximally-readable plain-text source format, and a programmable build process.</p>
+<h3 id="31-word-processors-latex-and-pdfs"><span class="la-label">3.1. </span>Word Processors, LaTeX and PDFs</h3>
+<p>WYSIWYG word processors (Word, LibreOffice, Google Docs and others) are perhaps the most-used document-preparation systems. These are highly successful applications, but the endurance of LaTeX, despite its learning curve, demonstrates a long-standing demand for plain-text document creation as well.</p>
+<p>LaTeX (and TeX in general) offers transparency. The PDF files generated by <code>pdftex</code>, <code>xetex</code> and <code>luatex</code> depend only on the text you explicitly write. There are no invisible elements or hidden dimensions to a LaTeX document; all factors affecting the output are plainly visible as text. You can edit a LaTeX document with any of hundreds of different editors, and have no concern that some hidden property might change beyond your control (leaving the document unpredictably reformatted or corrupted). LaTeX also encourages greater focus on pure content, while the compiler makes sensible stylistic decisions automatically. Both these things promote consistency and (subject to a learning curve) productivity.</p>
+<p>TeX/LaTeX is extensible, but also has distinct weaknesses:</p>
+<ul>
+<li>
+<p>It was designed to produce static, paginated, printable documents, whereas documents today are rarely printed. It was not designed to produce re-flowable documents that can be presented at different sizes, or documents accessible to vision-impared people. The Portable Document Format (PDF) struggles to address these issues itself, and is difficult to work with programmatically.</p>
+</li>
+<li>
+<p>LaTeX code is relatively verbose, which can limit its productivity benefits.</p>
+</li>
+</ul>
+<!--* For developers seeking programmatic features---variables/functions (macros), conditionality, looping, etc.---the Tex/LaTeX implementation of these features seems esoteric compared with modern programming languages.-->
+
+<h3 id="32-markdown-and-html"><span class="la-label">3.2. </span>Markdown and HTML</h3>
+<p>The Markdown format shares many of LaTeX&rsquo;s advantages, but was designed for purely electronic communication. It is conventionally compiled into HTML, a universally-supported, re-flowable format that retains structural semantics needed for screen readers. Markdown is one of a number of plain-text formats to do this, but is notable for its minimalistic syntax and widespread use. (HTML itself can be written manually, but being even more verbose than LaTeX, and without any &ldquo;compile-time&rdquo; extensibility, this is difficult to do productively.)</p>
+<!-- Insert some basic Markdown as an example? -->
+
+<p>Markdown is commonly used to build static websites. Various tools exist to convert a collection of <code>.md</code> (Markdown) files into a collection of <code>.html</code> files, to be uploaded to a webserver. For instance, <em>this site</em> was generated from Markdown files using <a href="https://www.mkdocs.org/">MkDocs</a>, which uses the <a href="https://python-markdown.github.io">Python-Markdown</a> library.</p>
+<!-- Python-Markdown and other engines have extension mechanisms, through which additional capabilities have been added to the original language. -->
+
+<p>However, this is a different use case from the preparation of individual, standalone documents, as done through LaTeX. Markdown, as a format, is an attractive choice for <em>both</em> use cases, but standalone document preparation has certain extra or different requirements:</p>
+<ul>
+<li>
+<p>Documents should be viewable without any webserver infrastructure (or external services), since this is not feasible or sustainable for documents in general. Even if infrastructure or services can be set up, they may not have the required longevity.</p>
+</li>
+<li>
+<p>Documents should be self-contained (like PDFs in general), so they can be stored and exchanged without risk of losing resources &ldquo;contained&rdquo; within them.</p>
+</li>
+<li>
+<p>While we&rsquo;d like the <em>option</em> for documents to be scriptable, they should ideally not <em>depend</em> on scripting, and if possible contain no executable code at all. Scripting is subject to ongoing change. API features may be deprecated and abandoned in the future, for security, efficiency or maintenance reasons, under the assumption that affected <em>websites</em> are being actively maintained, and can simply adapt. Such future changes could render a script-dependent document suddenly unviewable, perhaps without anyone noticing for some time until the document is needed.</p>
+</li>
+<li>
+<p>Document preparation benefits from specific features not necessarily present in static site generators:</p>
+<ul>
+<li>Citation and reference formatting;</li>
+<li>Automatic numbering of sections, figures, tables, etc., and cross-referencing using such numbers;</li>
+<li>Captioning of figures, tables, etc.;</li>
+<li>Creation of graphical content within the document;</li>
+<li>Creation of arbitrarily-complex tables;</li>
+<li>Creation of alternate document versions from the same source.</li>
+</ul>
+</li>
+</ul>
+<!-- Learnability, high-functioning defaults -->
+
+<!--    (Any
+
+    Directives are not really part of the markdown syntax itself; they are implicitly available through existing -->
+
+<!--## Topics
+
+For more advanced usage, see the following:
+
+* [Live Updating](live_updating.md)
+* [Build Files](index.md)
+* [Variants](variants.md)
+* [Build Modules](build_modules/index.md)
+* [Extensions](extensions/index.md)
+    * [Eval](extensions/eval.md)
+    * [Heading Numbers](extensions/heading_numbers.md)
+    * [Latex](extensions/latex.md)
+    * [Markers](extensions/latex.md)
+    * [Sections](extensions/sections.md)
+* [API Reference](api_reference.md)--></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="js/jquery-3.6.0.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js"></script>
+        <script src="search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 1.5.3
+Build Date UTC : 2024-02-15 14:42:46.952776+00:00
+-->

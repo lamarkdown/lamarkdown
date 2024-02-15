@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.eval - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../cite/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../labels/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/eval.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#laeval" class="nav-link">la.eval</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-placeholders-and-replacement-values" class="nav-link">1. Placeholders and Replacement Values</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-expression-evaluation" class="nav-link">2. Expression Evaluation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-options" class="nav-link">3. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="laeval"><code>la.eval</code></h1>
+<p>This extension lets authors insert computed values into documents, with inline expressions of the form <code>$`...`</code> (or <code>$``...``</code>, etc).</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>This syntax was chosen for its resemblance to Markdown&rsquo;s literal code syntax (<code>`...`</code>). The advantages are that:</p>
+<ul>
+<li>The contents are easier to distinguish from formatted Markdown, and</li>
+<li>Markdown syntax highlighters should recognise it as such.</li>
+</ul>
+<p>Meanwhile, <code>$</code> is commonly used in various languages as a prefix indicating a placeholder value.</p>
+</div>
+<h2 id="1-placeholders-and-replacement-values"><span class="la-label">1. </span>Placeholders and Replacement Values</h2>
+<p>Users can supply a <code>dict</code> of replacement values via the <code>replace</code> config option. The extension will look up the text occurring in <code>$`...`</code> in the dict. If that text is a key in the dict, the whole expression is replaced by the corresponding dict value.</p>
+<p>By default (with no configuration), the replacement dict contains keys <code>date</code> and <code>datetime</code>, allowing authors to write <code>$`date`</code> or <code>$`datetime`</code> to insert the current date, or date and time, into the document.</p>
+<p>For example, using the defaults:
+<div class="highlight"><pre><span></span><code><span class="gh"># My Document    </span>
+Last updated: $<span class="sb">`date`</span>
+...
+</code></pre></div></p>
+<p>Specifying custom replacements:
+<div class="highlight"><pre><span></span><code><span class="c1"># md_build.py</span>
+<span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.eval&#39;</span><span class="p">,</span>
+    <span class="n">replace</span> <span class="o">=</span> <span class="p">{</span> <span class="n">publisher</span><span class="p">:</span> <span class="s2">&quot;Example Inc.&quot;</span><span class="p">,</span> 
+                <span class="n">licence</span><span class="p">:</span> <span class="s2">&quot;CC-BY-4.0&quot;</span> <span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="gh"># My Document</span>
+Published by $<span class="sb">`publisher`</span>, licenced $<span class="sb">`licence`</span>.
+</code></pre></div></p>
+<h2 id="2-expression-evaluation"><span class="la-label">2. </span>Expression Evaluation</h2>
+<p>The extension can also execute the contents of <code>$`...`</code> as raw Python code. This will only be done if (a) the <code>allow_code</code> config option is <code>True</code> (by default it is <code>False</code>), and (b) if there is no matching key in the replacement dict.</p>
+<p>When executing code this way, the result will be converted to a string, which will replace the original expression in the output document. For instance, writing <code>$`1+1`</code> will insert <code>2</code> into the document.</p>
+<!--Such expressions are evaluated within the (combined) scope of any build files. Authors can refer to anything imported or defined in `md_build.py`, or any of the other build files. Thus, if your build file contains `from x import y`, then an expression could be `` $`y()` `` (assuming `y` is callable).-->
+
+<p>If there is an error in the expression, the error message will instead appear in the document.</p>
+<p>This approach has <em>security implications</em>. The <code>allow_code</code> option should not be enabled if there is any question about whether to trust the author of the Markdown file.</p>
+<h2 id="3-options"><span class="la-label">3. </span>Options</h2>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>allow_exec</code></td>
+<td>
+<p><code>True</code> if you wish to allow expression evaluation (not just placeholder substitution), or <code>False</code> if you are concerned about the possibility of untrusted code.</p>
+<p>By default, this flag is equal to the <a href="../../core/#allow_exec">global Lamarkdown <code>allow_exec</code> flag</a>, which is itself <code>False</code> by default.</p>
+</td>
+</tr><tr><td><code>env</code></td>
+<td>A dictionary containing the environment in which to evaluate expressions, if <code>allow_exec == True</code>. This helps you control which objects can be accessed from a Python expression inside <code>$`...`</code> (though this <em>isn&rsquo;t</em> in any way a security feature).</td>
+</tr><tr><td><code>progress</code></td>
+<td>An object accepting error, warning and progress messages. This should be an instance of <code>lamarkdown.lib.Progress</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr><tr><td><code>replace</code></td>
+<td>A dictionary for looking up replacement values for labels encountered in <code>$`...`</code>. By default, this contains just the keys <code>date</code> and <code>datetime</code>, which map to the ISO-formatted representations of the current date, and current date and time.</td>
+</tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

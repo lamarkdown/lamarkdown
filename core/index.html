@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Core Functionality - Lamarkdown</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link href="../css/pygments.css" rel="stylesheet">
+        <link href="../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../extensions/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../tour/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../extensions/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/core.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#core-functionality" class="nav-link">Core Functionality</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#build_files" class="nav-link">1. Build Files</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#directives" class="nav-link">2. Directives</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#variants" class="nav-link">3. Variants</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#allow_exec" class="nav-link">4. The allow_exec Option</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#resources" class="nav-link">5. Resource Processing</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#caching" class="nav-link">6. Caching</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="core-functionality">Core Functionality</h1>
+<p>Here we describe Lamarkdown&rsquo;s core functionality in detail, and how to use it.</p>
+<h2 id="build_files"><span class="la-label">1. </span>Build Files</h2>
+<p>When compiling a given Markdown file, Lamarkdown first looks for <em>build files</em>. By default, these are:</p>
+<ol>
+<li><code>md_build.py</code>, and/or</li>
+<li>A <code>.py</code> file with the same base name as the Markdown file (e.g., for <code>example.md</code>, it would be <code>example.py</code>).</li>
+</ol>
+<p>If both of these exist, both will be loaded, <code>md_build.py</code> first.</p>
+<p>Build files contain executable Python code that makes calls to the <a href="../api/">Build File API</a>, to apply Markdown extensions, provide document style information, and otherwise programmatically hook into the compilation process.</p>
+<p>If build file(s) exist, but are empty, Lamarkdown will revert to the most basic syntax and functionality supported by Python-Markdown, and produce unstyled output.</p>
+<p>However, if you run Lamarkdown <em>without</em> a build file, it behave <em>as if</em> the following build file was given:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">doc</span><span class="p">()</span>
+</code></pre></div>
+<p>The <a href="../modules/doc/"><code>m.doc()</code> build module</a> adds a certain set of Markdown extensions, as well as styling the output to better resemble a conventional document. When writing a build file, you can include or omit <code>m.doc()</code>, as per your preference.</p>
+<p>To add a Markdown extension, you call the <a href="../api/#lamarkdown_call"><code>lamarkdown</code> module</a> itself. Many extensions have their own settings, which you can configure by passing keyword arguments. If you don&rsquo;t need to supply any extension options, you can list multiple extensions in one call:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;attr_list&#39;</span><span class="p">,</span> <span class="s1">&#39;admonition&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;toc&#39;</span><span class="p">,</span> <span class="n">marker</span> <span class="o">=</span> <span class="s1">&#39;[[TOC]]&#39;</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;Contents&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>To add styling information, call <a href="../api/#css"><code>css()</code></a> or <a href="../api/#css_files"><code>css_files()</code></a>:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    .note {</span>
+<span class="s1">        border: 1px solid #0080c0;</span>
+<span class="s1">        background: #80c0ff;</span>
+<span class="s1">        padding: 0.5em;</span>
+<span class="s1">    }</span>
+<span class="s1">    &#39;&#39;&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css_files</span><span class="p">(</span><span class="s1">&#39;style1.css&#39;</span><span class="p">,</span> <span class="s1">&#39;style2.css&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>By default, CSS files provided to <code>css_files()</code> will actually be <a href="#embedding">embedded</a> in the output, rather than linked, because the goal of Lamarkdown is broadly to create <em>standalone</em> output files.</p>
+<p>The following command-line options affect how build-files are loaded:</p>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code class="nowrap">-b</code> / <code class="nowrap">--build FILE</code></td>
+<td>Load an (additional) build file.</td>
+</tr><tr><td><code class="nowrap">-B</code> / <code class="nowrap">--no-auto-build-files</code></td>
+<td>Don&rsquo;t try to load the default build files (<code>md_build.py</code> or <code>&lt;source&gt;.py</code>), even if they exist.</td>
+</tr><tr><td><code class="nowrap">-D</code> / <code class="nowrap">--no-build-defaults</code></td>
+<td>Even if no build files are loaded, <em>don&rsquo;t</em> apply the defaults.</td>
+</tr></tbody></table>
+<!-- ## Live Updating -->
+
+<h2 id="directives"><span class="la-label">2. </span>Directives</h2>
+<p>Lamarkdown adopts a convention, whereby authors may add specially-named attributes to parts of the document, which cause Lamarkdown (or a Lamarkdown extension) to perform certain kinds of structural transformations.</p>
+<p>These attributes are called <em>directives</em>. Their names begin with <code>-</code> (e.g., <code>-label</code>), to distinguish them from genuine HTML attributes. Directives are (if validly specified) deleted before the final output is generated.</p>
+<p>This approach relies on the <code>attr_list</code> or <a href="../extensions/attr_prefix/"><code>la.attr_prefix</code></a> extensions (designed to let authors add HTML attributes to elements). Thus, all directive processing must happen <em>after</em> these extensions have run.</p>
+<p>Specific directives include the following:</p>
+<table><caption></caption>
+<thead>
+<tr>
+<th>Directive</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-caption</code></td>
+<td>With the <a href="../extensions/captions/"><code>la.captions</code></a> extension, this identifies the caption for a figure or table, and causes both to be wrapped (if appropriate) within a <code>&lt;figure&gt;</code> element.</td>
+</tr>
+<tr>
+<td><code class="nowrap">-list-table</code></td>
+<td>With the <a href="../extensions/list_tables/"><code>la.list_tables</code></a> extension, and when applied to a list (containing nested lists), this converts it into a table</td>
+</tr>
+<tr>
+<td><code class="nowrap">-label=...</code></td>
+<td>With the <a href="../extensions/labels/"><code>la.labels</code></a> extension, and when applied to a heading, list, figure or table, this specifies a template for the numbering of that element.</td>
+</tr>
+<tr>
+<td><code class="nowrap">-no-label</code></td>
+<td>With the <code>la.labels</code> extension, when applied to an element, causes any labelling to be omitted.</td>
+</tr>
+<tr>
+<td><a href="#scaling"><code class="nowrap">-scale=...</code></a></td>
+<td>When applied to an image, this scales both dimensions of the image by a linear factor.</td>
+</tr>
+<tr>
+<td><a href="#scaling"><code class="nowrap">-abs-scale</code></a></td>
+<td>When applied to an image, this disregards any global scaling rule.</td>
+</tr>
+</tbody>
+</table>
+<p>Directives have a long(er) form, starting with <code>md-</code> (e.g., <code>md-caption</code>). The short <code>-</code> form is converted to the long <code>md-</code> form during Markdown processing, so that they won&rsquo;t be rejected by subsequent HTML parsing. It is not generally necessary to use the long form inside Markdown documents, but it is possible.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>The <code>-</code> at the start of directives is intended to minimise confusion relative to other possible syntactic choices, while requiring no extra Markdown parsing code beyond the existing <code>attr_list</code> extension (though sometimes directives need to appear in places that require the <a href="../extensions/attr_prefix/"><code>la.attr_prefix</code></a> extension).</p>
+<p>It&rsquo;s useful to have <em>some</em> means of distinguishing directives from ordinary HTML attributes, because:</p>
+<ul>
+<li>The two groups have quite different semantics; and</li>
+<li>We&rsquo;d like to avoid possible future conflicts between the two.</li>
+</ul>
+<p>To address other possible choices:</p>
+<ul>
+<li>Simply always using <code>md-</code> creates extra clutter.</li>
+<li>Using a different special character (e.g., <code>!directive=...</code>) runs into the problem that <code>attr_list</code> converts almost all special characters to <code>_</code>, so we wouldn&rsquo;t be able to narrowly define which character we&rsquo;re actually using.</li>
+<li>A leading or trailing <code>_</code> itself (e.g., <code>_directive=...</code> or <code>directive_=...</code>), even if we could accept the ambiguity, may also imply &ldquo;private/internal/auxiliary use&rdquo;, especially in connection with Python.</li>
+<li>A leading <code>:</code> (which isn&rsquo;t converted to <code>_</code>) conflicts somewhat with the enclosing list syntax; e.g., in <code>{:directive=...}</code>, the the <code>:</code> will be parsed as the start of the list, not part of the name. We could insist that authors put a space after the <code>{</code>, but this still leaves room for confusion.</li>
+<li>A trailing <code>-</code> or <code>:</code> would result in <code>directive-=...</code> or <code>directive:=...</code>, where <code>-=</code> and <code>:=</code> both have the misleading appearance of a special operator.</li>
+<li>A XML namespace (e.g., <code>md:directive=...</code>) creates extra clutter, and would also raise questions about how to formally define that namespace, and how it formally relates to HTML.</li>
+<li>HTML attributes are case-insensitive, so a convention based on casing (e.g., <code>Directive=...</code>) risks unforeseen conflicts in the event of case folding.</li>
+<li>Anything more elaborate is unlikely to be recognised by <code>attr_list</code>, and would require separate parsing.</li>
+</ul>
+</div>
+<h2 id="variants"><span class="la-label">3. </span>Variants</h2>
+<p>Lamarkdown can generate multiple output files, each with different build configuration, given a single input file.</p>
+<p>To arrange this, call <a href="../api/#variants"><code>variants()</code></a> and pass in one or more functions that will configure each variant:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+
+<span class="k">def</span> <span class="nf">light_mode</span><span class="p">():</span>
+    <span class="c1"># Apply to variant #1</span>
+    <span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;body { color: black; background: white; }&#39;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">dark_mode</span><span class="p">()</span>
+    <span class="c1"># Apply to variant #2</span>
+    <span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;body { color: white; background: black; }&#39;</span><span class="p">)</span>
+
+<span class="n">la</span><span class="o">.</span><span class="n">variants</span><span class="p">(</span><span class="n">light_mode</span><span class="p">,</span> <span class="n">dark_mode</span><span class="p">)</span>
+
+<span class="c1"># Apply to all variants</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;body { font-family: sans-serif; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>You can create nested variants by calling <code>variants()</code> <em>within</em> a variant function, though be careful to avoid infinite recursion.</p>
+<p>Two variants may specify any arbitrarily-different options, including different Markdown extensions, and/or extension options. In such a case, Lamarkdown will invoke Python-Markdown separately for each distinct extension configuration (possibly resulting in multiple different interpretations of the same Markdown syntax, depending on the options chosen).</p>
+<p>By default, the output filenames will have the function name appended. In the above example, if the Markdown file is <code>example.md</code>, then Lamarkdown will generate <code>example_light_mode.html</code> and <code>example_dark_mode.html</code>. If you prefer one variant to take on the &ldquo;original&rdquo; (unmodified) filename, call <a href="../api/#basename"><code>la.basename()</code></a> (no arguments) in the appropriate variant function.</p>
+<h2 id="allow_exec"><span class="la-label">4. </span>The <code>allow_exec</code> Option</h2>
+<p>If you&rsquo;re just compiling your own (or trusted) documents, it&rsquo;s perfectly fine and useful to set <code>allow_exec == True</code>. There are two ways:</p>
+<ul>
+<li>Add the <code>-e</code> / <code>--allow-exec</code> command-line option; and/or</li>
+<li>
+<p>Assign to the <code>allow_exec</code> property:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+
+<span class="n">la</span><span class="o">.</span><span class="n">allow_exec</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="o">...</span>
+</code></pre></div>
+</li>
+</ul>
+<p>It&rsquo;s currently <strong>not recommended to run Lamarkdown on untrusted documents at all</strong>, unless your entire execution environment is sandboxed.</p>
+<p>Nevertheless, the <code>allow_exec</code> flag <em>attempts</em> to provide some measure of safety in such situations. By default, <code>allow_exec == False</code>, in which case certain actions will not be permitted:</p>
+<ul>
+<li>Use of the <a href="../extensions/eval/"><code>la.eval</code></a> extension will be restricted to text substitutions (not code execution);</li>
+<li>Use of the <a href="../extensions/markdown_demo/"><code>la.markdown_demo</code></a> extension will be prohibited;</li>
+<li>Use of Matplotlib and R-plotting, by means of <code>m.plots()</code>, will be prohibited.</li>
+</ul>
+<p>In general, these restrictions rely on the cooperation of relevant Markdown extensions and build modules. Thus, if you rely on <code>allow_exec</code> being <code>False</code>, you are <em>also</em> relying on each individual extension/module to prohibit executable code. Non-Lamarkdown extensions won&rsquo;t generally even be aware of the <code>allow_exec</code> flag, so you must exercise care.</p>
+<h2 id="resources"><span class="la-label">5. </span>Resource Processing</h2>
+<p>Lamarkdown performs certain transformations on parts of the HTML document <em>after</em> Python-Markdown has finished.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>One might ask why embedding, hashing and scaling are part of Lamarkdown&rsquo;s core behaviour, rather than implemented as extensions.</p>
+<p>There are problems with designing extensions to perform these actions:</p>
+<ol>
+<li>
+<p>They rely on identifying and modifying specific HTML elements, which requires a document tree. Python-Markdown makes such trees available during the &ldquo;tree processing&rdquo; stage, but some kinds of resources don&rsquo;t appear until the later &ldquo;postprocessing&rdquo; stage (having been represented only with special placeholder text, and otherwise kept isolated up until then).</p>
+</li>
+<li>
+<p>They involve styles and scripts, which are essentially outside the scope of Python-Markdown&rsquo;s operation altogether.</p>
+</li>
+</ol>
+</div>
+<h3 id="embedding"><span class="la-label">5.1. </span>Embedding</h3>
+<p>By default, Lamarkdown will embed external resources in the output HTML file (with some default exclusions). The goal is to create a <em>standalone</em> output file, though it may be comparatively large for an HTML file.</p>
+<p>In most cases, the resources being embedded will be CSS styles, fonts, scripts, and images. Embedding is performed automatically, by either:</p>
+<ul>
+<li>Moving the contents of directly-referenced <code>.css</code> and <code>.js</code> files into <code>&lt;style&gt;</code> and <code>&lt;script&gt;</code> elements, as appropriate, within the HTML document; or</li>
+<li>In other cases, converting a resource into a <a href="https://developer.mozilla.org/en-US/docs/web/http/basics_of_http/data_urls">data URL</a>.</li>
+</ul>
+<p>Font files will be subsetted (unused characters removed) before being embedded. Styles will be <em>recursively</em> embedded, since CSS files can reference other resources, including other CSS files. Lamarkdown will not currently attempt to resolve resources referenced by scripts, though.</p>
+<p>Ordinary hypertext links are <em>not</em> embedded (and not considered embeddable).</p>
+<p>By default, Lamarkdown will also exclude audio and video files, and the contents of any <code>&lt;iframe&gt;</code> elements, since these could make the output unmanageably large. However, the option is open to embed these anyway if you wish.</p>
+<p>You can provide an &ldquo;embed <a href="#rules">rule</a>&rdquo; to override the default behaviour, if needed:</p>
+<!--```python
+import lamarkdown as la
+
+def embed_rule(url: str | None,
+               tag: str | None,
+               mime: str | None,
+               attr: dict[str, str] | None,
+               **kwargs) -> bool:
+    ...
+
+
+```-->
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+
+<span class="k">def</span> <span class="nf">embed_rule</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">mime</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">attr</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="o">...</span>
+
+<span class="n">la</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">embed_rule</span><span class="p">)</span>
+</code></pre></div>
+<p>This function will be called whenever Lamarkdown encounters an embeddable resource, and must return <code>True</code> to embed the resource, or <code>False</code> to keep it separate. See <a href="#rules">Resource Rules</a> below for more details.</p>
+<div class="admonition note">
+<p class="admonition-title">Efficiency Notes</p>
+<p>Data URLs use Base-64 encoding, which increases the size of the data by one third, rounding up, since it uses 8 bits to represent only 6 bits. This effect compounds with nested embedding.</p>
+<p>While a single CSS file is embedded directly in a <code>&lt;style&gt;</code> element, any further CSS files it imports itself will be represented as data URLs, and these in turn may have other data URLs nested inside. Lamarkdown does not (currently) try to &ldquo;flatten out&rdquo; CSS imports, because it cannot guarantee that this would be functionally equivalent to the original arrangement, because of certain ordering semantics defined in CSS.</p>
+<p>Thus, if you have several levels of indirection in your CSS imports, the resulting embedded content will be stored in a highly inefficient manner. It may be worth avoiding such arrangements.</p>
+</div>
+<h3 id="hashing"><span class="la-label">5.2. </span>Hashing</h3>
+<p>Lamarkdown can arrange for the output document to contain a hash (SHA-256, SHA-384 or SHA-512) for each of its external resources, so the browser can <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity">verify their integrity</a>. This applies specifically to <em>non</em>-<a href="#embedding">embedded</a> resources.</p>
+<p>Lamarkdown does <em>not</em> perform hashing by default. To make it do so, define a &ldquo;resource hash <a href="#rules">rule</a>&rdquo;:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+
+<span class="k">def</span> <span class="nf">hash_rule</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">mime</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">attr</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="o">...</span>
+
+<span class="n">la</span><span class="o">.</span><span class="n">resource_hash_rule</span><span class="p">(</span><span class="n">hash_rule</span><span class="p">)</span>
+</code></pre></div>
+<p>This function will be called whenever Lamarkdown needs to know whether and how to compute a resource hash. It must return either <code>None</code> (for no hashing) or one of the strings <code>'sha256'</code>, <code>'sha384'</code> or <code>'sha512'</code>, representing corresponding hashing algorithms. See <a href="#rules">Resource Rules</a> below for more details.</p>
+<p>Where a hash is required, Lamarkdown will <em>assume</em> that the currently-available version of the resource is the one you want, and will compute a hash based on it. The hash will appear as the value of the <code>integrity</code> HTML attribute in the output document. Lamarkdown will not compare the hash to anything; this will be left up to the browser, when the document is loaded by readers in the future.</p>
+<!--{.note}
+Hashing is not available for embedded resources. Any adversary able to modify an embedded resource in the output document could simply also modify the hash.-->
+
+<p>Hashing is a compromise between the control afforded by embedding, and the smaller file sizes offered by not embedding. Embedding may (depending on the particular files) significantly increase the file size of the output document. But with non-embedded, non-hashed resources, you must <em>trust</em> the external source(s), because you are ceding control over aspects of the document. For instance, if your document links to <code>http://example.com/image.jpg</code>, then your document will show <em>whatever</em> that image is at the time. If/when the image is replaced on the server, your document will show the new version, and for a reader, there won&rsquo;t be any sign that it&rsquo;s not the original.</p>
+<p>The same and worse could happen for stylesheets and scripts. An external entity with control over a stylesheet or script in your document could choose to disable or arbitrarily modify your entire document remotely, for anyone reading it. With embedded or hashed resources, these are no longer possibilities.</p>
+<p>However, resource hashing lacks other advantages of embedded resources:</p>
+<ul>
+<li>Readers require an internet connection to view hashed resources, and must wait a moment for them to load, while embedded resources will be available offline and practically instantaneously.</li>
+<li>An external entity (controlling a hashed resource) might be able to track readers of the document, by recording requests for the document&rsquo;s external resource(s) and mapping them to readers&rsquo; IP addresses.</li>
+<li>Hashing won&rsquo;t protect the document against its resources being moved or deleted.</li>
+</ul>
+<p>There&rsquo;s also a chance that you may <em>want</em> the external source to be able to change the resource arbitrarily. In this case, a non-embedded, non-hashed resource would be appropriate.</p>
+<h3 id="scaling"><span class="la-label">5.3. </span>Scaling</h3>
+<p>Lamarkdown can adjust the size of images in a document by a linear scaling factor. This applies to any mechanism for generating or inserting images; e.g.:</p>
+<ul>
+<li>The standard Markdown notation: <code>![Alt text](http://example.com/image.jpg)</code>.</li>
+<li>Latex code compiled into SVG using the <a href="../extensions/latex/"><code>la.latex</code></a> extension.</li>
+<li>SVGs produced by Graphviz, matplotlib, etc., via the <a href="../modules/plots/"><code>m.plots</code></a> build module.</li>
+<li>Anything else that creates <code>&lt;svg&gt;</code> or <code>&lt;img&gt;</code> elements.</li>
+</ul>
+<p>For any given image, there are (potentially) two different scaling factors:</p>
+<ul>
+<li>
+<p>You can give a per-image scaling factor using the <code>-scale=...</code> <a href="#directives">directive</a>; e.g.:</p>
+<div class="highlight"><pre><span></span><code>![<span class="nt">Alt text</span>](<span class="na">http://example.com/image.jpg</span>){-scale=&quot;2.5&quot;}
+</code></pre></div>
+</li>
+<li>
+<p>You can define a &ldquo;scale <a href="#rules">rule</a>&rdquo;:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+
+<span class="k">def</span> <span class="nf">scale_rule</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">mime</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">attr</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="o">...</span>
+
+<span class="n">la</span><span class="o">.</span><span class="n">scale_rule</span><span class="p">(</span><span class="n">scale_rule</span><span class="p">)</span>
+</code></pre></div>
+<p>This function is called for each image in the document (or at least the body of the document). It must return a <code>float</code> or <code>int</code> representing a scaling factor. See <a href="#rules">Resource Rules</a> below for more details.</p>
+</li>
+</ul>
+<p>These two numbers (both 1 by default) are <em>multiplied</em> to get the actual scaling factor for a given image. So, if an image has <code>{-scale="2"}</code>, and the scale rule returns 3, then the image will be scaled by a factor of 6. That is, <em>unless</em> the <code>-abs-scale</code> directive is given. This will cause the scale rule to be ignored, so that:</p>
+<ul>
+<li>For <code>{-scale="2" -abs-scale}</code>, the image will be scaled by a factor of 2, irrespective of the scale rule; and</li>
+<li>For <code>{-abs-scale}</code>, the image won&rsquo;t be scaled at all.</li>
+</ul>
+<p>Scaling only alters the size information present in the HTML document. It <em>doesn&rsquo;t</em> affect the actual image content, and so it applies equally to embedded and linked images, and to (practically) any image format supported by web browsers.</p>
+<p>However, Lamarkdown only scales &ldquo;absolutely&rdquo;-sized images&mdash;those whose sizes are given in units of pixels, points, millimetres, inches, etc. Scaling will not be done to images whose sizes expressed in relative units like, <code>em</code> (relative to the font size), <code>%</code> (relative to the parent element&rsquo;s size) and similar. We assume that relative units express the user&rsquo;s final preference for how large an image should be. (Relative units are unlikely to be present unless the user, or the author of a build module, has explicitly added them.)</p>
+<h3 id="rules"><span class="la-label">5.4. </span>Resource Rules</h3>
+<p>Resource rules are functions defined within build files and passed to one of <a href="../api/#embed_rule"><code>embed_rule()</code></a>, <a href="../api/#resource_hash_rule"><code>resource_hash_rule()</code></a> or <a href="../api/#scale_rule"><code>scale_rule()</code></a> as appropriate. Lamarkdown will then call the function for each of various resources (images, etc.) that <em>may</em> need to be embedded, hashed, or scaled.</p>
+<p>Such functions can accept the following keyword parameters, to help them determine what kind of resource they are dealing with, and so decide what to do with it:</p>
+<table><caption></caption>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td>string or <code>None</code></td>
+<td>The location of the resource; e.g., <code>https://example.com/image.jpg</code>.</td>
+</tr>
+<tr>
+<td><code>tag</code></td>
+<td>string or <code>None</code></td>
+<td>The HTML tag of the element representing the resource; e.g. <code>img</code>, <code>style</code>, etc.</td>
+</tr>
+<tr>
+<td><code>mime</code></td>
+<td>string or <code>None</code></td>
+<td>The <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types">MIME type</a> of the resource; e.g., <code>image/png</code>, <code>text/css</code>, etc. This <em>may</em> be the result of probing the resource&rsquo;s content.</td>
+</tr>
+<tr>
+<td><code>attr</code></td>
+<td>string-to-string dictionary or <code>None</code></td>
+<td>Any attributes assigned to the enclosing HTML element.</td>
+</tr>
+</tbody>
+</table>
+<p>Each of these may be <code>None</code> in certain circumstances, and a rule function must be designed accordingly, with appropriate default behaviour.</p>
+<p>A rule function <em>should</em> also accept a <code>**kwargs</code> parameter, for future-proofing, should a future version of Lamarkdown provide additional keyword arguments.</p>
+<p>A rule function returns a value specific to the type of processing it governs: embed rules return <code>bool</code>, hashing rules return <code>str</code> or <code>None</code>, and scale rules return <code>float</code> or <code>int</code>.</p>
+<h2 id="caching"><span class="la-label">6. </span>Caching</h2>
+<p>To avoid unnecessary delays during compilation, Lamarkdown uses two caches:</p>
+<ul>
+<li>
+<p>The &ldquo;build cache&rdquo; stores results of certain time-consuming processing, particularly the output of external commands like LaTeX (by the <a href="../extensions/latex/"><code>la.latex</code> extension</a>). The build cache is kept in the &ldquo;build directory&rdquo;, which (by default) is <code>./build/</code>. If necessary, you can cause Lamarkdown to delete any pre-existing entries in the build cache with the <code>--clean</code> option:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>lamd<span class="w"> </span>--clean<span class="w"> </span>mydocument.md
+</code></pre></div>
+</li>
+<li>
+<p>The &ldquo;fetch cache&rdquo; stores downloaded files, obeying (at a basic level) directives received via the &ldquo;Cache-Control&rdquo; HTTP header. That is, cache entries will expire automatically after a period of time determined by the server (24 hours by default).</p>
+<p>Lamarkdown downloads and caches files for several purposes; e.g.:</p>
+<ul>
+<li>To embed files (stylesheets, fonts, images, etc.);</li>
+<li>To compute hashes of linked (non-embedded) files, if asked to;</li>
+<li>To find the original dimensions of linked images, when asked to scale them.</li>
+</ul>
+<p>The fetch cache is <em>not</em> cleared with the <code>--clean</code> option. However, it is safe to manually delete, if you wish. You can determine its location using <code>-v</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>lamd<span class="w"> </span>-v
+</code></pre></div>
+<p>The fetch cache is stored in the standard location for user-level caches, and so is reused across all Lamarkdown documents for a given user on a given machine.</p>
+</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

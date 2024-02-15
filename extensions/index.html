@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Overview - Lamarkdown</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link href="../css/pygments.css" rel="stylesheet">
+        <link href="../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="./" class="dropdown-item active">Overview</a>
+</li>
+                                    
+<li>
+    <a href="attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../core/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="attr_prefix/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/index.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#extensions" class="nav-link">Extensions</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-standard-lamarkdown-extensions" class="nav-link">1. Standard Lamarkdown Extensions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-standard-python-markdown-extensions" class="nav-link">2. Standard Python Markdown Extensions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-pymdown-extensions" class="nav-link">3. PyMdown Extensions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="extensions">Extensions</h1>
+<p>Lamarkdown provides access to <a href="https://python-markdown.github.io/extensions/">Python-Markdown&rsquo;s extension system</a>, to extend the core markdown language. You can determine which extensions to load in several ways:</p>
+<ul>
+<li>
+<p>Accept the defaults (which are in place if you don&rsquo;t have a build file);</p>
+</li>
+<li>
+<p>Write a <a href="../core/#build_files">build file</a> that calls the <a href="../api/#lamarkdown_call"><code>lamarkdown</code> package</a>, providing one or more extension names (or <code>Extension</code> objects, typically if you want to <a href="https://python-markdown.github.io/extensions/api/">create your own extensions</a>):</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;attr_list&#39;</span><span class="p">,</span> <span class="s1">&#39;nl2br&#39;</span><span class="p">,</span> <span class="s1">&#39;toc&#39;</span><span class="p">,</span> <span class="s1">&#39;la.cite&#39;</span><span class="p">,</span> <span class="s1">&#39;pymdownx.extra&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.latex&#39;</span><span class="p">,</span> <span class="n">tex</span> <span class="o">=</span> <span class="s1">&#39;pdflatex&#39;</span><span class="p">)</span>
+</code></pre></div>
+</li>
+<li>
+<p>Write a build file that calls <a href="../modules/doc/"><code>m.doc()</code></a>, or another build module that happens to load extension(s); or</p>
+</li>
+<li>
+<p>To avoid extensions altogether, simply write a build file that doesn&rsquo;t load any extensions. (This would include avoiding calls to <a href="../modules/doc/"><code>m.doc()</code></a> and other build modules.)</p>
+</li>
+</ul>
+<!--{: .note}
+> An extension alters the markdown language itself, and/or the structure of the document. A [build module][] (like [`m.doc()`][doc]), by comparison, is a bundle of Lamarkdown configuration that determines _which_ extensions to load, as well as the styling/scripting of the document.-->
+
+<h2 id="1-standard-lamarkdown-extensions"><span class="la-label">1. </span>Standard Lamarkdown Extensions</h2>
+<table><caption></caption>
+<thead><tr><th>Extension</th>
+<th>Description</th>
+<th>In <code>m.doc()</code></th>
+</tr></thead><tbody><tr><td><a href="attr_prefix/"><code>la.attr_prefix</code></a></td>
+<td>Permits HTML attributes, including <a href="../core/#directives">directives</a>, to be specified <em>above</em> a block element (in contrast to <code>attr_list</code>, where they must come below). Notably, this allows attributes/directives to be applied to list elements (whether numbered or bullet-pointed).</td>
+<td>✅</td>
+</tr><tr><td><a href="captions/"><code>la.captions</code></a></td>
+<td>Lets you to assign paragraphs to be captions of tables or images.</td>
+<td>✅</td>
+</tr><tr><td><a href="cite/"><code>la.cite</code></a></td>
+<td>Builds a bibliography based on Bibtex-formatted reference file(s), and in-text citations of the form <code>[@citation_key]</code> (or <code>[@key1 p.15, @key2]</code>, etc.).</td>
+<td>✅</td>
+</tr><tr><td><a href="eval/"><code>la.eval</code></a></td>
+<td>Lets you insert placeholders using the syntax <code>$`...`</code>, to be replaced by corresponding values defined in the build file. If <code>allow_code</code> is enabled, this also lets you insert full Python expressions, which will be evaluated and replaced by their result.</td>
+<td>✅ (<code>allow_code</code> is False by default)</td>
+</tr><tr><td><a href="labels/"><code>la.labels</code></a></td>
+<td>Adds numbering schemes to headings, lists, figures and/or tables, and permits cross-referencing.</td>
+<td>✅</td>
+</tr><tr><td><a href="latex/"><code>la.latex</code></a></td>
+<td>Lets you insert LaTeX code, generally for mathematical or diagramming purposes.</td>
+<td>✅</td>
+</tr><tr><td><a href="list_tables/"><code>la.list_tables</code></a></td>
+<td>Lets you specify the content of a table using nested lists, in order to maintain Markdown readability while permitting arbitrary content within a table.</td>
+<td>✅</td>
+</tr><tr><td><a href="markdown_demo/"><code>la.markdown_demo</code></a></td>
+<td>Supports this documentation by formatting sample build files and Markdown input, while also compiling them to produce the corresponding output, shown within an <code>&lt;iframe&gt;</code>.</td>
+<td>&nbsp;</td>
+</tr><tr><td><a href="sections/"><code>la.sections</code></a></td>
+<td>Lets you divide a document into <code>&lt;section&gt;</code> elements using <code>---</code> dividers, which may be used to create slideshows with <a href="https://revealjs.com/">RevealJS</a>, for instance.</td>
+<td>&nbsp;</td>
+</tr></tbody></table>
+<h2 id="2-standard-python-markdown-extensions"><span class="la-label">2. </span><a href="https://python-markdown.github.io/extensions/">Standard Python Markdown Extensions</a></h2>
+<p>These extensions are bundled with the core Python Markdown engine, on which Lamarkdown is based.</p>
+<table><caption></caption>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Description</th>
+<th style="text-align: center;">In <code>m.doc()</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/abbreviations/">abbr</a></td>
+<td>For abbreviations, using the <code>&lt;abbr&gt;</code> HTML element.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/admonition/">admonition</a></td>
+<td>For creating callout/admonition boxes, such as for notes, warnings, etc.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/attr_list/">attr_list</a></td>
+<td>For adding HTML attributes to various elements (which in turn enables CSS styling).</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/code_hilite/">codehilite</a></td>
+<td><em>Consider <a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">pymdownx.superfences</a> + <a href="https://facelessuser.github.io/pymdown-extensions/extensions/highlight/">pymdownx.highlight</a> instead.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/definition_lists/">def_list</a></td>
+<td>For creating definition lists, using the <code>&lt;dl&gt;</code>, <code>&lt;dt&gt;</code> and <code>&lt;dd&gt;</code> HTML elements.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/extra/">extra</a></td>
+<td>Shortcut for <a href="https://python-markdown.github.io/extensions/abbreviations/">abbr</a>, <a href="https://python-markdown.github.io/extensions/attr_list/">attr_list</a>, <a href="https://python-markdown.github.io/extensions/definition_lists/">def_list</a>, <a href="https://python-markdown.github.io/extensions/fenced_code_blocks/">fenced_code</a>, <a href="https://python-markdown.github.io/extensions/footnotes/">footnotes</a>, <a href="https://python-markdown.github.io/extensions/md_in_html/">md_in_html</a>, <a href="https://python-markdown.github.io/extensions/tables/">tables</a>. <em>Consider <a href="https://facelessuser.github.io/pymdown-extensions/extensions/extra/">pymdownx.extra</a> instead.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/fenced_code_blocks/">fenced_code</a></td>
+<td><em>Consider <a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">pymdownx.superfences</a> instead.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/footnotes/">footnotes</a></td>
+<td>For defining labelled footnotes.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/legacy_attrs/">legacy_attrs</a></td>
+<td><em>Deprecated.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/legacy_em/">legacy_em</a></td>
+<td>For emphasis syntax that more closely matches the markdown reference implementation.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/md_in_html/">md_in_html</a></td>
+<td>For nesting Markdown syntax inside embedded HTML.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/meta_data/">meta</a></td>
+<td>For adding key-value metadata to the top of markdown files.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/nl2br/">nl2br</a></td>
+<td>For treating single newlines in markdown as hard line breaks (rather than whitespace).</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/sane_lists/">sane_lists</a></td>
+<td>Slightly nicer handling of markdown lists.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/smarty/">smarty</a></td>
+<td>For auto-replacing quotes, ellipses and dashes with proper, non-ASCII symbols.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/tables/">tables</a></td>
+<td>For creating simple tables.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/toc/">toc</a></td>
+<td>Creates a table of contents based on headings in the document.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://python-markdown.github.io/extensions/wikilinks/">wikilinks</a></td>
+<td>Provides a wiki-style link syntax. <em>This may not work well with Larmarkdown.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-pymdown-extensions"><span class="la-label">3. </span><a href="https://facelessuser.github.io/pymdown-extensions/">PyMdown Extensions</a></h2>
+<p>These extensions together form a major 3rd-party package. Lamarkdown has a dependency on PyMdown extensions, so they (like those above) are available by default.</p>
+<table><caption></caption>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Description</th>
+<th style="text-align: center;">In <code>m.doc()</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/arithmatex/">pymdownx.arithmatex</a></td>
+<td>Preserves Latex math equations during compilation, so they can be parsed and displayed by Javascript libraries (like MathJax or KaTeX) when the output document is viewed.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/b64/">pymdownx.b64</a></td>
+<td><em>Consider using Lamarkdown&rsquo;s built-in media embedding instead.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/betterem/">pymdownx.betterem</a></td>
+<td>Tweaks the handling of emphasis syntax (<code>_</code> and <code>*</code>).</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/blocks/">pymdownx.blocks</a></td>
+<td>Supports a secondary extension system</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/caret/">pymdownx.caret</a></td>
+<td>For superscript and insertions with the <code>^</code> character, using the <code>&lt;sup&gt;</code> and <code>&lt;ins&gt;</code> HTML elements. <em>See also <a href="https://facelessuser.github.io/pymdown-extensions/extensions/tilde/">pymdownx.tilde</a>.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/critic/">pymdownx.critic</a></td>
+<td>For marking up insertions and deletions, optionally displayed, using <code>&lt;ins&gt;</code> and <code>&lt;del</code>&gt;.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/details/">pymdownx.details</a></td>
+<td>For hidable/expandable content using the <code>&lt;details&gt;</code> and <code>&lt;summary&gt;</code> HTML elements.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/emoji/">pymdownx.emoji</a></td>
+<td>For inserting emojis by name.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/escapeall/">pymdownx.escapeall</a></td>
+<td>Tweaks the handling of <code>\</code> to escape any character.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/extra/">pymdownx.extra</a></td>
+<td>Shortcut for <a href="https://facelessuser.github.io/pymdown-extensions/extensions/betterem/">pymdownx.betterem</a>, <a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">pymdownx.superfences</a>, <a href="https://python-markdown.github.io/extensions/abbreviations/">abbr</a>, <a href="https://python-markdown.github.io/extensions/attr_list/">attr_list</a>, <a href="https://python-markdown.github.io/extensions/definition_lists/">def_list</a>, <a href="https://python-markdown.github.io/extensions/footnotes/">footnotes</a>, <a href="https://python-markdown.github.io/extensions/md_in_html/">md_in_html</a>, <a href="https://python-markdown.github.io/extensions/tables/">tables</a>.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/highlight/">pymdownx.highlight</a></td>
+<td>Configures code highlighting for <a href="https://facelessuser.github.io/pymdown-extensions/extensions/inlinehilite/">pymdownx.inlinehilite</a> and <a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">pymdownx.superfences</a>.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/inlinehilite/">pymdownx.inlinehilite</a></td>
+<td>For syntax highlighting of inline code snippets within <code>`...`</code>.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/keys/">pymdownx.keys</a></td>
+<td>For showing keyboard keys, using the <code>&lt;kbd&gt;</code> HTML element.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/magiclink/">pymdownx.magiclink</a></td>
+<td>For auto-linking URLs in the text without any special syntax (or with various alternative syntaxes).</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/mark/">pymdownx.mark</a></td>
+<td>For marking/highlighting text using the <code>&lt;mark&gt;</code> HTML element.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/pathconverter/">pymdownx.pathconverter</a></td>
+<td><em>Generally unnecessary in Larmarkdown.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/progressbar/">pymdownx.progressbar</a></td>
+<td>For showing progress bars (though additional CSS is required).</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/saneheaders/">pymdownx.saneheaders</a></td>
+<td>Tweaks the handling of <code>#</code> in markdown headers.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/smartsymbols/">pymdownx.smartsymbols</a></td>
+<td>For inserting various symbols by ASCII characters: <code>(tm)</code> for ™, <code>--&gt;</code> for →, etc.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/snippets/">pymdownx.snippets</a></td>
+<td>For inserting file(s), or parts of a file, into the current markdown document.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/striphtml/">pymdownx.striphtml</a></td>
+<td>Strips HTML attributes from a document (and also comments, but this is unnecessary in Lamarkdown).</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/superfences/">pymdownx.superfences</a></td>
+<td>For multi-line code blocks inside <code>```...```</code>; more flexible version of <a href="https://python-markdown.github.io/extensions/fenced_code_blocks/">fenced_code</a>.</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/tabbed/">pymdownx.tabbed</a></td>
+<td>For creating multiple tabs, each showing different content.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/tasklist/">pymdownx.tasklist</a></td>
+<td>For creating checkboxes for list items.</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><a href="https://facelessuser.github.io/pymdown-extensions/extensions/tilde/">pymdownx.tilde</a></td>
+<td>For subscript and deletions with the <code>~</code> character, using the <code>&lt;sub&gt;</code> and <code>&lt;del&gt;</code> HTML elements. <em>See also <a href="https://facelessuser.github.io/pymdown-extensions/extensions/caret/">pymdownx.caret</a>.</em></td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Build File API Reference - Lamarkdown</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link href="../css/pygments.css" rel="stylesheet">
+        <link href="../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../extensions/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../extensions/sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/api_tmp.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#build-file-api-reference" class="nav-link">Build File API Reference</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-extension-loading-and-configuration" class="nav-link">1. Extension Loading and Configuration</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-styling-and-scripting-resources" class="nav-link">2. Styling and Scripting (Resources)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-variants" class="nav-link">3. Variants</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#4-document-modification-and-querying" class="nav-link">4. Document Modification and Querying</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#5-other-queries" class="nav-link">5. Other Queries</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="build-file-api-reference">Build File API Reference</h1>
+<p>The <code>lamarkdown</code> package provides the following functionality, to be accessed from <a href="../core/#build_files">build files</a> and <a href="../modules/">build modules</a>:</p>
+<h2 id="1-extension-loading-and-configuration"><span class="la-label">1. </span>Extension Loading and Configuration</h2>
+<h3 id="lamarkdown_call"><span class="la-label">1.1. </span><code>lamarkdown.__call__(*extensions, **config)</code></h3>
+<p>Applies one or more markdown extensions. You may either:</p>
+<ol>
+<li>
+<p>Provide one or more extension names and/or <code>markdown.extensions.Extension</code> objects <em>without</em> config options:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;attr_list&#39;</span><span class="p">,</span> <span class="s1">&#39;nl2br&#39;</span><span class="p">,</span> <span class="s1">&#39;toc&#39;</span><span class="p">,</span> <span class="s1">&#39;la.cite&#39;</span><span class="p">,</span> <span class="s1">&#39;pymdownx.extra&#39;</span><span class="p">)</span>
+</code></pre></div>
+</li>
+<li>
+<p>Provide one extension name with associated config options.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.latex&#39;</span><span class="p">,</span> <span class="n">tex</span> <span class="o">=</span> <span class="s1">&#39;pdflatex&#39;</span><span class="p">,</span> <span class="n">pdf_svg_converter</span> <span class="o">=</span> <span class="s1">&#39;inkscape&#39;</span><span class="p">)</span>
+</code></pre></div>
+</li>
+</ol>
+<p>You can specify a given extension multiple times (by name). It will only be loaded once, but its config options will accumulate.</p>
+<p>To provide config options to multiple extensions, you must call them all individually. To provide config options to a <code>markdown.extensions.Extension</code> object (which you may have if you create your own extensions), you must pass them directly to the extension&rsquo;s constructor.</p>
+<p><code>__call__()</code> also returns a live <code>dict</code> containing the configuration options, so that existing options can be queried and/or amended separately.</p>
+<h3 id="12-lamarkdownextendablevalue-join"><span class="la-label">1.2. </span><code>lamarkdown.extendable(value, join = '')</code></h3>
+<p>Wraps a configuration value, causing it to be extended, rather than overwritten, if/when another value is given later (for the same option).</p>
+<p>Normally, re-specifying a given config option will cause it to be overwritten:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="n">opt2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="s1">&#39;world&#39;</span><span class="p">,</span> <span class="n">opt2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="c1"># &#39;opt1&#39; will be &#39;world&#39;, opt2 will be [4, 5, 6]</span>
+</code></pre></div>
+<p>If you wrap a value using <code>extendable()</code>, then:</p>
+<ul>
+<li>If it&rsquo;s a string, successive values will concatenate, separated by the value of <code>join</code>;</li>
+<li>If it&rsquo;s a <code>list</code>, <code>set</code> or <code>dict</code>, any existing value will be extended/updated by a new value (using the container&rsquo;s <code>extend()</code> or <code>update()</code> method as appropriate).</li>
+</ul>
+<p>Thus:
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="n">join</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">),</span>
+                    <span class="n">opt2</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="s1">&#39;world&#39;</span><span class="p">,</span> <span class="n">opt2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="c1"># &#39;opt1&#39; will be &#39;hello world&#39;, opt2 will be [1, 2, 3, 4, 5, 6]</span>
+</code></pre></div></p>
+<p>Moreover, providing an <code>extendable</code> value will preserve any existing non-wrapped value:
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="n">opt2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">(</span><span class="s1">&#39;world&#39;</span><span class="p">,</span> <span class="n">join</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">),</span>
+                    <span class="n">opt2</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]))</span>
+<span class="c1"># &#39;opt1&#39; will be &#39;hello world&#39;, opt2 will be [1, 2, 3, 4, 5, 6]</span>
+</code></pre></div></p>
+<p>It is safe (if unnecessary) to provide <code>extendable</code> multiple times for a single config option.</p>
+<p>To override the effects of <code>extendable</code>, you can directly manipulate the <code>dict</code> returned by <code>__call__()</code>:
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">),</span>
+                    <span class="n">opt2</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+
+<span class="n">opts</span> <span class="o">=</span> <span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">)</span>
+<span class="n">opts</span><span class="p">[</span><span class="s1">&#39;opt1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;hello&#39;</span> <span class="c1"># non-extendable</span>
+<span class="k">del</span> <span class="n">opts</span><span class="p">[</span><span class="s1">&#39;opt2&#39;</span><span class="p">]</span>
+
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt1</span> <span class="o">=</span> <span class="s1">&#39;world&#39;</span><span class="p">,</span> <span class="n">opt2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="c1"># &#39;opt1&#39; will be &#39;world&#39;, opt2 will be [4, 5, 6]</span>
+</code></pre></div></p>
+<h3 id="13-lamarkdownlatevalue_callback"><span class="la-label">1.3. </span><code>lamarkdown.late(value_callback)</code></h3>
+<p>Lets you provide a callback returning a value, rather than a direct value, for an extension config option. The callback will be invoked at the last opportunity, after all build files have been processed, and right before Lamarkdown invokes Python Markdown.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">late</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">))</span>
+</code></pre></div>
+<p>This may be useful when writing a build module, to make a particular config option refer to other parts of the configuration.</p>
+<p><code>late</code> values are compatible with <code>extendable</code> values:
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">extendable</span><span class="p">(</span><span class="n">la</span><span class="o">.</span><span class="n">late</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">),</span> <span class="n">join</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">))</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;the.extension&#39;</span><span class="p">,</span> <span class="n">opt</span> <span class="o">=</span> <span class="s1">&#39;world&#39;</span><span class="p">))</span>
+<span class="c1"># opt will be &#39;hello world&#39;</span>
+</code></pre></div></p>
+<p class="note">Some extensions accept functions as config values. So, for extension config purposes, Lamarkdown will <em>only</em> call functions wrapped using <code>late()</code>.</p>
+<h2 id="2-styling-and-scripting-resources"><span class="la-label">2. </span>Styling and Scripting (Resources)</h2>
+<h3 id="21-lamarkdowncssvalue-if_xpaths-if_selectors"><span class="la-label">2.1. </span><code>lamarkdown.css(value, if_xpaths = [], if_selectors = [])</code></h3>
+<p>Adds a snippet of CSS code (assumed to be one or more CSS rules) to the output document, within <code>&lt;style&gt;</code> tags.</p>
+<p>If <code>if_xpaths</code> or <code>if_selectors</code> are non-empty, then these are first matched against the output HTML to determine whether or not to include the CSS. <code>if_xpaths</code> must be a list of XPath expressions, and <code>if_selectors</code> must be a list of CSS selectors. The CSS code will be included if <em>any</em> of the XPath expressions or CSS selectors match (or if none are specified), and omitted otherwise. This feature is intended for the development of reusable build modules.</p>
+<p>For instance, calling <code>css('li { color: blue; }', if_selectors=['li'])</code> will include &ldquo;<code>li { color: blue; }</code>&rdquo; in the output document style, but only if the <code>li</code> selector matches something (i.e., if there are any <code>&lt;li&gt;</code> elements).</p>
+<p class="note">It&rsquo;s important to distinguish what&rsquo;s happening here from what the web browser itself will do. The browser will execute all the CSS rules it receives as part of the HTML document. However, the processing described here happens at &ldquo;compile-time&rdquo;, and determines which CSS rules will <em>exist</em> in the HTML document to begin with.</p>
+<p><code>value</code> is generally a string representing the CSS code. However, it can alternatively be a function returning a string, taking as a parameter the subset of XPath expressions that matched the document. If so, it will be called unconditionally and its return value used if not <code>None</code>.</p>
+<h3 id="22-lamarkdowncss_ruleselectors-properties"><span class="la-label">2.2. </span><code>lamarkdown.css_rule(selectors, properties)</code></h3>
+<p>A convenience function that takes a list of CSS <code>selectors</code>, and a string containing one or more CSS property declarations, and builds a single CSS rule, which will adapt to the output document. The set of selectors <em>actually present</em> in the output will be the subset of <code>selectors</code> that match the document. If none of them match, the rule will be omitted altogether.</p>
+<h3 id="23-lamarkdowncss_filesvalues-if_xpaths-if_selectors"><span class="la-label">2.3. </span><code>lamarkdown.css_files(*values, if_xpaths = [], if_selectors = [])</code></h3>
+<p>Adds one or more external <code>.css</code> style files at specified URLs. Only the URLs will be inserted into the output document (using <code>&lt;link href="..."&gt;</code> tags).</p>
+<p>The <code>if_xpaths</code> and <code>if_selectors</code> parameters have the same meaning as for the <code>css()</code> function. Each of the <code>values</code> is either a string, or a function returning a string.</p>
+<h3 id="24-lamarkdownjsvalue-if_xpaths-if_selectors"><span class="la-label">2.4. </span><code>lamarkdown.js(value, if_xpaths = [], if_selectors = [])</code></h3>
+<p>Adds a snippet of JavaScript code to the end of the output document, within <code>&lt;script&gt;</code> tags. The <code>if_xpaths</code> and <code>if_selectors</code> parameters have the same meaning as for the <code>css()</code> function. <code>value</code> can be either string, or a function returning a string.</p>
+<h3 id="25-lamarkdownjs_filesvalues-if_xpaths-if_selectors"><span class="la-label">2.5. </span><code>lamarkdown.js_files(*values, if_xpaths = [], if_selectors = [])</code></h3>
+<p>Adds one or more external <code>.js</code> script files at specified URLs. Only the URLs will be inserted into the output document (using <code>&lt;script src="..."&gt;</code> tags).</p>
+<p>The <code>if_xpaths</code> and <code>if_selectors</code> parameters have the same meaning as for the <code>css()</code> function. Each of the <code>values</code> is either a string, or a function returning a string.</p>
+<!--## Media
+
+Lamarkdown performs certain operations on font, images and other embedded or linked files. See [Fonts and Media](fonts_and_media.md) for a general discussion of how this works.
+
+In the following sections, we refer to "rules". A rule is a callback function that returns an operation-specific value, and takes (some of) the following keyword parameters:
+
+`url`
+: the URL of the external resource (`str`); e.g., `OpenSans.ttf`, `http://example.com/image.png`.
+
+`type`
+: the media (MIME) type (`str`); e.g., `font/ttf`, `image/gif`.
+
+`tag`
+: the name of the enclosing HTML element (`str`); e.g., `img`, `style`.
+
+`attr`
+: the HTML attributes of the enclosing element (`dict`).
+
+A rule callback _must_ provide its own default value for each parameter, because the caller will omit a parameter when its value is not available. The callback should also define `**kwargs`, for forward compatibility.-->
+
+<h3 id="26-lamarkdownembedembed_rule"><span class="la-label">2.6. </span><code>lamarkdown.embed(embed_rule)</code></h3>
+<p>Specifies which external resources to embed in the output document (of those not already embedded by some other mechanism).</p>
+<p>If <code>embed_rule</code> is simply <code>True</code> or <code>False</code>, then Lamarkdown will embed everything, or nothing, respectively. For more fine-grained control, <code>embed_rule</code> can be a rule callback returning <code>True</code> or <code>False</code>.</p>
+<p>For example, to embed only JPEG images:
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="k">lambda</span> <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">url</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.jpg&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;image/jpeg&#39;</span><span class="p">)</span>
+</code></pre></div></p>
+<h3 id="27-lamarkdownscalescale_rule"><span class="la-label">2.7. </span><code>lamarkdown.scale(scale_rule)</code></h3>
+<p>Specifies a scaling factor to use across all <code>&lt;img&gt;</code> and <code>&lt;svg&gt;</code> elements in the document.</p>
+<p>If <code>scale_rule</code> is simply a number, then Lamarkdown will uniformly scale all images by that amount. For more fine-grained control, <code>scale_rule</code> can be a rule callback returning a scaling factor.</p>
+<h3 id="28-lamarkdownresource_hash_typehash_rule"><span class="la-label">2.8. </span><code>lamarkdown.resource_hash_type(hash_rule)</code></h3>
+<p>Specifies either a hashing algorithm (or <code>None</code>) to use for remotely-linked files, to verify that such files haven&rsquo;t been manipulated when opening the document.</p>
+<p>If <code>hash_rule</code> is <code>'sha256'</code>, <code>'sha384'</code> or <code>'sha512'</code>, then that algorithm is used across all remotely-linked files. If <code>hash_rule</code> is None, then such hashing is globally disabled. For more fine-grained control, <code>hash_rule</code> can be a rule callback that returns <code>'sha256'</code>, <code>'sha384'</code>, <code>'sha512'</code> or <code>None</code>.</p>
+<p class="warning">There&rsquo;s no way to automatically check the integrity of remote files during compilation, when the hashes are first computed.</p>
+<h2 id="3-variants"><span class="la-label">3. </span>Variants</h2>
+<ul>
+<li>
+<p><code>variants(*variant_fns)</code>:
+    Defines a set of <a href="variants">variants</a>. The parameters must be functions (or callable objects), each of which, when called, should make further API calls. Each of these functions thus defines a &ldquo;variant&rdquo;, and Lamarkdown will compile a separate output file for each variant according to its particular configuration.</p>
+<p>Variants will all share the common settings defined globally. Nested variants are permitted too; one can call <code>variants()</code> from within a variant function, and those sub-variants will share the settings of their &ldquo;parent&rdquo;.</p>
+<p>Generally you will want to specify at least two variants whenever calling <code>variants()</code>. Specifying only one is permitted, but is essentially no different to not using the facility at all.</p>
+</li>
+<li>
+<p><code>target(fn)</code>:
+    Specifies a function for determining the output name. Without any variants, the default output file is simply the input file with <code>.md</code> replaced by <code>.html</code>. <em>With</em> variants, the default is to add the variant name to each output file, with a separator, just before the extension. Thus, compiling <code>mydoc.md</code> with <code>variantA</code> and <code>variantB</code> will (by default) result in <code>mydoc_variantA.html</code> and <code>mydoc_variantB.html</code>.</p>
+<p>Calling <code>target()</code> can change this behaviour arbitrarily. The function <code>fn</code> must accept the originally conceived output filename (generally ending in <code>.html</code>) and return the name to be used by this variant.</p>
+<p>Keep in mind that the same build logic might be used across several different input documents; hence why <code>target()</code> accepts a function and not just a string.</p>
+</li>
+<li>
+<p><code>base_name()</code>:
+    Equivalent to calling <code>target(lambda t: t)</code>. That is, this causes a particular variant to have the original default output name. Obviously only one variant should call <code>base_name()</code>; it should not be used at the global level.</p>
+</li>
+</ul>
+<p>Also see the functions below for ways to create structural differences between variant documents.</p>
+<h2 id="4-document-modification-and-querying"><span class="la-label">4. </span>Document Modification and Querying</h2>
+<ul>
+<li>
+<p><code>prune(selector = None, xpath = None)</code>:
+    Delete parts of the document tree that match either a CSS selector or an XPath expression.</p>
+<p>This is especially intended to help create structurally different variants of the document. For instance, one variant could call <code>prune('.answers')</code> to delete all HTML elements with <code>class="answers"</code>, while another one could retain it. This would allow you to build both a question paper and answer guide from the same input, provided you attach <code>class="answers"</code> to the right parts of the document (e.g., via the <a href="https://python-markdown.github.io/extensions/attr_list/"><code>attr_list</code></a> or <a href="https://python-markdown.github.io/extensions/admonition/"><code>admonition</code></a> extensions.).</p>
+</li>
+<li>
+<p><code>with_selector(selector, fn)</code>:
+    Runs function <code>fn</code> on each element of the document tree matching the given CSS selector. The function may query or arbitrarily modify the tree.</p>
+<p>(Lamarkdown uses the <a href="https://lxml.de/"><code>lxml</code> API</a> for this, which is an extension of the standard <code>xml.etree.ElementTree</code> interface.)</p>
+</li>
+<li>
+<p><code>with_xpath(xpath, fn)</code>:
+    Like <code>with_selector()</code>, but accepts XPath expressions in place of CSS selectors.</p>
+</li>
+<li>
+<p><code>with_tree(fn)</code>:
+    Runs function <code>fn</code> on the root of the document tree.</p>
+</li>
+<li>
+<p><code>wrap_content(start, end)</code>:
+    Adds arbitrary HTML code on either end of the output generated by Python Markdown. This may be necessary to support certain JavaScript frameworks like RevealJS.</p>
+<p>Multiple calls will accumulate additional HTML code around the outside of what has already been specified.</p>
+</li>
+<li>
+<p><code>wrap_content_inner(start, end)</code>:
+    The same as <code>wrap_content()</code>, except that multiple calls will place new HTML <em>inside</em> previously-specified wrapping code, immediately around the Python Markdown output.</p>
+</li>
+</ul>
+<h2 id="5-other-queries"><span class="la-label">5. </span>Other Queries</h2>
+<ul>
+<li>
+<p><code>get_build_dir()</code>:
+    Returns the directory that Lamarkdown uses for temporary build-related files.</p>
+</li>
+<li>
+<p><code>get_env()</code>:
+    Returns the dictionary that (for the moment) is used by the <code>lamarkdown.ext.eval</code> extension to permit the embedding and execution of Python expressions directly within <code>.md</code> files.</p>
+</li>
+<li>
+<p><code>get_params()</code>:
+    Returns the <code>BuildParams</code> object encapsulating the complete set of arguments to the build process (apart from the actual markdown code).</p>
+</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

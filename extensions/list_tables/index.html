@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.list_tables - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../latex/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../markdown_demo/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/list_tables.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lalist_tables" class="nav-link">la.list_tables</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-parsing-and-co-opting" class="nav-link">1. Parsing and Co-opting</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-semantic-table-structure" class="nav-link">2. Semantic Table Structure</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#3-heading-trees" class="nav-link">3. Heading Trees</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#4-options" class="nav-link">4. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lalist_tables"><code>la.list_tables</code></h1>
+<p>This extension (<a href="https://pandemic-overview.readthedocs.io/en/latest/myGuides/reStructuredText-Tables-Examples.html#list-table">inspired by reStructuredText</a>) provides an alternative to the <code>tables</code> extension, and other 3rd-party extensions.</p>
+<p>A &ldquo;list table&rdquo; comprises a list of lists in Markdown, which are transformed into a proper table in the HTML output. The mechanism permits the creation of arbitrarily complex tables.</p>
+<p>Here&rsquo;s a simple example:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.list_tables&#39;</span><span class="p">,</span> <span class="s1">&#39;pymdownx.superfences&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;table { border-collapse: collapse; width: 100%; }&#39;</span>
+       <span class="s1">&#39;td    { border: 1px solid blue; padding: 0.5em}&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>{-list-table}
+<span class="k">*</span><span class="w"> </span>  - # Col Heading A
+<span class="w">    </span><span class="k">-</span><span class="w"> </span># Col Heading B
+<span class="w">    </span><span class="k">-</span><span class="w"> </span># Col Heading C
+<span class="k">*</span><span class="w"> </span>  - A paragraph.
+
+        Another paragraph.
+
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>  * List item A
+<span class="w">        </span><span class="k">*</span><span class="w"> </span>List item B
+
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Some important code:
+
+<span class="sb">        ```</span>
+<span class="sb">        print(&quot;Hi!&quot;)</span>
+<span class="sb">        ```</span>
+
+<span class="k">*</span><span class="w"> </span>  - Row 2, Col A
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col B
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col C
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KdGFibGUgeyBib3JkZXItY29sbGFwc2U6IGNvbGxhcHNlOyB3aWR0aDogMTAwJTsgfXRkICAgIHsgYm9yZGVyOiAxcHggc29saWQgYmx1ZTsgcGFkZGluZzogMC41ZW19Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHRhYmxlPjx0aGVhZD48dHI+PHRoPkNvbCBIZWFkaW5nIEE8L3RoPgo8dGg+Q29sIEhlYWRpbmcgQjwvdGg+Cjx0aD5Db2wgSGVhZGluZyBDPC90aD4KPC90cj48L3RoZWFkPjx0Ym9keT48dHI+PHRkPgo8cD5BIHBhcmFncmFwaC48L3A+CjxwPkFub3RoZXIgcGFyYWdyYXBoLjwvcD4KPC90ZD4KPHRkPgo8dWw+PGxpPkxpc3QgaXRlbSBBPC9saT4KPGxpPkxpc3QgaXRlbSBCPC9saT4KPC91bD48L3RkPgo8dGQ+CjxwPlNvbWUgaW1wb3J0YW50IGNvZGU6PC9wPgo8ZGl2IGNsYXNzPSJoaWdobGlnaHQiPjxwcmU+PHNwYW4+PC9zcGFuPjxjb2RlPnByaW50KCJIaSEiKQo8L2NvZGU+PC9wcmU+PC9kaXY+CjwvdGQ+CjwvdHI+PHRyPjx0ZD5Sb3cgMiwgQ29sIEE8L3RkPgo8dGQ+Um93IDIsIENvbCBCPC90ZD4KPHRkPlJvdyAyLCBDb2wgQzwvdGQ+CjwvdHI+PC90Ym9keT48L3RhYmxlPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<p>You place the <code>-list-table</code> <a href="../../core/#directives">directive</a> prior to a list of lists (using the <a href="../attr_prefix/"><code>la.attr_prefix</code></a> extension, which is loaded automatically by <code>la.list_tables</code>).</p>
+<p>Then, each item in the outer list represents a table row, and each item in each inner list representes a table cell.</p>
+<p>The use of <code>#</code> at the start of a cell indicates a header <code>&lt;th&gt;</code> cell (as opposed to a normal <code>&lt;td&gt;</code> cell). The use of <code>#</code> at the start of a <em>row</em> makes every cell in that row a header cell (whether or not they individually start with <code>#</code>); e.g.:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-list-table}
+<span class="k">*</span><span class="w"> </span>#
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Col Heading A
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Col Heading B
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Col Heading C
+<span class="k">*</span><span class="w"> </span>  - Row 1, Col A
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col B
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col C
+<span class="k">*</span><span class="w"> </span>  - Row 2, Col A
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col B
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col C
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KdGFibGUgeyBib3JkZXItY29sbGFwc2U6IGNvbGxhcHNlOyB3aWR0aDogMTAwJTsgfXRkICAgIHsgYm9yZGVyOiAxcHggc29saWQgYmx1ZTsgcGFkZGluZzogMC41ZW19Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHRhYmxlPjx0aGVhZD48dHI+PHRoPkNvbCBIZWFkaW5nIEE8L3RoPgo8dGg+Q29sIEhlYWRpbmcgQjwvdGg+Cjx0aD5Db2wgSGVhZGluZyBDPC90aD4KPC90cj48L3RoZWFkPjx0Ym9keT48dHI+PHRkPlJvdyAxLCBDb2wgQTwvdGQ+Cjx0ZD5Sb3cgMSwgQ29sIEI8L3RkPgo8dGQ+Um93IDEsIENvbCBDPC90ZD4KPC90cj48dHI+PHRkPlJvdyAyLCBDb2wgQTwvdGQ+Cjx0ZD5Sb3cgMiwgQ29sIEI8L3RkPgo8dGQ+Um93IDIsIENvbCBDPC90ZD4KPC90cj48L3Rib2R5PjwvdGFibGU+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>Python-Markdown includes a built-in <code>tables</code> extension, and there are other 3rd-party extensions that add more flexible/featureful approaches to creating tables. These require that you &ldquo;draw&rdquo; a table in plain text, using the <code>-</code> and <code>|</code> ASCII characters, with essentially the same structure as would appear in the output; e.g.:</p>
+<div class="highlight"><pre><span></span><code>With the <span class="sb">`tables`</span> extension:
+
+Col A | Col B | Col C
+----- | ----- | -----
+one   | two   | three
+four  | five  | six
+</code></pre></div>
+<p>This is in keeping with the notion that raw Markdown text should closely resemble the formatted output document, so that the raw text can stand on its own. For tables, this ASCII line-drawing approach works well if the cell contents are small and simple.</p>
+<p>However, it becomes difficult for long or complex table data, where problems include:</p>
+<ul>
+<li>
+<p>Readability, since (if using the <code>tables</code> extension) an entire table row must fit on a single plain-text line without breaks.</p>
+</li>
+<li>
+<p>Maintainability. Even if (using a different extension) you are permitted to split the contents of cells over multiple lines, an ASCII line-drawing approach requires you to keep cell contents boxed within a rectangular region, with other cells to the right and left sharing the same lines. Text editors rarely (if ever, depending on your perspective) provide a convenient way to edit such regions, without disrupting adjacent regions.</p>
+</li>
+<li>
+<p>Technical workability, for when you wish to put block elements like lists or code blocks inside a table cell, or simply multiple paragraphs.</p>
+</li>
+</ul>
+<p>Other suggestions for the handling of complex tables include:</p>
+<ol>
+<li>Use HTML embedded within Markdown, which is technically workable, but does not solve the readability problem, and has debatable maintainability;</li>
+<li>Don&rsquo;t, because Markdown &ldquo;isn&rsquo;t the right tool for the job&rdquo;.</li>
+</ol>
+<p>List tables represent a less severe compromise. The Markdown text and the output are structurally different, but the raw text appears in a relatively readable form that has few technical limits or maintainability challenges.</p>
+</div>
+<h2 id="1-parsing-and-co-opting"><span class="la-label">1. </span>Parsing and Co-opting</h2>
+<p>This extension does not directly parse anything, and does not technically introduce any new syntax.
+Rather, it co-opts existing parsing mechanisms, though this requires some care and understanding
+from users. Markdown understands <code>* - # ...</code> as being the first item in a nested list, containing a
+heading. However, it does <em>not</em> understand <code>* # - ...</code> as being a nested list of headings; hence we
+must leave the <code>* #</code> on a separate line.</p>
+<p>The <code>#</code> character traditionally represents the <code>&lt;h1&gt;</code> heading element, and is parsed as such even inside lists. The extension co-opts and rewrites such elements, while leaving other heading levels (<code>&lt;h2&gt;</code>-<code>&lt;h6&gt;</code>) alone.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>We use <code>#</code> for table heading cells on the grounds that:</p>
+<ol>
+<li>We require <em>some</em> way to indicate table headings;</li>
+<li>In context, using <code>#</code> for this is broadly, conceptually consistent with its use elsewhere;</li>
+<li>The use of actual <code>&lt;h1&gt;</code> elements inside a table is probably unnecessary (and perhaps questionable); and</li>
+<li>If one actually does need <code>&lt;h1&gt;</code> inside a table, one can still write it using raw HTML (which the extension cannot see).</li>
+</ol>
+</div>
+<h2 id="2-semantic-table-structure"><span class="la-label">2. </span>Semantic Table Structure</h2>
+<p>The extension will seek to separate the table into header, body, and footer sections, as follows:</p>
+<ol>
+<li>
+<p>Any unbroken sequence of rows at the start of the table that contain <em>only</em> header cells will form the table header (<code>&lt;thead&gt;</code>). (If there are no such rows at the start, then <code>&lt;thead&gt;</code> is omitted.)</p>
+</li>
+<li>
+<p>Row(s) immediately following the header form part of the table body (<code>&lt;tbody&gt;</code>). The body <em>may</em> contain a mix of header (<code>&lt;th&gt;</code>) and data (<code>&lt;td&gt;</code>) cells, but <em>may not</em> contain a row of only <code>&lt;th&gt;</code> cells. (If there are no such rows, then <code>&lt;tbody&gt;</code> is omitted.)</p>
+</li>
+<li>
+<p>The next header-cell-only row (if any), after the start of the table body, marks the start of
+   the table footer (<code>&lt;tfoot&gt;</code>), and the remainder of the table is assigned here. (If there is no
+   such row, or if the table body is omitted, then <code>&lt;tfoot&gt;</code> is omitted.)</p>
+</li>
+</ol>
+<h2 id="3-heading-trees"><span class="la-label">3. </span>Heading Trees</h2>
+<p>The extension permits another way to specify the table header, designed for tables having a
+hierarchy of column headings across several rows.</p>
+<p>In such cases, one may provide corresponding nested lists representing the header tree structure:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code>{-list-table}
+<span class="k">*</span><span class="w"> </span>#
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Major Heading A
+<span class="w">        </span><span class="k">-</span><span class="w"> </span>AA
+<span class="w">        </span><span class="k">-</span><span class="w"> </span>AB
+<span class="w">            </span><span class="k">-</span><span class="w"> </span>ABA
+<span class="w">            </span><span class="k">-</span><span class="w"> </span>ABB
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Major Heading B
+<span class="w">        </span><span class="k">-</span><span class="w"> </span>BA
+<span class="w">        </span><span class="k">-</span><span class="w"> </span>BB
+
+<span class="k">*</span><span class="w"> </span>  - Row 1, Col AA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col ABA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col ABB
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col BA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 1, Col BB
+
+<span class="k">*</span><span class="w"> </span>  - Row 2, Col AA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col ABA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col ABB
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col BA
+<span class="w">    </span><span class="k">-</span><span class="w"> </span>Row 2, Col BB
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KdGFibGUgeyBib3JkZXItY29sbGFwc2U6IGNvbGxhcHNlOyB3aWR0aDogMTAwJTsgfXRoZWFkIHsgYm9yZGVyLWJvdHRvbTogMnB4IHNvbGlkIGJsYWNrOyB9dGggICAgeyBib3JkZXI6IDFweCBzb2xpZCByZWQ7IHBhZGRpbmc6IDAuNWVtfXRkICAgIHsgYm9yZGVyOiAxcHggc29saWQgYmx1ZTsgcGFkZGluZzogMC41ZW19Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHRhYmxlPjx0aGVhZD48dHI+PHRoIGNvbHNwYW49IjMiPk1ham9yIEhlYWRpbmcgQTwvdGg+Cjx0aCBjb2xzcGFuPSIyIj5NYWpvciBIZWFkaW5nIEI8L3RoPgo8L3RyPjx0cj48dGggcm93c3Bhbj0iMCI+QUE8L3RoPgo8dGggY29sc3Bhbj0iMiI+QUI8L3RoPgo8dGggcm93c3Bhbj0iMCI+QkE8L3RoPgo8dGggcm93c3Bhbj0iMCI+QkI8L3RoPgo8L3RyPjx0cj48dGg+QUJBPC90aD4KPHRoPkFCQjwvdGg+CjwvdHI+PC90aGVhZD48dGJvZHk+PHRyPjx0ZD5Sb3cgMSwgQ29sIEFBPC90ZD4KPHRkPlJvdyAxLCBDb2wgQUJBPC90ZD4KPHRkPlJvdyAxLCBDb2wgQUJCPC90ZD4KPHRkPlJvdyAxLCBDb2wgQkE8L3RkPgo8dGQ+Um93IDEsIENvbCBCQjwvdGQ+CjwvdHI+PHRyPjx0ZD5Sb3cgMiwgQ29sIEFBPC90ZD4KPHRkPlJvdyAyLCBDb2wgQUJBPC90ZD4KPHRkPlJvdyAyLCBDb2wgQUJCPC90ZD4KPHRkPlJvdyAyLCBDb2wgQkE8L3RkPgo8dGQ+Um93IDIsIENvbCBCQjwvdGQ+CjwvdHI+PC90Ym9keT48L3RhYmxlPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<p>This <em>only</em> applies to the table header, and for it to work, there must initially be only a single heading row. This is then expanded into further rows as needed to accommodate the subheadings. The extension inserts HTML <code>rowspan=...</code> and <code>colspan=...</code> attributes to ensure headings occupy the appropriate amount of space.</p>
+<p>The number of data columns (5 in this case) is equal to the number of <em>leaf</em> headings in
+the heading tree (not the number of headings overall).</p>
+<h2 id="4-options"><span class="la-label">4. </span>Options</h2>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>directives</code></td>
+<td>An object for retrieving directives from HTML tree elements. This should be an instance of <code>lamarkdown.lib.directives.Directives</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

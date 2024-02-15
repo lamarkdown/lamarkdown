@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.captions - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="../sections/" class="dropdown-item">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../attr_prefix/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../cite/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/captions.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lacaptions" class="nav-link">la.captions</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#1-basic-example" class="nav-link">1. Basic Example</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#2-tables" class="nav-link">2. Tables</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#complex" class="nav-link">3. Complex Captions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#4-options" class="nav-link">4. Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lacaptions"><code>la.captions</code></h1>
+<p>This extension lets you assign captions to document elements, and wraps them (as appropriate) in the HTML elements intended for this purpose: <code>&lt;figcaption&gt;</code> within <code>&lt;figure&gt;</code>, and/or <code>&lt;caption&gt;</code> within <code>&lt;table&gt;</code>.</p>
+<p>Once so structured, these figures, tables and captions can be styled with CSS and numbered using <a href="../labels/"><code>la.labels</code></a>.</p>
+<p>To caption an element:</p>
+<ol>
+<li>
+<p>Write the caption itself as an ordinary Markdown paragraph (<a href="#complex">or block quote</a>) <em>before</em> the element you are captioning, with a paragraph break in between.</p>
+</li>
+<li>
+<p>Attach the <code>-caption</code> directive to the caption. (The <code>attr_list</code> extension will be loaded automatically for this purpose, but you can also use <a href="../attr_prefix/"><code>la.attr_prefix</code></a>.)</p>
+</li>
+</ol>
+<h2 id="1-basic-example"><span class="la-label">1. </span>Basic Example</h2>
+<p>Here&rsquo;s how it works in simple cases:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.captions&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    figure { border: 1px solid gray;</span>
+<span class="s1">             padding: 1em; }</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Some ordinary document text.
+
+A diagram for your
+consideration.
+{-caption}
+
+![<span class="nt">Important diagram</span>](<span class="na">diagram1.png</span>)
+
+Some more ordinary document text.
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 28em"><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>Some ordinary document text.<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">figure</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">figcaption</span><span class="p">&gt;</span>A diagram for your
+consideration.<span class="p">&lt;/</span><span class="nt">figcaption</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">img</span> <span class="na">alt</span><span class="o">=</span><span class="s">&quot;Important diagram&quot;</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;data:image/png;base64,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&quot;</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">figure</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>Some more ordinary document text.<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</code></pre></div>
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KZmlndXJlIHsgYm9yZGVyOiAxcHggc29saWQgZ3JheTsKcGFkZGluZzogMWVtOyB9Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHA+U29tZSBvcmRpbmFyeSBkb2N1bWVudCB0ZXh0LjwvcD4KPGZpZ3VyZT48ZmlnY2FwdGlvbj5BIGRpYWdyYW0gZm9yIHlvdXIKY29uc2lkZXJhdGlvbi48L2ZpZ2NhcHRpb24+PGltZyBhbHQ9IkltcG9ydGFudCBkaWFncmFtIiBzcmM9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBTE1BQUFDT0NBWUFBQUI2OERtQUFBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQUxiMGxFUVZSNG5PM2RlWFNVMVIzRzhXOG1JUnRySWgxQURjV2QyZ1F4SUI2UUpZUXFpNElpVmVrUnRGQVVLbFpFZXJTbHA3RmFqRzJxaUlxN0VGQVVjRU1XazZCQklkUlFZc01taU1wU0VRZ0VTRWdDQ0V5U21mNXhDVW1ZVEFqaG5ibHY3dncrNTh3QlpvYVpoK0hKbmZlOTd6dDNRQWdoaEJCQ0NGR2ZFTjBCaEpkbXdIRGRJWnFBVlVCaHpTdnFLblB2MEpDUXFTRU9oeFRkaDBxMzIrM3hlRzcyMDhPM0Jrcjg5TmdtR1FRc3IzbEZXQjEzdXJEUzR4azhlc0RBd0VScVluWVY3aU5uNDNxL1AwOVcxbHNNSE5qWDc4L1QxSlNXSHFGTm00UTZiNnVyekFDOE5mVUp2d1ZxeXQ3N0lqc2daUmJuenFFN2dCQldrVElMWTBpWmhUR2t6TUlZVW1aaERDbXpNSWFVV1JoRHlpeU1JV1VXeHBBeUMyTkltWVV4cE16Q0dGSm1ZUXlmWjgySjRKT2JtOCtubjY2dTg3YlFVQWR0MjhiU3A4OTF4TWRmRmVCa0RXUDdrZm56ZFYrUk5HazhiMythb1R0SzBGaXdZQWxQUERHRC9mc1BBRkJaV2NtdVhYdEpTWmxPUXNKQXhvMTdESS9Ib3ptbE45dVB6RE1YdmNlcWplczRmUFFJbzI4YW9qdU8wWHIxNmthdlh0M1lzR0VMMzMyM2t3a1RSdEcxNjlXbmIwOUwrek1KQ1FPWk5Xc2hRNGIwNS9iYkIybE02ODNXSS9PaDBoSXkxK1lTMjZvVm0zWnNJLy83cmJvak5kVEh3Q1BBeGJxRFdDazJ0ZzJEQnljQmtKT1RwemRNSFd4ZDVubWZaZEwzbWtSK04rUldBTkl6bDJwTzFHQTlnV2VCSDRFMXdFU2duZFpFRnFuYXZJaU9qdFNjeEp1dHk1eWV1WlF4ZzRjeVp2QlFBTjdOWHM3SmNwZm1WQTNpUHZWckNIQTk4RHl3RDFnTFRBS2NtbktkbCtMaUVyS3lWdUZ3T0d5M2lRRTIzbWJPLzM0clB4YnU1N2JlU1VTR2gzUDlMK0padTNVekg2OWV4VjNKTitxT2R6WTE5NDVDZ05CVHYrOEdKQUxUZ1R3Z0hWZ0FsQVUwWFFPOSt1bzgycmQzNG5hN0tTZ29KRE56SlowN1g4YWNPYy9RdlhzWDNmRzgySFprVHM5Y3ltOEdEQ1F5UEJ6ZzlPZzhPM09KemxnTjVmWnhmU2hxQUhFQVBZQlhnRVBBWXVCT0lEb2c2YzZSdytHZ2VmTm9McjIwSTd0MjdTVTNOeCtYcTF4M0xDKzJISmxQbHJ1WXYySTVXV2t2bnI1dTVJQ2JtUHpTZExMejg5aDlvSkE0cC9aTjBPSWF2NC9nM0l2b3FQSHJzRk9YbzBEYStVZXp4cG16R1FEVHA3L0psQ25UMkxwMU93c1d6TlNVckc2MkhKa1gvenVIRHJGdHVhNXo5UXZadW5rTGh2ZnBqOXZ0WnU3eVpSclRuZmFuR3BmSnFKRzE2bktvZ1k5Uk5ienRBMUpSMjljdldCdlRXZzgvUEphb3FFZ1dMbHpHRHovczBSMm5GbHVPekxNemxsQjhwSXlrU2VOclhWOVFkQkNBT1puTCtNdW9zWVNFYUYxMDZmVjZia3NEMnZxNHJSejF1aDlEVGVITkJWWlF2WjNkMnFxQS91QndPT2pRd2NuT25UK3lZOGN1T25XeXoreWo3Y3E4OTlCQlZtN0laOUcwZnhFVkVlRjErNmhwZjJWSHdSNXlOcTJuM3pXSkdoSTJ5Sm1IeHlwclhKK04ydkZiRERTSnFabWFxbllHQVp6T0N6U25xYzEyWlo2YnRZeEJQWG95K1BwZWRkNSs3NkJiU0oyWHp1eU1KWFl1YzFWNUsxQTdmYm1vQW44RWxPb0taWVhubnB2RmlSTW5pWSsveW5ibmFOaXV6SE95bHZMc0E1TjkzajUyeURDZWZtY09INnhhd2N4Smo5SXkycFlUQUM3Z0cxU0I1d043OWNacG1Lb1RqYjc5ZGdkUVBUVUhVRkpTeHJwMW0xbTlPbyt1WGEvbS9mZGYxcjJaNThVMlpmN3N2MnQ1UFAwMXR1M1p6VC9mbmN1K29rUGNQN1QyeXE1WmVXdjR4enR6YUJZV3hrOG5UdEQzb2ZzWTNxYy9LZmVPMHhQYXQwSEFidDBoR212a3lHRmUxem1kRnpCNjlIQm16RWdoTVRGZVE2cXpzMDJadTF4MkJhbjNUVHo5NTQ3TzlsNzM2WHI1bGZ4dHpQMjFybk8yaWZWN3RrWm9ra1d1T3RHb3FiSk5tZHZGeE5JdXB2NWl0bys5Z1BheDl0cnBFUFpoeTNsbUlScER5aXlNSVdVV3hwQXlDMk5JbVlVeHBNekNHRkptWVF3cHN6Q0dsRmtZUThvc2pDRmxGc2FRTWd0alNKbUZNYVRNd2hpMk9RVlUxSmFUczViU1VsdXVEYVBWOGVNbmZkN21zOHczUHpiSjEwSW1RYTJncUFnQzhJNldtdnFTdjUvQ09IVjlpS3NIOEdDZ2cvaEpCS3A0eC8zdzJQZjQ0VEg5NlNsZ0F0QVJ0Y3lCYUdMQ2daMm9OZDZDMlNXb0graUhkUWNSNTJjajhCTXdWSGNRamQ0RHRxRit1RVVUOWdacThSVTNNRVZ6RmgxNm9mN3R0K2dPSXM3ZkJOU1NXRldGbmszd2pGQU8xTks1SzNRSEVkYm9qaXB5MWFVY3Racjl6M1NHQ3BBeHFGV1ZFblFIRWRZSXAzcGtycnE0Z0YxQVo0MjUvSzBGYWlVbG1lTXp6R1pxbDdscWhDNERralhtOHFkcHdHRjhyMFlxbXFnM1VLUHhtWVd1UkwwTlQvVDlWNXVrT05SYzhpTzZnd2pyMWR3SjlIVjVnZXJ2SG1ucUZnTGJVUWVOaEdHdW8vNGllMUFqOUNlb2JjMm1yQ2RxMWlhWTU5V05Gb2txYTMxbExnZE9BSGRyeW1nRm1Zb0xFbHZ3UFNKN1VLUHlKZHJTV2VPM3lGUmNVSGdUNzUxQU4rckxjUVpyekdXVmFOUTN3cjZzTzRqd3Y5OVR2Uk5ZanRyYjM0UTVPMHAvUjMzRmhQYnZsQlArMTRQcTBmZ3RvRDFxQ3VzbzhKakdYRmE0R1BYREdZem5uZ1NsQ05SM1Y5OXd4dlVwd0JIZ29vQW5zczU4ekhtSEVlY2hFblhPOHp1Nmd6VEFWTHgvNktxbTRtNE5mQnhoUjdlaE5rSDY2UTVTanpEZ0pPb2sreFRVRGw4STZ0M21jNDI1aEExbEFGOWozdy81L3BMYTA0bjdVRE1YRlVBWGpibUVEVjJPT21oaTEvTTA3a2FkUzFKeld0RU5ITVI3UDBBSTBvQmk3SG11Y3hwcU02T3VJNWR1NEFPZ2s2NXd3bjVhQW51QTEzUUhxVU0ycXJTK0RzZTdVTzhzVFgyYVVWaW82dTI4aCs0Z1p5amk3T2VXbEFLOWRRVVU5aE1DckFTK3dqN0xsem1wdjhndTFLRnNrejg1SXhvcEhqWFMzYXM3eUNrRHFYOUV6a2NWWG9nNnZRVHNCOXJvRGdJOFN0MDdmeFhBWXRTY3N4QSt4YUNtdmFickRnSzhpL2Y1Mkc3VXAyUHNzaWtrYkc0ODZtMWM5L25CMjZoZDRrck1XUTlRQklnRGRiaFk1eWMzSXFnZWxTdFFoN1BsSTFHaVVhcE81UG0xcHVkUHBQcVQ1SWRRaTlvSTBXaHpVVk5melRVODl4aFVtYjhIZnE3aCtZVmgyZ0Vsd0pNYW5uc0c4QVgybUZXeHRib1dHemRCRE5EYTRzY2NCL3dSdFFKU2djV1BYWjg3Z1VXb0hWRXJuVVNkZVNkczdobk92azVHVUY4Y2pyRDh4cis4OW1UWGMzZlAyNFdkTGkxL0tPM0ZacnB6MkZIRzI3TllzL3lUVUxlclFuY1VTeGxiNW9pb0tNOFZYYTdWSGNPVzJyUTE4OGkzSEQwU3hwQXlDMk5JbVlVeHBNekNHRkptWVF3cHN6Q0dsRmtZUThvc2pDRmxGc2FRTWd0alNKbUZNYVRNd2hoU1ptRU1ZOCthczVPREJYc29PWGlBOE1nb1lwenRhQlVUcXp1U2thVE1mbEx1Y3BFeGJ4YVo4OUlwZDdsd1hoVEhzU09sSE5pN204aW9hQko2OXFIckRmMUlIakdTa0JCVFAvQVRXRkptUHpoV1ZrYnFoTkVVL0xDVFB6dzlnMnY3SnA4dTdQR2pSMWc2NTNVV3pueVczTXdsSkEyL2c5QlErVyt3Z3J5S2Z2RDhvdy95M1laOFV1Y3Y1c3BydXRXNkxhcEZTKzU4Y0FvL25TcTFzSTZVMldJYmMzUElYNWxOOTZRYnZZcGMwNUJSWTltNTVXdENqUDFNY2VCSm1TMldzK1FqQUJMN0pkZDdQK2ZGSFhueTdROERFU2xveU5TY3hiWi92UjZBQ3krNVRIT1M0Q05sdGxqWjRXSUFvbHUyMHB3aytFaVpMUlllRVFsQVJiblZhN2FJczVFeVc2eGRuRm9PN3ZEQlFzMUpnbytVMldMWDlrNENZUHVtOWZYZXI2VG9JRnZ5Y2lrckxncEFxdUFnWmJiWWpTTkgwNkpWYTFZdlcwUzV5K1h6ZnVtcGovUFUrSHNJY2NoL2dWWGtsYlJZaTFhdGVTanRSWW9LOTVPZW1vTEg0L0c2ejlyUE1zbk5Xc3J3K3liU3NrMk1ocFJta25sbVAraVc5Q3VtdmpLWG1WTW44Nyt0VzBnZWNSZk9pK0lvTFM1aS9lb3YrUEtUeFF3Yk01NDdIcGlzTzZwUnBNeCtrdGh2QUs5ay80Y3ZNNWF3T1MrWE5WbkxhQllSUWR3VlY1SDJZUmFkT2wrdE82SnhwTXgrRkJFVlRmS0lrU1NQR0trN1NsQ1FiV1poRENtek1JYVVXUmhEeWl5TUlXVVd4cEF5QzJOSW1ZVXhwTXpDR0ZKbVlRd3BzekNHbEZrWVE4b3NqQ0ZsRnNhUU1ndGpTSm1GTVl3OW43bWl2SndEZTNmcmptRkx4NDhkMFIxQm5JTm5BSTljZkY4Y1lXSDVqWDk1N2NuVVZmdmlnQTY2UTlqY1VlQWIzU0dFRUVJSUlZUVFnZk4vcFdheFdld2JuRkFBQUFBQVNVVk9SSzVDWUlJPSI+PC9maWd1cmU+PHA+U29tZSBtb3JlIG9yZGluYXJ5IGRvY3VtZW50IHRleHQuPC9wPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>An alternate (hypothetical) approach would be to write captions as values of the <code>-caption</code> directive itself, e.g.:</p>
+<div class="highlight"><pre><span></span><code>{-caption=&quot;A diagram for your consideration.&quot;}
+![<span class="nt">Important diagram</span>](<span class="na">diagram1.png</span>)
+
+&lt;!-- Not actually how it works! --&gt;
+</code></pre></div>
+<p>This alternate approach would be unnecessarily limiting, because no Markdown processing occurs within attribute values. Thus, a caption would be limited to a single paragraph of text devoid of formatting, links, or any other semantic structure. There seems no advantage to this.</p>
+<p>Also, in the actual approach taken, captions must be written <em>above</em> (not below) their captioned elements, because:</p>
+<ul>
+<li>
+<p>This is consistent with the traditional placement of table captions.</p>
+</li>
+<li>
+<p>Though figure captions traditionally appear underneath figures, this applies to formatted documents, where figures can be viewed as the pictures or diagrams they are intended to be. In Markdown, the code representing a figure usually won&rsquo;t have any meaning on its own, at a glance.</p>
+</li>
+<li>
+<p>We need a consistent rule. We can&rsquo;t permit captions to appear <em>either</em> above <em>or</em> below, without creating ambiguity or additional complexity.</p>
+</li>
+</ul>
+<p>This only applies to the <code>.md</code> file itself. The HTML document can be styled so that captions appear anywhere you wish.</p>
+</div>
+<h2 id="2-tables"><span class="la-label">2. </span>Tables</h2>
+<p>When captioning a table, the HTML structure will use the <code>&lt;table&gt;</code> and <code>&lt;caption&gt;</code> elements. (The default styling may show the caption protruding outside the physical table boundary, but it&rsquo;s still logically part of the table.)</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.captions&#39;</span><span class="p">,</span> <span class="s1">&#39;tables&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    table  { border: 1px solid red; }</span>
+<span class="s1">    td, th { border: 1px solid blue; }</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>A table for your
+consideration.
+{-caption}
+
+Heading A | Heading B
+--------- | ---------
+One       | Two
+Three     | Four
+</code></pre></div>
+</div>
+<div class="markdown-demo-output"><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">table</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">caption</span><span class="p">&gt;</span>A table for your
+consideration.<span class="p">&lt;/</span><span class="nt">caption</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">thead</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">th</span><span class="p">&gt;</span>Heading A<span class="p">&lt;/</span><span class="nt">th</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">th</span><span class="p">&gt;</span>Heading B<span class="p">&lt;/</span><span class="nt">th</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">thead</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">tbody</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span>One<span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span>Two<span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span>Three<span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span>Four<span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">tr</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">tbody</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">table</span><span class="p">&gt;</span>
+</code></pre></div>
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KdGFibGUgIHsgYm9yZGVyOiAxcHggc29saWQgcmVkOyB9CnRkLCB0aCB7IGJvcmRlcjogMXB4IHNvbGlkIGJsdWU7IH0KPC9zdHlsZT48L2hlYWQ+Cjxib2R5Pgo8dGFibGU+PGNhcHRpb24+QSB0YWJsZSBmb3IgeW91cgpjb25zaWRlcmF0aW9uLjwvY2FwdGlvbj4KCjx0aGVhZD48dHI+PHRoPkhlYWRpbmcgQTwvdGg+Cjx0aD5IZWFkaW5nIEI8L3RoPgo8L3RyPjwvdGhlYWQ+PHRib2R5Pjx0cj48dGQ+T25lPC90ZD4KPHRkPlR3bzwvdGQ+CjwvdHI+PHRyPjx0ZD5UaHJlZTwvdGQ+Cjx0ZD5Gb3VyPC90ZD4KPC90cj48L3Rib2R5PjwvdGFibGU+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<h2 id="complex"><span class="la-label">3. </span>Complex Captions</h2>
+<p>If a caption requires more than one paragraph and/or other block elements, then:</p>
+<ol>
+<li>You can represent it using the Markdown &ldquo;block quote&rdquo; syntax (prefixing lines with <code>&gt;</code>), <em>but also</em></li>
+<li>You will need to use <a href="../attr_prefix/"><code>la.attr_prefix</code></a> in order to attach the <code>-caption</code> directive <em>above</em> the block quote. (You can do this regardless, even in simpler cases, if you wish.)</li>
+</ol>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.captions&#39;</span><span class="p">,</span> <span class="s1">&#39;la.attr_prefix&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;figure { border: 1px solid gray; &#39;</span>
+       <span class="s1">&#39;         padding: 1em; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>{-caption}
+<span class="k">&gt; </span><span class="ge">A diagram for your</span>
+<span class="k">&gt; </span><span class="ge">consideration.</span>
+<span class="k">&gt;</span>
+<span class="ge">&gt; It requires some complex explanation:</span>
+<span class="k">&gt;</span>
+<span class="ge">&gt; * First, here&#39;s a list item.</span>
+<span class="k">&gt; </span><span class="ge">* Second, there&#39;s another.</span>
+
+![<span class="nt">Important diagram</span>](<span class="na">diagram1.png</span>)
+</code></pre></div>
+</div>
+<div class="markdown-demo-output" style="height: 30em"><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">figure</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">figcaption</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>A diagram for your
+consideration.<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>It requires some complex explanation:<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">ul</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">li</span><span class="p">&gt;</span>First, here&#39;s a list item.<span class="p">&lt;/</span><span class="nt">li</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">li</span><span class="p">&gt;</span>Second, there&#39;s another.<span class="p">&lt;/</span><span class="nt">li</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">ul</span><span class="p">&gt;&lt;/</span><span class="nt">figcaption</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">img</span> <span class="na">alt</span><span class="o">=</span><span class="s">&quot;Important diagram&quot;</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;data:image/png;base64,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&quot;</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">figure</span><span class="p">&gt;</span>
+</code></pre></div>
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4KZmlndXJlIHsgYm9yZGVyOiAxcHggc29saWQgZ3JheTsgICAgICAgICAgcGFkZGluZzogMWVtOyB9Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPGZpZ3VyZT48ZmlnY2FwdGlvbj48cD5BIGRpYWdyYW0gZm9yIHlvdXIKY29uc2lkZXJhdGlvbi48L3A+CjxwPkl0IHJlcXVpcmVzIHNvbWUgY29tcGxleCBleHBsYW5hdGlvbjo8L3A+Cjx1bD48bGk+Rmlyc3QsIGhlcmUncyBhIGxpc3QgaXRlbS48L2xpPgo8bGk+U2Vjb25kLCB0aGVyZSdzIGFub3RoZXIuPC9saT4KPC91bD48L2ZpZ2NhcHRpb24+PGltZyBhbHQ9IkltcG9ydGFudCBkaWFncmFtIiBzcmM9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBTE1BQUFDT0NBWUFBQUI2OERtQUFBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQUxiMGxFUVZSNG5PM2RlWFNVMVIzRzhXOG1JUnRySWgxQURjV2QyZ1F4SUI2UUpZUXFpNElpVmVrUnRGQVVLbFpFZXJTbHA3RmFqRzJxaUlxN0VGQVVjRU1XazZCQklkUlFZc01taU1wU0VRZ0VTRWdDQ0V5U21mNXhDVW1ZVEFqaG5ibHY3dncrNTh3QlpvYVpoK0hKbmZlOTd6dDNRQWdoaEJCQ0NGR2ZFTjBCaEpkbXdIRGRJWnFBVlVCaHpTdnFLblB2MEpDUXFTRU9oeFRkaDBxMzIrM3hlRzcyMDhPM0Jrcjg5TmdtR1FRc3IzbEZXQjEzdXJEUzR4azhlc0RBd0VScVluWVY3aU5uNDNxL1AwOVcxbHNNSE5qWDc4L1QxSlNXSHFGTm00UTZiNnVyekFDOE5mVUp2d1ZxeXQ3N0lqc2daUmJuenFFN2dCQldrVElMWTBpWmhUR2t6TUlZVW1aaERDbXpNSWFVV1JoRHlpeU1JV1VXeHBBeUMyTkltWVV4cE16Q0dGSm1ZUXlmWjgySjRKT2JtOCtubjY2dTg3YlFVQWR0MjhiU3A4OTF4TWRmRmVCa0RXUDdrZm56ZFYrUk5HazhiMythb1R0SzBGaXdZQWxQUERHRC9mc1BBRkJaV2NtdVhYdEpTWmxPUXNKQXhvMTdESS9Ib3ptbE45dVB6RE1YdmNlcWplczRmUFFJbzI4YW9qdU8wWHIxNmthdlh0M1lzR0VMMzMyM2t3a1RSdEcxNjlXbmIwOUwrek1KQ1FPWk5Xc2hRNGIwNS9iYkIybE02ODNXSS9PaDBoSXkxK1lTMjZvVm0zWnNJLy83cmJvak5kVEh3Q1BBeGJxRFdDazJ0ZzJEQnljQmtKT1RwemRNSFd4ZDVubWZaZEwzbWtSK04rUldBTkl6bDJwTzFHQTlnV2VCSDRFMXdFU2duZFpFRnFuYXZJaU9qdFNjeEp1dHk1eWV1WlF4ZzRjeVp2QlFBTjdOWHM3SmNwZm1WQTNpUHZWckNIQTk4RHl3RDFnTFRBS2NtbktkbCtMaUVyS3lWdUZ3T0d5M2lRRTIzbWJPLzM0clB4YnU1N2JlU1VTR2gzUDlMK0padTNVekg2OWV4VjNKTitxT2R6WTE5NDVDZ05CVHYrOEdKQUxUZ1R3Z0hWZ0FsQVUwWFFPOSt1bzgycmQzNG5hN0tTZ29KRE56SlowN1g4YWNPYy9RdlhzWDNmRzgySFprVHM5Y3ltOEdEQ1F5UEJ6ZzlPZzhPM09KemxnTjVmWnhmU2hxQUhFQVBZQlhnRVBBWXVCT0lEb2c2YzZSdytHZ2VmTm9McjIwSTd0MjdTVTNOeCtYcTF4M0xDKzJISmxQbHJ1WXYySTVXV2t2bnI1dTVJQ2JtUHpTZExMejg5aDlvSkE0cC9aTjBPSWF2NC9nM0l2b3FQSHJzRk9YbzBEYStVZXp4cG16R1FEVHA3L0psQ25UMkxwMU93c1d6TlNVckc2MkhKa1gvenVIRHJGdHVhNXo5UXZadW5rTGh2ZnBqOXZ0WnU3eVpSclRuZmFuR3BmSnFKRzE2bktvZ1k5Uk5ienRBMUpSMjljdldCdlRXZzgvUEphb3FFZ1dMbHpHRHovczBSMm5GbHVPekxNemxsQjhwSXlrU2VOclhWOVFkQkNBT1puTCtNdW9zWVNFYUYxMDZmVjZia3NEMnZxNHJSejF1aDlEVGVITkJWWlF2WjNkMnFxQS91QndPT2pRd2NuT25UK3lZOGN1T25XeXoreWo3Y3E4OTlCQlZtN0laOUcwZnhFVkVlRjErNmhwZjJWSHdSNXlOcTJuM3pXSkdoSTJ5Sm1IeHlwclhKK04ydkZiRERTSnFabWFxbllHQVp6T0N6U25xYzEyWlo2YnRZeEJQWG95K1BwZWRkNSs3NkJiU0oyWHp1eU1KWFl1YzFWNUsxQTdmYm1vQW44RWxPb0taWVhubnB2RmlSTW5pWSsveW5ibmFOaXV6SE95bHZMc0E1TjkzajUyeURDZWZtY09INnhhd2N4Smo5SXkycFlUQUM3Z0cxU0I1d043OWNacG1Lb1RqYjc5ZGdkUVBUVUhVRkpTeHJwMW0xbTlPbyt1WGEvbS9mZGYxcjJaNThVMlpmN3N2MnQ1UFAwMXR1M1p6VC9mbmN1K29rUGNQN1QyeXE1WmVXdjR4enR6YUJZV3hrOG5UdEQzb2ZzWTNxYy9LZmVPMHhQYXQwSEFidDBoR212a3lHRmUxem1kRnpCNjlIQm16RWdoTVRGZVE2cXpzMDJadTF4MkJhbjNUVHo5NTQ3TzlsNzM2WHI1bGZ4dHpQMjFybk8yaWZWN3RrWm9ra1d1T3RHb3FiSk5tZHZGeE5JdXB2NWl0bys5Z1BheDl0cnBFUFpoeTNsbUlScER5aXlNSVdVV3hwQXlDMk5JbVlVeHBNekNHRkptWVF3cHN6Q0dsRmtZUThvc2pDRmxGc2FRTWd0alNKbUZNYVRNd2hpMk9RVlUxSmFUczViU1VsdXVEYVBWOGVNbmZkN21zOHczUHpiSjEwSW1RYTJncUFnQzhJNldtdnFTdjUvQ09IVjlpS3NIOEdDZ2cvaEpCS3A0eC8zdzJQZjQ0VEg5NlNsZ0F0QVJ0Y3lCYUdMQ2daMm9OZDZDMlNXb0graUhkUWNSNTJjajhCTXdWSGNRamQ0RHRxRit1RVVUOWdacThSVTNNRVZ6RmgxNm9mN3R0K2dPSXM3ZkJOU1NXRldGbmszd2pGQU8xTks1SzNRSEVkYm9qaXB5MWFVY3Racjl6M1NHQ3BBeHFGV1ZFblFIRWRZSXAzcGtycnE0Z0YxQVo0MjUvSzBGYWlVbG1lTXp6R1pxbDdscWhDNERralhtOHFkcHdHRjhyMFlxbXFnM1VLUHhtWVd1UkwwTlQvVDlWNXVrT05SYzhpTzZnd2pyMWR3SjlIVjVnZXJ2SG1ucUZnTGJVUWVOaEdHdW8vNGllMUFqOUNlb2JjMm1yQ2RxMWlhWTU5V05Gb2txYTMxbExnZE9BSGRyeW1nRm1Zb0xFbHZ3UFNKN1VLUHlKZHJTV2VPM3lGUmNVSGdUNzUxQU4rckxjUVpyekdXVmFOUTN3cjZzTzRqd3Y5OVR2Uk5ZanRyYjM0UTVPMHAvUjMzRmhQYnZsQlArMTRQcTBmZ3RvRDFxQ3VzbzhKakdYRmE0R1BYREdZem5uZ1NsQ05SM1Y5OXd4dlVwd0JIZ29vQW5zczU4ekhtSEVlY2hFblhPOHp1Nmd6VEFWTHgvNktxbTRtNE5mQnhoUjdlaE5rSDY2UTVTanpEZ0pPb2sreFRVRGw4STZ0M21jNDI1aEExbEFGOWozdy81L3BMYTA0bjdVRE1YRlVBWGpibUVEVjJPT21oaTEvTTA3a2FkUzFKeld0RU5ITVI3UDBBSTBvQmk3SG11Y3hwcU02T3VJNWR1NEFPZ2s2NXd3bjVhQW51QTEzUUhxVU0ycXJTK0RzZTdVTzhzVFgyYVVWaW82dTI4aCs0Z1p5amk3T2VXbEFLOWRRVVU5aE1DckFTK3dqN0xsem1wdjhndTFLRnNrejg1SXhvcEhqWFMzYXM3eUNrRHFYOUV6a2NWWG9nNnZRVHNCOXJvRGdJOFN0MDdmeFhBWXRTY3N4QSt4YUNtdmFickRnSzhpL2Y1Mkc3VXAyUHNzaWtrYkc0ODZtMWM5L25CMjZoZDRrck1XUTlRQklnRGRiaFk1eWMzSXFnZWxTdFFoN1BsSTFHaVVhcE81UG0xcHVkUHBQcVQ1SWRRaTlvSTBXaHpVVk5melRVODl4aFVtYjhIZnE3aCtZVmgyZ0Vsd0pNYW5uc0c4QVgybUZXeHRib1dHemRCRE5EYTRzY2NCL3dSdFFKU2djV1BYWjg3Z1VXb0hWRXJuVVNkZVNkczdobk92azVHVUY4Y2pyRDh4cis4OW1UWGMzZlAyNFdkTGkxL0tPM0ZacnB6MkZIRzI3TllzL3lUVUxlclFuY1VTeGxiNW9pb0tNOFZYYTdWSGNPVzJyUTE4OGkzSEQwU3hwQXlDMk5JbVlVeHBNekNHRkptWVF3cHN6Q0dsRmtZUThvc2pDRmxGc2FRTWd0alNKbUZNYVRNd2hoU1ptRU1ZOCthczVPREJYc29PWGlBOE1nb1lwenRhQlVUcXp1U2thVE1mbEx1Y3BFeGJ4YVo4OUlwZDdsd1hoVEhzU09sSE5pN204aW9hQko2OXFIckRmMUlIakdTa0JCVFAvQVRXRkptUHpoV1ZrYnFoTkVVL0xDVFB6dzlnMnY3SnA4dTdQR2pSMWc2NTNVV3pueVczTXdsSkEyL2c5QlErVyt3Z3J5S2Z2RDhvdy95M1laOFV1Y3Y1c3BydXRXNkxhcEZTKzU4Y0FvL25TcTFzSTZVMldJYmMzUElYNWxOOTZRYnZZcGMwNUJSWTltNTVXdENqUDFNY2VCSm1TMldzK1FqQUJMN0pkZDdQK2ZGSFhueTdROERFU2xveU5TY3hiWi92UjZBQ3krNVRIT1M0Q05sdGxqWjRXSUFvbHUyMHB3aytFaVpMUlllRVFsQVJiblZhN2FJczVFeVc2eGRuRm9PN3ZEQlFzMUpnbytVMldMWDlrNENZUHVtOWZYZXI2VG9JRnZ5Y2lrckxncEFxdUFnWmJiWWpTTkgwNkpWYTFZdlcwUzV5K1h6ZnVtcGovUFUrSHNJY2NoL2dWWGtsYlJZaTFhdGVTanRSWW9LOTVPZW1vTEg0L0c2ejlyUE1zbk5Xc3J3K3liU3NrMk1ocFJta25sbVAraVc5Q3VtdmpLWG1WTW44Nyt0VzBnZWNSZk9pK0lvTFM1aS9lb3YrUEtUeFF3Yk01NDdIcGlzTzZwUnBNeCtrdGh2QUs5ay80Y3ZNNWF3T1MrWE5WbkxhQllSUWR3VlY1SDJZUmFkT2wrdE82SnhwTXgrRkJFVlRmS0lrU1NQR0trN1NsQ1FiV1poRENtek1JYVVXUmhEeWl5TUlXVVd4cEF5QzJOSW1ZVXhwTXpDR0ZKbVlRd3BzekNHbEZrWVE4b3NqQ0ZsRnNhUU1ndGpTSm1GTVl3OW43bWl2SndEZTNmcmptRkx4NDhkMFIxQm5JTm5BSTljZkY4Y1lXSDVqWDk1N2NuVVZmdmlnQTY2UTlqY1VlQWIzU0dFRUVJSUlZUVFnZk4vcFdheFdld2JuRkFBQUFBQVNVVk9SSzVDWUlJPSI+PC9maWd1cmU+CjwvYm9keT4KPC9odG1sPgo8IS0tIEdlbmVyYXRlZCBieSBMYW1hcmtkb3duIDAuMTAgb24gMjAyNC0wMi0xNS4gLS0+"></iframe>
+</div>
+</div>
+<h2 id="4-options"><span class="la-label">4. </span>Options</h2>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>directives</code></td>
+<td>An object for retrieving directives from HTML tree elements. This should be an instance of <code>lamarkdown.lib.directives.Directives</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr><tr><td><code>progress</code></td>
+<td>An object accepting error, warning and progress messages. This should be an instance of <code>lamarkdown.lib.Progress</code>, and the extension will reuse Lamarkdown&rsquo;s &ldquo;current&rdquo; instance by default, if available.</td>
+</tr><tr><td><code>autowrap_listings</code></td>
+<td><code>False</code> by default. If <code>True</code>, wrap all code listings (<code>&lt;pre&gt;</code> elements containing a <code>&lt;code&gt;</code> element) in a <code>&lt;figure&gt;</code> element, even where no caption is provided. The theory is that listings are often less in need of a caption than ordinary figures or tables, but it may still be desirable to have them automatically numbered with the <a href="../labels/"><code>la.labels</code></a> extension (which would otherwise ignore them).</td>
+</tr><tr><td><code>autowrap_maths</code></td>
+<td><code>False</code> by default. If <code>True</code>, wrap all block-style MathML (<code>&lt;math&gt;</code>) elements in a <code>&lt;figure&gt;</code> element, even when no caption is provided. The same reasoning applies as for <code>autowrap_listings</code>.</td>
+</tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

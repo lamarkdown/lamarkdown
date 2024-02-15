@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="David J A Cooper">
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>la.sections - Lamarkdown</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link href="../../css/pygments.css" rel="stylesheet">
+        <link href="../../css/markdown_demo.css" rel="stylesheet"> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Lamarkdown</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../tour/" class="nav-link">Tour</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../core/" class="nav-link">Core Functionality</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Extensions <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../attr_prefix/" class="dropdown-item">la.attr_prefix</a>
+</li>
+                                    
+<li>
+    <a href="../captions/" class="dropdown-item">la.captions</a>
+</li>
+                                    
+<li>
+    <a href="../cite/" class="dropdown-item">la.cite</a>
+</li>
+                                    
+<li>
+    <a href="../eval/" class="dropdown-item">la.eval</a>
+</li>
+                                    
+<li>
+    <a href="../labels/" class="dropdown-item">la.labels</a>
+</li>
+                                    
+<li>
+    <a href="../latex/" class="dropdown-item">la.latex</a>
+</li>
+                                    
+<li>
+    <a href="../list_tables/" class="dropdown-item">la.list_tables</a>
+</li>
+                                    
+<li>
+    <a href="../markdown_demo/" class="dropdown-item">la.markdown_demo</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active">la.sections</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Build Modules <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../modules/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/code/" class="dropdown-item">m.code</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/doc/" class="dropdown-item">m.doc</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/page_numbers/" class="dropdown-item">m.page_numbers</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/plots/" class="dropdown-item">m.plots</a>
+</li>
+                                    
+<li>
+    <a href="../../modules/teaching/" class="dropdown-item">m.teaching</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../api/" class="nav-link">API</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../markdown_demo/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../../modules/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/lamarkdown/lamarkdown/blob/main/docs/extensions/sections.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#lasections" class="nav-link">la.sections</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#options" class="nav-link">Options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="lasections"><code>la.sections</code></h1>
+<p>This extension lets you break up a document into sections&mdash;formally, using HTML <code>&lt;section&gt;</code> elements&mdash;by writing <code>---</code>. For instance:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.sections&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;section { margin: 1em 0; padding: 0 1em; &#39;</span>
+       <span class="s1">&#39;          border: 1px solid blue; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Section A.
+
+---
+
+Section B.
+
+With some more text.
+
+---
+
+Section C.
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4Kc2VjdGlvbiB7IG1hcmdpbjogMWVtIDA7IHBhZGRpbmc6IDAgMWVtOyAgICAgICAgICAgYm9yZGVyOiAxcHggc29saWQgYmx1ZTsgfQo8L3N0eWxlPjwvaGVhZD4KPGJvZHk+CjxzZWN0aW9uPjxwPlNlY3Rpb24gQS48L3A+Cjwvc2VjdGlvbj48c2VjdGlvbj48cD5TZWN0aW9uIEIuPC9wPgo8cD5XaXRoIHNvbWUgbW9yZSB0ZXh0LjwvcD4KPC9zZWN0aW9uPjxzZWN0aW9uPjxwPlNlY3Rpb24gQy48L3A+Cjwvc2VjdGlvbj4KPC9ib2R5Pgo8L2h0bWw+CjwhLS0gR2VuZXJhdGVkIGJ5IExhbWFya2Rvd24gMC4xMCBvbiAyMDI0LTAyLTE1LiAtLT4="></iframe>
+</div>
+</div>
+<p>The key motivation is to support the <a href="https://revealjs.com/">RevealJS presentation framework</a> (and similar), which uses <code>&lt;section&gt;</code> elements to define slide show frames.</p>
+<p>Each <code>---</code> separator must be written on a separate line, surrounded by blank lines.</p>
+<p>You may attach attributes to sections by writing an attribute list on the line immediately below <code>---</code> (if the <code>attr_list</code> extension is loaded); e.g.:</p>
+<div class="markdown-demo">
+<div class="markdown-demo-input"><div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">lamarkdown</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="n">la</span><span class="p">(</span><span class="s1">&#39;la.sections&#39;</span><span class="p">,</span> <span class="s1">&#39;attr_list&#39;</span><span class="p">,</span> <span class="s1">&#39;la.attr_prefix&#39;</span><span class="p">)</span>
+<span class="n">la</span><span class="o">.</span><span class="n">css</span><span class="p">(</span><span class="s1">&#39;section { margin: 1em 0; padding: 0 1em; }&#39;</span>
+       <span class="s1">&#39;.red   { background: #ffc0c0; }&#39;</span>
+       <span class="s1">&#39;.green { background: #c0ffc0; }&#39;</span>
+       <span class="s1">&#39;.blue  { background: #c0c0ff; }&#39;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>---
+{.red}
+
+Section A.
+
+---
+{.green}
+
+Section B.
+
+With some more text.
+
+---
+{.blue}
+
+Section C.
+</code></pre></div>
+</div>
+<div class="markdown-demo-output">
+<iframe src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04IiAvPgo8dGl0bGU+ZXhhbXBsZTwvdGl0bGU+CjxzdHlsZT4Kc2VjdGlvbiB7IG1hcmdpbjogMWVtIDA7IHBhZGRpbmc6IDAgMWVtOyB9LnJlZCAgIHsgYmFja2dyb3VuZDogI2ZmYzBjMDsgfS5ncmVlbiB7IGJhY2tncm91bmQ6ICNjMGZmYzA7IH0uYmx1ZSAgeyBiYWNrZ3JvdW5kOiAjYzBjMGZmOyB9Cjwvc3R5bGU+PC9oZWFkPgo8Ym9keT4KPHNlY3Rpb24gY2xhc3M9InJlZCI+PHA+U2VjdGlvbiBBLjwvcD4KPC9zZWN0aW9uPjxzZWN0aW9uIGNsYXNzPSJncmVlbiI+PHA+U2VjdGlvbiBCLjwvcD4KPHA+V2l0aCBzb21lIG1vcmUgdGV4dC48L3A+Cjwvc2VjdGlvbj48c2VjdGlvbiBjbGFzcz0iYmx1ZSI+PHA+U2VjdGlvbiBDLjwvcD4KPC9zZWN0aW9uPgo8L2JvZHk+CjwvaHRtbD4KPCEtLSBHZW5lcmF0ZWQgYnkgTGFtYXJrZG93biAwLjEwIG9uIDIwMjQtMDItMTUuIC0tPg=="></iframe>
+</div>
+</div>
+<p>For this purpose, a separator is permitted to appear at the very top of the file. This <em>does not</em> create a blank section before all others, but just provides a syntactic feature to let attributes be assigned to the first section.</p>
+<div class="admonition note">
+<p class="admonition-title">Design Notes</p>
+<p>RevealJS already provides its own <a href="https://revealjs.com/markdown/">Markdown plugin</a>, but this is a dynamic, JavaScript-based approach that must parse and convert the Markdown each time the document is loaded. Using Lamarkdown, we can achieve the same thing statically (except for the core RevealJS logic), without the load-time performance and memory overhead, and with access to the full range of Python-Markdown extensions.</p>
+<p>The separator <code>---</code> is chosen because various Markdown presentation tools already use it: <a href="https://revealjs.com/markdown/">RevealJS&rsquo;s Markdown plugin</a>, <a href="https://marp.app/">Marp/Marpit</a>, <a href="https://remarkjs.com">Remark</a>, <a href="https://commerce.nearform.com/open-source/spectacle/docs/md-slide-layouts/">Spectacle</a>, and possibly others.</p>
+<p>In conventional Markdown, <code>---</code> has other uses, depending on where it appears:</p>
+<ul>
+<li>
+<p>If immediately below a line of text, it converts that text into an <code>&lt;h1&gt;</code> heading. This extension does not interfere with this.</p>
+</li>
+<li>
+<p>Otherwise, <code>---</code> normally represents the <code>&lt;hr&gt;</code> (horizontal rule) element, and this extension <em>does</em> override this behaviour. However:</p>
+<ul>
+<li>You can still produce an <code>&lt;hr&gt;</code> by writing <code>----</code> (or more <code>-</code> characters); and</li>
+<li>You may specify an alternate section separator as a configuration option.</li>
+</ul>
+</li>
+</ul>
+</div>
+<h2 id="options">Options</h2>
+<table><caption></caption>
+<thead><tr><th>Option</th>
+<th>Description</th>
+</tr></thead><tbody><tr><td><code>separator</code></td>
+<td>Sections will be divided by this string (when it appears as its own top-level block). By default, this is <code>---</code>.</td>
+</tr></tbody></table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
