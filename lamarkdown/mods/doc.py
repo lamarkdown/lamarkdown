@@ -2,9 +2,8 @@
 
 import lamarkdown as la
 import pymdownx  # noqa: F401
-
+from lxml.etree import Element
 import copy
-from lxml.etree import Element, SubElement
 
 
 def apply(heading_numbers = True):
@@ -43,6 +42,7 @@ def apply(heading_numbers = True):
     la('la.labels',
         labels = la.extendable({
             'ol':       '1.,(a),(I)',
+            'ul':       '◼ ,▸ ,*',
             'figure':   '"Figure "h1.1. ',
             'table':    '"Table "h1.1. ',
             'listing':  '"Listing "h1.1. ',
@@ -87,9 +87,7 @@ def apply(heading_numbers = True):
         'la-figure-label-color':       '#c04000',
 
         'la-bullet1-color': '#0080ff',
-        'la-bullet1-shape': r'"\25A0"',
         'la-bullet2-color': '#80c0ff',
-        'la-bullet2-shape': r'"\25B8"',
         'la-number-color': '#ff6000',
 
         'la-box-corner-radius': '5px',
@@ -173,17 +171,17 @@ def apply(heading_numbers = True):
     )
 
     la.css_rule(
-        '.admonition',
+        ['details', '.admonition'],
         '''
         border-radius: var(--la-box-corner-radius);
         border: 1px solid var(--la-admonition-border-color);
         padding: 0 1em;
-        margin: 1ex 0;
+        margin: 0.5em 0;
         '''
     )
 
     la.css_rule(
-        '.admonition-title',
+        ['summary', '.admonition-title'],
         '''
         font-weight: bold;
         font-family: var(--la-main-font);
@@ -191,7 +189,7 @@ def apply(heading_numbers = True):
     )
 
     la.css_rule(
-        '.admonition.note',
+        '.note',
         '''
         border: 1px solid var(--la-note-border-color);
         background: var(--la-note-background);
@@ -199,28 +197,45 @@ def apply(heading_numbers = True):
     )
 
     la.css_rule(
-        '.admonition.warning',
+        '.warning',
         '''
         border: 1px solid var(--la-warning-border-color);
         background: var(--la-warning-background);
         '''
     )
 
+
+    la.css_rule(
+        ['ul', 'ol'],
+        '''
+        width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
+        ''')
+
     la.css(
         r'''
-        ul > li::marker {
+        ul > li {
+            position: relative;
+            margin-left: 2em;
+        }
+
+        ul > li::before {
+            position: absolute;
+            right: 100%;
+            padding-right: 0.5em;
             color: var(--la-bullet1-color);
-            content: var(--la-bullet1-shape) '\00A0';
         }
         ''',
-        if_selectors = 'ul'
+        if_selectors = ['ul']
     )
 
     la.css(
         r'''
-        ul ul > li::marker {
+        ul ul > li::before {
             color: var(--la-bullet2-color);
-            content: var(--la-bullet2-shape) '\00A0';
         }
         ''',
         if_selectors = 'ul ul'
@@ -228,14 +243,6 @@ def apply(heading_numbers = True):
 
     la.css(
         r'''
-        ol {
-            width: 100%;
-            padding-left: 0;
-            padding-right: 0;
-            margin-left: 0;
-            margin-right: 0;
-        }
-
         ol > li {
             display: table;
             margin-left: 0;
@@ -253,15 +260,24 @@ def apply(heading_numbers = True):
             font-weight: bold;
         }
 
-        ol > li > p:first-child {
-            /* It seems that, without 'display: table', the <p> child elements of adjacent <li>
-               elements will share their vertical margins, whereas 'display: table' causes those
-               margins to exist separately. Thus, we want to set the bottom margin to zero to avoid
-               too much vertical space. */
+        /* Without 'display: table', the block (e.g., <p>) child elements of adjacent <li>
+           elements will have their vertical margins collapsed together (which is visually
+           appropriate), whereas 'display: table' causing such margins to concatenate, yielding
+           unexpected amounts of vertical space.
+
+           Thus, we have to do some explicit margin tinkering to avoid doubling-up on vertical
+           margins. */
+
+        ol > li:first-child > :first-child {
+            /* No space before the first item in the first list item. Subsequent items retain any
+               top-margin, which will represent the total internal space between list items. */
             margin-top: 0;
         }
 
-        ol > li > :last-child {
+        ol > li > :last-child,
+        ol > li > :last-child > :last-child,
+        ol > li > :last-child > :last-child > :last-child {
+            /* No space after last item (or its last child/grandchild) in any of the list items. */
             margin-bottom: 0;
         }
         ''',
@@ -283,19 +299,6 @@ def apply(heading_numbers = True):
         }
         ''',
         if_selectors = 'ol:not(.la-labelled)'
-    )
-
-    la.css(
-        r'''
-        li {
-            margin: 0.5em 0 0.5em 0;
-            padding-left: 0.5em;
-            padding-top: 0em;
-            width: calc(100% - 1ex);
-            margin-left: -1ex;
-        }
-        ''',
-        if_selectors = ['ul', 'ol']
     )
 
     la.css(
@@ -440,6 +443,5 @@ def apply(heading_numbers = True):
             inline_toc.attrib['id'] = 'la-toc-inline'
             sidebar_toc.attrib['id'] = 'la-toc-sidebar'
             root.insert(0, sidebar_toc)
-
 
     la.with_tree(create_structure)

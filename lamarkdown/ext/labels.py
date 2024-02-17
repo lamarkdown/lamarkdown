@@ -337,12 +337,13 @@ class FigureLabelProcessor(LabelProcessor):
 
         template: str | LabelTemplate | None = template1 or template2
 
-        labeller = control.find(element_type)
-        if self._first_child or labeller is None:
-            if template is None and labeller is not None:
+        maybe_labeller = control.find(element_type)
+        labeller: Labeller
+        if self._first_child or maybe_labeller is None:
+            if template is None and maybe_labeller is not None:
                 # There's an existing labeller, but it's for an outer level. Maybe it has an inner
                 # specification...
-                template = labeller.template.inner_template
+                template = maybe_labeller.template.inner_template
 
             if template is None and self._level == 0:
                 template = control.get_default_template(element_type)
@@ -355,7 +356,11 @@ class FigureLabelProcessor(LabelProcessor):
             labeller = control.new_labeller(element_type, element_type, template)
 
         elif template is not None:
-            labeller = control.replace_labeller(labeller, element_type, element_type, template)
+            labeller = control.replace_labeller(maybe_labeller,
+                                                element_type, element_type, template)
+
+        else:
+            labeller = maybe_labeller
 
         control.render(labeller, None, fig_caption)
         control.resolve_refs(element)

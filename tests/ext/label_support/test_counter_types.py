@@ -291,8 +291,8 @@ class CounterTypesTestCase(unittest.TestCase):
             class MainCounter(CounterType):
                 def __init__(self):
                     super().__init__('main_mock_css_id',
-                                    range = (range_min, range_max),
-                                    fallback = FallbackCounter())
+                                     range = (range_min, range_max),
+                                     fallback = FallbackCounter())
 
                 def format_impl(self, count: int) -> str:
                     return None if count == 2 else f'main{count}'

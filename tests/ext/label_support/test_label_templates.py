@@ -10,61 +10,65 @@ class LabelTemplatesTestCase(unittest.TestCase):
     def test_parse(self):
         parser = LabelTemplateParser()
 
-        def template(pre, sep, suf, ctype, ptype, inner):
-            return LabelTemplate(prefix = pre, separator = sep, suffix = suf,
-                                 counter_type = ctype, parent_type = ptype, inner_template = inner)
+        def template(pre, sep, suf, ct, ptype, inner):
+            return LabelTemplate(prefix = pre,
+                                 separator = sep,
+                                 suffix = suf,
+                                 counter_type = get_counter_type(ct) if ct else None,
+                                 parent_type = ptype,
+                                 inner_template = inner)
 
         for (template_str, expected_template) in [
             # Basic templates
-            ('(',       template('(',   '',  '',  None,                  None, None)),
-            ('(a',      template('(',   '',  '',  get_counter_type('a'), None, None)),
-            ('a)',      template('',    '',  ')', get_counter_type('a'), None, None)),
-            ('(a)',     template('(',   '',  ')', get_counter_type('a'), None, None)),
+            ('(',       template('(',   '',  '',  None, None, None)),
+            ('(a',      template('(',   '',  '',  'a',  None, None)),
+            ('a)',      template('',    '',  ')', 'a',  None, None)),
+            ('(a)',     template('(',   '',  ')', 'a',  None, None)),
 
             # Parent counter specification
-            ('(X.a)',   template('(',   '.', ')', get_counter_type('a'), '',   None)),
-            ('X.a',     template('',    '.', '',  get_counter_type('a'), '',   None)),
-            ('(H.a)',   template('(',   '.', ')', get_counter_type('a'), 'h',  None)),
-            ('(H3.a)',  template('(',   '.', ')', get_counter_type('a'), 'h3', None)),
-            ('(L.a)',   template('(',   '.', ')', get_counter_type('a'), 'ol', None)),
+            ('(X.a)',   template('(',   '.', ')', 'a', '',   None)),
+            ('X.a',     template('',    '.', '',  'a', '',   None)),
+            ('(H.a)',   template('(',   '.', ')', 'a', 'h',  None)),
+            ('(H3.a)',  template('(',   '.', ')', 'a', 'h3', None)),
+            ('(L.a)',   template('(',   '.', ')', 'a', 'ol', None)),
 
             # Multicharacter counter names and handling of internal '-'
-            ('octal',      template('',  '',  '',   get_counter_type('octal'), None, None)),
-            ('(octal)',    template('(', '',  ')',  get_counter_type('octal'), None, None)),
-            ('X-octal',    template('',  '-', '',   get_counter_type('octal'), '',   None)),
-            ('(X-octal)',  template('(', '-', ')',  get_counter_type('octal'), '',   None)),
+            ('octal',      template('',  '',  '',   'octal', None, None)),
+            ('(octal)',    template('(', '',  ')',  'octal', None, None)),
+            ('X-octal',    template('',  '-', '',   'octal', '',   None)),
+            ('(X-octal)',  template('(', '-', ')',  'octal', '',   None)),
 
             # Counter names that happen to start with a valid parent specifier
-            ('hebrew',     template('', '', '',    get_counter_type('hebrew'), None, None)),
-            ('-H-hebrew-', template('-', '-', '-', get_counter_type('hebrew'), 'h', None)),
-            ('lao',        template('', '', '',    get_counter_type('lao'),    None, None)),
-            ('-L-lao-',    template('-', '-', '-', get_counter_type('lao'),    'ol', None)),
+            ('hebrew',     template('', '', '',    'hebrew', None, None)),
+            ('-H-hebrew-', template('-', '-', '-', 'hebrew', 'h',  None)),
+            ('lao',        template('', '', '',    'lao',    None, None)),
+            ('-L-lao-',    template('-', '-', '-', 'lao',    'ol', None)),
 
             # Handling of internal '-' (part of the counter-name)
-            ('lower-alpha',     template('', '', '', get_counter_type('lower-alpha'), None, None)),
-            ('-X-lower-alpha-', template('-','-','-', get_counter_type('lower-alpha'), '', None)),
+            ('lower-alpha',     template('',  '',  '',  'lower-alpha', None, None)),
+            ('-X-lower-alpha-', template('-', '-', '-', 'lower-alpha', '',   None)),
 
             # Quoted literals
-            ('"(a)"',         template('(a)',       '', '',    None,                  None, None)),
-            ("'(a)'",         template('(a)',       '', '',    None,                  None, None)),
-            ('"(a,""b,""c)"', template('(a,"b,"c)', '', '',    None,                  None, None)),
-            ("'(d,''e,''f)'", template("(d,'e,'f)", '', '',    None,                  None, None)),
+            ('"(a)"',         template('(a)',       '', '',    None, None, None)),
+            ("'(a)'",         template('(a)',       '', '',    None, None, None)),
+            ('"(a,""b,""c)"', template('(a,"b,"c)', '', '',    None, None, None)),
+            ("'(d,''e,''f)'", template("(d,'e,'f)", '', '',    None, None, None)),
 
-            ('a"a"',          template('',       '',    'a',   get_counter_type('a'), None, None)),
-            ('a."a".',        template('',       '',    '.a.', get_counter_type('a'), None, None)),
-            ('X"a"a',         template('',       'a',   '',    get_counter_type('a'), '',   None)),
-            ('X."a".a',       template('',       '.a.', '',    get_counter_type('a'), '',   None)),
+            ('a"a"',          template('',       '',    'a',   'a',  None, None)),
+            ('a."a".',        template('',       '',    '.a.', 'a',  None, None)),
+            ('X"a"a',         template('',       'a',   '',    'a',  '',   None)),
+            ('X."a".a',       template('',       '.a.', '',    'a',  '',   None)),
 
             # Inner templates
             ('(a),[1]',
-                template('(', '', ')',  get_counter_type('a'), None,
-                         template('[', '', ']', get_counter_type('1'), None,
+                template('(', '', ')', 'a', None,
+                         template('[', '', ']', '1', None,
                                   None))),
 
             ('(H.a),[L:1],{X;i}',
-                template('(', '.', ')',  get_counter_type('a'), 'h',
-                         template('[', ':', ']', get_counter_type('1'), 'ol',
-                                  template('{', ';', '}', get_counter_type('i'), '',
+                template('(', '.', ')', 'a', 'h',
+                         template('[', ':', ']', '1', 'ol',
+                                  template('{', ';', '}', 'i', '',
                                            None)))),
         ]:
             assert_that(parser.parse(template_str),

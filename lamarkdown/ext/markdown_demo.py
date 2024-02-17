@@ -27,7 +27,6 @@ import pygments
 import pygments.lexers
 import pygments.formatters
 
-import atexit
 import base64
 import os
 import os.path
@@ -53,15 +52,13 @@ HTML_NEWLINE_TAG_REGEX = re.compile(
     fr'<\s*(?P<end>/)?(?P<tag>{"|".join(HTML_NEWLINE_TAGS.union(HTML_SEMI_NEWLINE_TAGS))})>')
 HTML_BLANK_LINES_REGEX = re.compile(r'(\s*\n){2,}')
 
+
 def extra_files(file_list):
     if not (isinstance(file_list, list) or isinstance(file_list, tuple)):
         raise ValueError
 
-    for file_name, description, language, visible in file_list:
-        if any(not isinstance(v, str) for v in [file_name, description, language, visible]):
-            raise ValueError
-
-    return file_list
+    return [(str(filename), str(description), str(language), bool(visible))
+            for filename, description, language, visible in file_list]
 
 
 def pretty_print_html(html: str) -> str:
@@ -127,14 +124,14 @@ class MarkdownDemoBlock(Block):
 
             all_file_content = zip(files, SEPARATOR_REGEX.split(text))
             for (filename, descrip, lang, visible), content in all_file_content:
-                content = LITERAL_SEPARATOR_REGEX.sub(SEPARATOR, content)
+                content = LITERAL_SEPARATOR_REGEX.sub(SEPARATOR, content).strip()
 
                 if visible:
                     if self.options['file_labels']:
                         header = ElementTree.SubElement(input_col, 'p')
                         header.text = descrip
 
-                    if content.strip() != '':
+                    if content != '':
                         placeholder_text = self.md.htmlStash.store(pygments.highlight(
                             content,
                             pygments.lexers.get_lexer_by_name(lang),
@@ -190,8 +187,8 @@ class MarkdownDemoBlock(Block):
                     if body := lxml.html.fromstring(output_html).find('.//body'):
                         output_html = pretty_print_html(
                             ''.join(lxml.html.tostring(element,
-                                                    encoding = 'unicode',
-                                                    pretty_print = True)
+                                                       encoding = 'unicode',
+                                                       pretty_print = True)
                                     for element in body))
 
                     placeholder_text = self.md.htmlStash.store(pygments.highlight(
