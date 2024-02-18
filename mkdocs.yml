@@ -48,5 +48,5 @@ extra_css:
     - css/pygments.css
     - css/markdown_demo.css
 
-remote_branch: main
+remote_branch: main-docs
 remote_name: docs  # -> git@github.com:lamarkdown/lamarkdown.github.io.git
