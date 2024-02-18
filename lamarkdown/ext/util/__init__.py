@@ -3,22 +3,19 @@ import markdown.extensions.attr_list
 import re
 from xml.etree import ElementTree
 
-# ATTR = r'''
-#     \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
-#     (?P<attr>
-#         [^\}\n ][^\}\n]*    # No '}' or newlines, and at least one non-space char.
-#     )?
-#     [ ]*\}                  # Ends with '}' (with optional spaces)
-# '''
-
 ATTR = r'''
     \{\:?[ ]*               # Starts with '{' or '{:' (with optional spaces)
     (?P<attr>
         (?![\s\}])          # First character must not be a space or closing brace
         (
-            \\[{}\\]        # Consists of {, } and \ escapes, and
+            # Permits double/single quoted strings, with conventional quoting rules,
+            # and then any unquoted, non-brace, non-newline characters.
+
+            ( ' ( \\. | [^'\\\n] )* ' )  #
             |
-            [^\{\}\n]       # Non-brace, non-newline characters.
+            ( " ( \\. | [^"\\\n] )* " )
+            |
+            [^\{\}\n'"]
         )*
     )?
     [ ]*\}                  # Ends with '}' (with optional spaces)
@@ -30,7 +27,6 @@ def set_attributes(element, attrs):
         attrs = attrs.group('attr')
 
     if attrs is not None:
-        attrs = attrs.replace(r'\{', '{').replace(r'\}', '}').replace('\\\\', '\\')
         # Hijack parts of the attr_list extension to handle the attribute list.
         #
         # (Warning: there is a risk here that a future version of Markdown will change

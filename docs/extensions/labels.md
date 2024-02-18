@@ -130,7 +130,7 @@ A label _may_ consist of just a literal string, with no counter type, which can 
             'li::before { color: blue; display: table-cell; padding-right: 0.5em}')
     ---
 
-    {-label="$$ "}
+    {-label="{-⦿-} "}
     * List item
     * List item
     * List item
@@ -231,7 +231,7 @@ Meanwhile, `X` refers to the next label label of _any_ kind. For example, here a
 
 An inner template is the part of a template after the first (non-quoted) `,`. A full label template consists of a `,`-separated sequence of components (each of which is as described above), optionally ending in `,*`.
 
-Inner label templates help make label specification neater. They apply to nested elements of the same type. For instance, `-label="1. ,(a) ,(i) "` assigns labels `1. `, `2. `, etc. to the current level, `(a) `, `(b) ` to singly-nested elements, and `(i) `, `(ii) ` to doubly-nested elements (all of the same type).
+Inner label templates let you set up several levels of labelling in one place. They apply to nested elements of the same type. For instance, `-label="1. ,(a) ,(i) "` assigns labels `1. `, `2. `, etc. to the current level, `(a) `, `(b) ` to singly-nested elements, and `(i) `, `(ii) ` to doubly-nested elements (all of the same type).
 
 /// markdown-demo
     show_build_file: False
@@ -249,6 +249,24 @@ Inner label templates help make label specification neater. They apply to nested
         2. List item
     2. List item
 ///
+
+/// markdown-demo
+    show_build_file: False
+
+    import lamarkdown as la
+    la('la.labels', 'la.attr_prefix')
+    la.css('li { display: table; }'
+            'li::before { display: table-cell; color: blue; padding-right: 0.5em }')
+    ---
+    {-label="♠ ,♥, ♣, ♦ "}
+    * List item
+        * List item
+            * List item
+            * List item
+        * List item
+    * List item
+///
+
 
 When `,*` occurs after the final template component, it applies that template to _all_ more-deeply nested elements indefinitely (until otherwise overridden).
 

@@ -1,5 +1,9 @@
 from __future__ import annotations
+<<<<<<< Updated upstream
 from ..util.markdown_ext import entry_point_cls
+=======
+from ..util.markdown_ext import entry_point_cls, assert_regex
+>>>>>>> Stashed changes
 import lamarkdown.ext
 import lamarkdown.ext.attr_prefix
 
@@ -44,6 +48,11 @@ class AttrPrefixTestCase(unittest.TestCase):
             2. Item2
             ''')
 
+<<<<<<< Updated upstream
+=======
+        print(html)
+
+>>>>>>> Stashed changes
         assert_that(
             lxml.html.fromstring(html),
             contains_exactly(
@@ -62,6 +71,18 @@ class AttrPrefixTestCase(unittest.TestCase):
                 )
             )
         )
+<<<<<<< Updated upstream
+=======
+#         assert_regex(
+#             html,
+#             r'''
+#             <h1>Heading</h1>
+#             <ol class>
+#
+#
+#             ''')
+
+>>>>>>> Stashed changes
 
 
     def test_variations(self):

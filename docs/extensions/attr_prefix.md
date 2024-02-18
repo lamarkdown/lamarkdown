@@ -41,7 +41,7 @@ This extension permits attributes to be written above a block (perhaps with inte
 
 With the `attr_list` extension, `{.blue}` and `{.orange}` could be written _below_ their respective elements to achieve the same effect. However, there's no way to do the same for lists, block quotes or tables; `attr_list` will only assign attributes to individual list _items_, or elements within a block quote, or table cells.
 
-The extension addresses another weakness in `attr_list`: other inline parsing logic.
+The extension addresses another weakness in `attr_list`: its attribute lists cannot contain characters that might be interpreted as some type of inline formatting, such as `{attr="_value_"}`, due to the order of processing.
 
 !!! note "Terminology Note"
 

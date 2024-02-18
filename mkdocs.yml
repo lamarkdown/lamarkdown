@@ -1,8 +1,9 @@
 site_name: Lamarkdown
 repo_url: https://github.com/lamarkdown/lamarkdown
 edit_uri: blob/main/docs/
-site_description: Documentation for Lamarkdown, a tool for creating standalone HTML documents from Markdown source, intended to fulfil a similar use case to Latex.
+site_description: Documentation for Lamarkdown, a tool for creating standalone HTML documents from Markdown source, intended to fulfil similar use cases to Latex.
 site_author: David J A Cooper
+copyright: Copyright &copy; 2021-2024 <a href="https://github.com/davidjacooper">David J A Cooper</a>.
 site_dir: docs_site
 
 nav:
@@ -41,7 +42,11 @@ markdown_extensions:
 theme:
     name: mkdocs
     highlightjs: False
+    navigation_depth: 3
 
 extra_css:
     - css/pygments.css
     - css/markdown_demo.css
+
+remote_branch: main
+remote_name: docs  # -> git@github.com:lamarkdown/lamarkdown.github.io.git

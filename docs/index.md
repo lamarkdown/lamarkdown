@@ -1,28 +1,6 @@
-<!--# Welcome to MkDocs
-
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
-
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.-->
-
-
 # Introduction
 
-Lamarkdown is a command-line markdown document compiler based on [Python-Markdown][].
-
-The goal is to provide a tool comparable to LaTeX, but with the Markdown and HTML formats in
-place of TeX and PDF. It is _not_ a goal to build static websites, though Lamarkdown's [extensions](extensions/index.md) can be reused in [MkDocs][] (or in other applications based on Python-Markdown).
+Lamarkdown is a command-line document preparation system based on [Python-Markdown][]. It attempts to address similar use cases to LaTeX, but using the Markdown and HTML formats. It is _not_ directly intended to build static websites, though its [extensions](extensions/index.md) can be reused in [MkDocs][] (or in other applications based on Python-Markdown).
 
 Take the [Lamarkdown tour](tour.md) to get a first impression.
 
@@ -53,13 +31,13 @@ There are optional dependencies that you'll need to install separately, to make 
 
 ## Basic Usage
 
-To compile `mydocument.md` into `mydocument.html`:
+To compile `mydocument.md` into `mydocument.html`, run:
 
 ```console
 $ lamd mydocument.md
 ```
 
-You can enable the live-update mode using `-l`/`--live`:
+To enable the live-update mode, use `-l`/`--live`:
 
 ```console
 $ lamd -l mydocument.md
