@@ -49,7 +49,7 @@ def apply(heading_numbers = True):
             'math':     '(h1.1) ,(math""a) ',
         }))
     if heading_numbers:
-        la('la.labels', labels = {'h2': 'H.1 ,*'})
+        la('la.labels', labels = {'h2': 'H.1\u2001,*'})
 
     # Table of contents for H2 - H6 elements.
     # (Note: the user can choose NOT to have a table-of-contents just by omitting '[TOC]'.)
@@ -154,13 +154,6 @@ def apply(heading_numbers = True):
         ['h2', 'h3', 'h4', 'h5', 'h6'],
         'margin-top: 1.5em;'
     )
-
-    la.css_rule(['h1 > .la-label',
-                 'h2 > .la-label',
-                 'h3 > .la-label',
-                 'h4 > .la-label',
-                 'h5 > .la-label',
-                 'h6 > .la-label'], 'margin-right: 1em;')
 
     la.css_rule('pre', 'line-height: 1.3;')
     la.css_rule('code', 'font-family: var(--la-monospace-font);')
@@ -393,8 +386,16 @@ def apply(heading_numbers = True):
             margin: 0;
         }
 
-        .la-toc ul {
+        /*.la-toc ul {
             padding-left: 1.5em;
+        }*/
+
+        .la-toc ul {
+            list-style-type: none;
+        }
+
+        .la-toc > ul > li {
+            margin-left: 0;
         }
 
         .la-toc a {
@@ -434,11 +435,13 @@ def apply(heading_numbers = True):
         doc_element[:] = root[:]
         root[:] = [doc_element]
 
-        toc_list = doc_element.xpath('//*[@class="toc"]')
-        if toc_list:
+        if toc_list := doc_element.xpath('//*[@class="toc"]'):
             inline_toc = toc_list[0]
             inline_toc.attrib['class'] = 'la-toc'
             sidebar_toc = copy.deepcopy(inline_toc)
+            if sidebar_toc_title := sidebar_toc.xpath('./span[1]'):
+                sidebar_toc_title[0].text = la.meta['title'] or 'Contents'
+
 
             inline_toc.attrib['id'] = 'la-toc-inline'
             sidebar_toc.attrib['id'] = 'la-toc-sidebar'

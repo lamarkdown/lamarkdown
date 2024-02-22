@@ -16,7 +16,7 @@ import re
 
 DIRECTORY_BUILD_FILE = 'md_build.py'
 
-VERSION = '0.10'
+VERSION = '0.10.1'
 
 
 def readable_file_type(a: str) -> str:

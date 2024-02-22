@@ -236,6 +236,33 @@ def write_html(content_html: str,
             msg = f'{os.path.basename(build_params.output_file)}: no document created')
         return
 
+    # Find document title (if left unspecified)
+    if 'title' not in build_params.meta:
+
+        # Default title, if we can't a better one
+        build_params.meta['title'] = os.path.basename(build_params.target_base)
+
+        # Checking the 'meta' extension's metadata
+        if 'title' in meta:
+            build_params.meta['title'] = meta['title'][0]
+
+        else:
+            # Then check the HTML heading tags
+            for n in range(1, 7):
+                heading_elements = root_element.xpath(f'.//h{n}')
+                count = len(heading_elements)
+                if count > 0:
+                    if count == 1:
+                        # Only use the <hN> element as a title if there's exactly one it, for
+                        # whichever N is the lowest. e.g., if there's no <H1> elements but one
+                        # <H2>, use the <H2>. But if there's two <H1> elements, we consider that
+                        # to be ambiguous.
+                        build_params.meta['title'] = heading_elements[0].text or ''
+                    break
+
+    title_html = html.escape(build_params.meta['title'])
+
+
     # Run tree hook functions
     for fn in build_params.tree_hooks:
         new_root = fn(root_element)
@@ -244,8 +271,6 @@ def write_html(content_html: str,
             root_element = new_root
             new_root.itertext
             root_element.itertext
-
-    root_element.itertext
 
     images.scale_images(root_element, build_params)
 
@@ -276,26 +301,6 @@ def write_html(content_html: str,
         # as-is.
         content_html = lxml.etree.tostring(root_element, encoding = 'unicode', method = 'html')
 
-    # Default title, if we can't a better one
-    title_html = os.path.basename(build_params.target_base)
-
-    # Find a better title, first by checking the embedded metadata (if any)
-    if 'title' in meta:
-        title_html = html.escape(meta['title'][0])
-
-    else:
-        # Then check the HTML heading tags
-        for n in range(1, 7):
-            heading_elements = root_element.xpath(f'.//h{n}')
-            count = len(heading_elements)
-            if count > 0:
-                if count == 1:
-                    # Only use the <hN> element as a title if there's exactly one it, for
-                    # whichever N is the lowest. e.g., if there's no <H1> elements but one
-                    # <H2>, use the <H2>. But if there's two <H1> elements, we consider that
-                    # to be ambiguous.
-                    title_html = html.escape(heading_elements[0].text or '')
-                break
 
     # Detect the language
     if 'lang' in meta:

@@ -20,7 +20,7 @@ A label template has several parts.
 
 ### Counter Types
 
-A counter type is a system for counting integers. Given `-label="1"`, the `1` is a counter type representing base-10 Arabic numerals. You can also provide `A` or `a` for upper/lower-case alphabetic numbering, `I` or `i` for upper/lower-case Roman numerals, or one of various longer-form names corresponding to CSS counter styles (e.g., `simp-chinese-informal`, `lower-greek`, `lower-hexadecimal`, etc.).
+A counter type is a system for counting integers. Given `-label="1"`, the `1` is a counter type representing base-10 Arabic numerals. You can also provide `A` or `a` for upper/lower-case English alphabetic numbering, `I` or `i` for upper/lower-case Roman numerals, or one of various longer-form names corresponding to CSS counter styles (e.g., `simp-chinese-informal`, `lower-greek`, `lower-hexadecimal`, etc.).
 
 /// markdown-demo
     show_build_file: False
@@ -40,14 +40,14 @@ A counter type is a system for counting integers. Given `-label="1"`, the `1` is
     2. List item
 ///
 
+The available counter types are essentially the same as the values supported by the [`list-style-type` CSS property](https://developer.mozilla.org/en-US/docs/Web/CSS/list-style-type), _except for_:
+
+* Bullet-points like `disc`, `circle`, `square`, `disclosure-open` and `disclosure-closed` (which would simply duplicate literal Unicode characters);
+* Global CSS values like `inherit`, `initial`, etc.;
+* The value `none`;
+* Custom counter styles.
+
 !!! note "Design Notes"
-
-    The available counter types are essentially the same as the values supported by the [`list-style-type` CSS property](https://developer.mozilla.org/en-US/docs/Web/CSS/list-style-type), _except for_:
-
-    * Bullet-points like `disc`, `circle`, `square`, `disclosure-open` and `disclosure-closed` (which would simply duplicate literal Unicode characters);
-    * Global CSS values like `inherit`, `initial`, etc.;
-    * The value `none`;
-    * Custom counter styles.
 
     The use of CSS belies some internal complexity. _Lists_ are numbered by generating CSS code that itself produces the labels (because this seems the conventional approach to HTML/CSS lists). However, headings (and figures and tables) are labelled _at compile time_, the labels becoming part of the HTML document content.
 
@@ -200,7 +200,7 @@ Similarly, the parent indicator `H` refers to the label of the next higher _head
     ## Heading
 ///
 
-Meanwhile, `X` refers to the next label label of _any_ kind. For example, here are some `<h3>` headings, within an `<ol>` list, underneath another `<h2>` heading, where the labels are arranged hierarchically:
+Meanwhile, `X` refers to the next higher label of _any_ kind. For example, here are some `<h3>` headings, within an `<ol>` list, underneath another `<h2>` heading, where the labels are arranged hierarchically:
 
 /// markdown-demo
     show_build_file: False

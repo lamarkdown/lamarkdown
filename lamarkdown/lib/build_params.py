@@ -168,6 +168,7 @@ class BuildParams:
     name:                 str                        = ''
     variant_name_sep:     str                        = '_'
     variants:             list[Variant]              = field(default_factory=list)
+    meta:                 dict[str, str]             = field(default_factory=dict)
     _named_extensions:    dict[str, dict[str, Any]]  = field(default_factory=dict)
     obj_extensions:       list[Extension]            = field(default_factory=list)
     tree_hooks:           list[Callable]             = field(default_factory=list)

@@ -222,6 +222,12 @@ class ApiImpl(ModuleType):
 
     @property
     @check_build_params
+    def meta(self):
+        return params().meta
+
+
+    @property
+    @check_build_params
     def name(self) -> str:
         return params().name
 
