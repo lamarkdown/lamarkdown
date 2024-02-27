@@ -1,10 +1,4 @@
-#!/usr/bin/python
-
-from . import md_compiler
-from . import live
-from .build_params import BuildParams
-from .progress import Progress
-from .directives import Directives
+from . import build_params, md_compiler, live, progress as prog, directives as direc
 
 import diskcache  # type: ignore
 import platformdirs
@@ -14,21 +8,11 @@ import os
 import os.path
 import re
 
-DIRECTORY_BUILD_FILE = 'md_build.py'
 
 VERSION = '0.10.1'
 
-
-def readable_file_type(a: str) -> str:
-    if not os.path.exists(a):
-        raise argparse.ArgumentTypeError(f'"{a}" not found')
-
-    if not os.path.isfile(a):
-        raise argparse.ArgumentTypeError(f'"{a}" is not a file')
-
-    if not os.access(a, os.R_OK):
-        raise argparse.ArgumentTypeError(f'"{a}" is not readable')
-    return a
+DIRECTORY_BUILD_FILE = 'md_build.py'
+NAME = 'lamd'  # For errors/warnings
 
 
 def port_range_type(s: str) -> range:
@@ -67,7 +51,7 @@ def main():
         version = f'Lamarkdown {VERSION}\n(fetch cache: {fetch_cache_dir})')
 
     parser.add_argument(
-        'input', metavar = 'INPUT.md', type = readable_file_type,
+        'input', metavar = 'INPUT.md', type = str,
         help = 'Input markdown (.md) file')
 
     parser.add_argument(
@@ -75,7 +59,7 @@ def main():
         help = 'Output HTML file. (By default, this is based on the input filename.)')
 
     parser.add_argument(
-        '-b', '--build', metavar = 'BUILD.py', type = readable_file_type, action = 'append',
+        '-b', '--build', metavar = 'BUILD.py', type = str, action = 'append',
         help = ('Manually specify a build (.py) file, which itself specifies extensions (to '
                 'Python-Markdown), CSS, JavaScript, etc.'))
 
@@ -129,68 +113,108 @@ def main():
     base_name = src_file.rsplit('.', 1)[0]
     build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
     build_cache_dir = os.path.join(build_dir, 'cache')
+    extra_build_files = [os.path.abspath(f) for f in args.build] if args.build else []
 
-    progress = Progress()
+    progress = prog.Progress()
     if args.output:
-        if os.path.isdir(args.output):
-            target_file = os.path.join(args.output, os.path.basename(base_name)) + '.html'
+        out = os.path.abspath(args.output)
+        if os.path.isdir(out):
+            target_file = os.path.join(out, os.path.basename(base_name)) + '.html'
         else:
-            target_file = args.output
+            target_file = out
     else:
         target_file = base_name + '.html'
 
-    for f in [target_file, os.path.dirname(os.path.abspath(target_file))]:
-        if not os.access(f, os.W_OK):
-            progress.warning('output', msg = f'"{f}" is not writable')
+    go = True
+
+    for in_file in [args.input, *extra_build_files]:
+        if not os.path.exists(in_file):
+            go = False
+            progress.error(NAME, msg = f'"{in_file}" not found')
+
+        elif not os.path.isfile(in_file):
+            go = False
+            progress.error(NAME, msg = f'"{in_file}" is not a file')
+
+        elif not os.access(in_file, os.R_OK):
+            go = False
+            progress.error(NAME, msg = f'"{in_file}" is not readable')
 
 
-    # Changing into the source directory (in case we're not in it) means that further file paths
-    # referenced during the build process will be relative to the source file, and not
-    # (necessarily) whatever arbitrary directory we started in.
-    os.chdir(src_dir)
+    if os.path.exists(target_file):
+        if not os.access(target_file, os.W_OK):
+            go = False
+            progress.error(NAME, msg = f'cannot write output: "{target_file}" is not writable')
+    else:
+        directory = os.path.dirname(os.path.abspath(target_file))
+        if not os.access(directory, os.W_OK):
+            go = False
+            progress.error(NAME, msg = f'cannot write output: "{directory}" is not writable')
 
-    base_build_params = BuildParams(
-        src_file = src_file,
-        target_file = target_file,
-        build_files = (
-            (args.build or []) if args.no_auto_build_files
-            else [
-                os.path.join(src_dir, DIRECTORY_BUILD_FILE),
-                os.path.join(src_dir, base_name + '.py'),
-                *(args.build or [])
-            ]),
-        build_dir = build_dir,
-        build_defaults = not args.no_build_defaults,
-        build_cache = diskcache.Cache(build_cache_dir),
-        fetch_cache = diskcache.Cache(fetch_cache_dir),
-        progress = progress,
-        directives = Directives(progress),
-        is_live = args.live is True,
-        allow_exec_cmdline = args.allow_exec is True,
-        allow_exec         = args.allow_exec is True
-    )
-    os.makedirs(build_dir, exist_ok = True)
+    try:
+        os.makedirs(build_dir, exist_ok = True)
+    except Exception as e:
+        progress.error(NAME, msg = 'cannot create/open build directory: ' + str(e))
 
-    if args.clean:
-        base_build_params.build_cache.clear()
+    try:
+        build_cache = diskcache.Cache(build_cache_dir)
+    except Exception as e:
+        go = False
+        progress.error(NAME, msg = 'cannot create/open build cache: ' + str(e))
 
-    complete_build_params = md_compiler.compile(base_build_params)
+    try:
+        fetch_cache = diskcache.Cache(fetch_cache_dir)
+    except Exception as e:
+        go = False
+        progress.error(NAME, msg = 'cannot create/open fetch cache: ' + str(e))
 
-    if args.live:
-        address = (
-            live.ANY_ADDRESS
-            if args.address == 'any'
-            else (args.address or live.LOOPBACK_ADDRESS))
-        port_range = args.port or live.DEFAULT_PORT_RANGE
+    if go:
+        # Changing into the source directory (in case we're not in it) means that further file paths
+        # referenced during the build process will be relative to the source file, and not
+        # (necessarily) whatever arbitrary directory we started in.
+        os.chdir(src_dir)
 
-        live.LiveUpdater(
-            base_build_params,
-            complete_build_params
-        ).run(
-            address = address,
-            port_range = port_range,
-            launch_browser = args.no_browser is not True
+        base_build_params = build_params.BuildParams(
+            src_file = src_file,
+            target_file = target_file,
+            build_files = (
+                extra_build_files if args.no_auto_build_files
+                else [
+                    os.path.join(src_dir, DIRECTORY_BUILD_FILE),
+                    os.path.join(src_dir, base_name + '.py'),
+                    *extra_build_files
+                ]),
+            build_dir = build_dir,
+            build_defaults = not args.no_build_defaults,
+            build_cache = build_cache,
+            fetch_cache = fetch_cache,
+            progress = progress,
+            directives = direc.Directives(progress),
+            is_live = args.live is True,
+            allow_exec_cmdline = args.allow_exec is True,
+            allow_exec         = args.allow_exec is True
         )
+
+        if args.clean:
+            base_build_params.build_cache.clear()
+
+        complete_build_params = md_compiler.compile(base_build_params)
+
+        if args.live:
+            address = (
+                live.ANY_ADDRESS
+                if args.address == 'any'
+                else (args.address or live.LOOPBACK_ADDRESS))
+            port_range = args.port or live.DEFAULT_PORT_RANGE
+
+            live.LiveUpdater(
+                base_build_params,
+                complete_build_params
+            ).run(
+                address = address,
+                port_range = port_range,
+                launch_browser = args.no_browser is not True
+            )
 
 
 if __name__ == "__main__":

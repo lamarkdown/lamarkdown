@@ -259,12 +259,7 @@ class LiveUpdater(watchdog.events.FileSystemEventHandler):
             with open(output_file) as f:
                 full_html = f.read()
 
-            # match = re.search(
-            #     '<title[^>]*>(.*?)</\s*title\s*>',
-            #     full_html,
-            #     flags = re.IGNORECASE | re.DOTALL)
             self._output_docs[name] = OutputDoc(name = name,
-                                                # title = match[1] if match else '[No Title]',
                                                 full_html = full_html,
                                                 filename = os.path.basename(output_file),
                                                 path = os.path.dirname(output_file))
