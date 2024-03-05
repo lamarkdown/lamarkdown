@@ -1,5 +1,12 @@
 # Lamarkdown Changelog
 
+## v0.10.1
+
+* In m.doc(), fixed slightly broken formatting of the table of contents, and changed the heading from "Contents" to the actual title of the document.
+* Fixed spurious warning about an unwritable output file.
+* More comprehensive up-front error handling of inaccessible input/output/cache files.
+
+
 ## v0.10
 
 Extensions:

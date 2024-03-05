@@ -1,8 +1,8 @@
-from lamarkdown.lib import lamd, build_params, directives, progress
-from ..util.mock_progress import MockMsg, MockProgress
+from lamarkdown.lib import lamd, directives
+from ..util.mock_progress import MockProgress
 from ..util.mock_cache import MockCache
 import unittest
-from unittest.mock import Mock, PropertyMock, patch, DEFAULT
+from unittest.mock import patch
 from hamcrest import (assert_that, contains_exactly, empty, has_entries, instance_of, is_, is_not,
                       raises, same_instance)
 
@@ -26,7 +26,8 @@ def make_mock_cache_fn():
 class MockExit(Exception):
     def __init__(self, code):
         super().__init__()
-        self.code = code;
+        self.code = code
+
 
 def mock_exit(code):
     raise MockExit(code)
@@ -168,11 +169,11 @@ class LamdTestCase(unittest.TestCase):
 
 
     @patch('sys.argv', ['lamd', 'test_doc.md', '-o', os.path.join('dir', 'different.html')])
-    def test_target_name(self, *args):
+    def test_target_name1(self, *args):
         self._test_target_name(*args)
 
     @patch('sys.argv', ['lamd', 'test_doc.md', '--output', os.path.join('dir', 'different.html')])
-    def test_target_name(self, *args):
+    def test_target_name2(self, *args):
         self._test_target_name(*args)
 
     def _test_target_name(self, mock_compile, mock_progress_fn):
@@ -188,11 +189,11 @@ class LamdTestCase(unittest.TestCase):
 
 
     @patch('sys.argv', ['lamd', 'test_doc.md', '-o', 'dir'])
-    def test_target_directory(self, *args):
+    def test_target_directory1(self, *args):
         self._test_target_directory(*args)
 
     @patch('sys.argv', ['lamd', 'test_doc.md', '--output', 'dir'])
-    def test_target_directory(self, *args):
+    def test_target_directory2(self, *args):
         self._test_target_directory(*args)
 
     def _test_target_directory(self, mock_compile, mock_progress_fn):
