@@ -70,6 +70,8 @@ def apply(heading_numbers = True):
         'la-main-background':   'white',
         'la-side-shadow-color': 'var(--la-main-color)',
         'la-side-background':   '#404040',
+        'la-main-width-onscreen':      '50em',
+        'la-main-padding-onscreen':    '4em',
 
         'la-admonition-border-color':  '#606060',
         'la-note-border-color':        '#0060c0',
@@ -86,9 +88,14 @@ def apply(heading_numbers = True):
         'la-caption-background':       '#d0d0d0',
         'la-figure-label-color':       '#c04000',
 
-        'la-bullet1-color': '#0080ff',
-        'la-bullet2-color': '#80c0ff',
-        'la-number-color': '#ff6000',
+        'la-bullet1-color':            '#0080ff',
+        'la-bullet2-color':            '#80c0ff',
+        'la-number-color':             '#ff6000',
+
+        'la-ul-indent':         '2em',
+        'la-ul-marker-sep':     '0.5em',
+        'la-ol-marker-width':   '1.5em',
+        'la-ol-marker-sep':     '0.5em',
 
         'la-box-corner-radius': '5px',
     }.items():
@@ -115,9 +122,9 @@ def apply(heading_numbers = True):
                 overflow-x: visible;
                 margin-left: auto;
                 margin-right: auto;
-                width: 50em;
+                width: var(--la-main-width-onscreen);
                 box-shadow: 5px 5px 10px var(--la-side-shadow-color);
-                padding: 4em;
+                padding: var(--la-main-padding-onscreen);
             }
             pre {
                 overflow: auto;
@@ -212,13 +219,13 @@ def apply(heading_numbers = True):
         r'''
         ul > li {
             position: relative;
-            margin-left: 2em;
+            margin-left: var(--la-ul-indent);
         }
 
         ul > li::before {
             position: absolute;
             right: 100%;
-            padding-right: 0.5em;
+            padding-right: var(--la-ul-marker-sep);
             color: var(--la-bullet1-color);
         }
         ''',
@@ -247,8 +254,8 @@ def apply(heading_numbers = True):
 
         ol > li::before {
             display: table-cell;
-            width: 1.5em;
-            padding-right: 0.5em;
+            width: var(--la-ol-marker-width);
+            padding-right: var(--la-ol-marker-sep);
             color: var(--la-number-color);
             font-weight: bold;
         }
@@ -385,10 +392,6 @@ def apply(heading_numbers = True):
             font-weight: bold;
             margin: 0;
         }
-
-        /*.la-toc ul {
-            padding-left: 1.5em;
-        }*/
 
         .la-toc ul {
             list-style-type: none;
