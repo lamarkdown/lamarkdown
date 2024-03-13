@@ -9,7 +9,7 @@ import os.path
 import re
 
 
-VERSION = '0.10.1'
+VERSION = '0.11'
 
 DIRECTORY_BUILD_FILE = 'md_build.py'
 NAME = 'lamd'  # For errors/warnings

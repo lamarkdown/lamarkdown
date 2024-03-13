@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lamarkdown"
-version = "0.10.1"
+version = "0.11"
 description = "A tool for compiling markdown files into standalone HTML documents, using Python Markdown. Supports Latex (given an existing Tex distribution), custom CSS and JavaScript, multiple document variations from a single source file, and a live output view."
 authors = ["David J A Cooper <david.cooper+pypi@djac.au>"]
 license = "MIT"
