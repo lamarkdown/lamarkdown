@@ -57,7 +57,7 @@ setuptools = { version = "^69.0", markers = "python_version >= '3.12'" }
 fonttools = "^4.38.0"
 brotli = "^1.0.9"
 cssutils = "^2.4.2"
-pillow = "^9.4.0"
+pillow = "^10.2.0"
 latex2mathml = "^3.75.1"
 platformdirs = "^3.1.1"
 regex = { version = "^2023.12.25", markers = "python_version < '3.11'" }
