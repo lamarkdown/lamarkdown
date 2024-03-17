@@ -107,8 +107,16 @@ def main():
 
 
     args = parser.parse_args()
-
     src_file = os.path.abspath(args.input)
+
+    # Auto-correct the source filename
+    if not (l := src_file.lower()).endswith('.md') and (
+            (src_file.endswith('.')        and os.path.exists(f := f'{src_file}md'))
+            or (not src_file.endswith('.') and os.path.exists(f := f'{src_file}.md'))
+            or (l.endswith('.html')        and os.path.exists(f := f'{src_file[:-4]}md'))
+            or (l.endswith('.py')          and os.path.exists(f := f'{src_file[:-2]}md'))):
+        src_file = f
+
     src_dir = os.path.dirname(src_file)
     base_name = src_file.rsplit('.', 1)[0]
     build_dir = os.path.join(src_dir, 'build', os.path.basename(src_file))
@@ -127,7 +135,11 @@ def main():
 
     go = True
 
-    for in_file in [args.input, *extra_build_files]:
+    if not src_file.lower().endswith('.md'):
+        go = False
+        progress.error(NAME, msg = f'"{src_file}" must end in ".md"')
+
+    for in_file in [src_file, *extra_build_files]:
         if not os.path.exists(in_file):
             go = False
             progress.error(NAME, msg = f'"{in_file}" not found')

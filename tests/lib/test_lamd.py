@@ -97,6 +97,61 @@ class LamdTestCase(unittest.TestCase):
         self.assert_no_errors(mock_progress_fn)  # Handled as a help message
 
 
+    @patch('sys.argv', ['lamd', 'test_doc'])
+    def test_auto_correct1(self, *args):
+        self._test_auto_correct(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.'])
+    def test_auto_correct2(self, *args):
+        self._test_auto_correct(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.html'])
+    def test_auto_correct3(self, *args):
+        self._test_auto_correct(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.py'])
+    def test_auto_correct4(self, *args):
+        self._test_auto_correct(*args)
+
+    def _test_auto_correct(self, mock_compile, mock_progress_fn):
+        self.create_mock_file('test_doc.md')
+        lamd.main()
+
+        self.assert_no_errors(mock_progress_fn)
+        mock_compile.assert_called_once()
+        params = mock_compile.call_args.args[0]
+        assert_that(params.src_file,    is_(os.path.join(self.tmp_dir, 'test_doc.md')))
+        assert_that(params.target_file, is_(os.path.join(self.tmp_dir, 'test_doc.html')))
+
+
+    @patch('sys.argv', ['lamd', 'test_doc'])
+    def test_misnamed_input(self, *args):
+        self.create_mock_file('test_doc')
+        self._test_misnamed_input(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.'])
+    def test_auto_correct2(self, *args):
+        self.create_mock_file('test_doc.')
+        self._test_misnamed_input(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.html'])
+    def test_auto_correct3(self, *args):
+        self.create_mock_file('test_doc.html')
+        self._test_misnamed_input(*args)
+
+    @patch('sys.argv', ['lamd', 'test_doc.py'])
+    def test_auto_correct4(self, *args):
+        self.create_mock_file('test_doc.py')
+        self._test_misnamed_input(*args)
+
+    def _test_misnamed_input(self, mock_compile, mock_progress_fn):
+        lamd.main()
+        mock_compile.assert_not_called()
+        mock_progress = mock_progress_fn()
+        assert_that(mock_progress.warning_messages, empty())
+        assert_that(mock_progress.error_messages, is_not(empty()))
+
+
     @patch('sys.argv', ['lamd', 'test_doc.md'])
     def test_missing_input(self, mock_compile, mock_progress_fn):
         lamd.main()
@@ -104,6 +159,7 @@ class LamdTestCase(unittest.TestCase):
         mock_progress = mock_progress_fn()
         assert_that(mock_progress.warning_messages, empty())
         assert_that(mock_progress.error_messages, is_not(empty()))
+
 
     @patch('sys.argv', ['lamd', 'test_doc.md'])
     def test_unreadable_input(self, mock_compile, mock_progress_fn):
