@@ -110,11 +110,11 @@ def main():
     src_file = os.path.abspath(args.input)
 
     # Auto-correct the source filename
-    if not (l := src_file.lower()).endswith('.md') and (
-            (src_file.endswith('.')        and os.path.exists(f := f'{src_file}md'))
-            or (not src_file.endswith('.') and os.path.exists(f := f'{src_file}.md'))
-            or (l.endswith('.html')        and os.path.exists(f := f'{src_file[:-4]}md'))
-            or (l.endswith('.py')          and os.path.exists(f := f'{src_file[:-2]}md'))):
+    if not (src_lower := src_file.lower()).endswith('.md') and (
+            (src_file.endswith('.')         and os.path.exists(f := f'{src_file}md'))
+            or (not src_file.endswith('.')  and os.path.exists(f := f'{src_file}.md'))
+            or (src_lower.endswith('.html') and os.path.exists(f := f'{src_file[:-4]}md'))
+            or (src_lower.endswith('.py')   and os.path.exists(f := f'{src_file[:-2]}md'))):
         src_file = f
 
     src_dir = os.path.dirname(src_file)

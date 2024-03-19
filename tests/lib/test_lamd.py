@@ -125,22 +125,22 @@ class LamdTestCase(unittest.TestCase):
 
 
     @patch('sys.argv', ['lamd', 'test_doc'])
-    def test_misnamed_input(self, *args):
+    def test_misnamed_input1(self, *args):
         self.create_mock_file('test_doc')
         self._test_misnamed_input(*args)
 
     @patch('sys.argv', ['lamd', 'test_doc.'])
-    def test_auto_correct2(self, *args):
+    def test_misnamed_input2(self, *args):
         self.create_mock_file('test_doc.')
         self._test_misnamed_input(*args)
 
     @patch('sys.argv', ['lamd', 'test_doc.html'])
-    def test_auto_correct3(self, *args):
+    def test_misnamed_input3(self, *args):
         self.create_mock_file('test_doc.html')
         self._test_misnamed_input(*args)
 
     @patch('sys.argv', ['lamd', 'test_doc.py'])
-    def test_auto_correct4(self, *args):
+    def test_misnamed_input4(self, *args):
         self.create_mock_file('test_doc.py')
         self._test_misnamed_input(*args)
 

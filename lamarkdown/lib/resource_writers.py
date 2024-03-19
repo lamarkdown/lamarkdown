@@ -34,10 +34,10 @@ def make_data_url(url: str,
 
     else:
         mime_type = mime_type or auto_mime_type
-        if converter is not None:
-            content_bytes, mime_type = converter(url, content_bytes, mime_type)
+        if converter is not None and content_bytes is not None:
+            content_bytes, mime_type = converter(url, content_bytes, mime_type or '')
 
-        return f'data:{mime_type or ""};base64,{b64encode(content_bytes).decode()}'
+        return f'data:{mime_type or ""};base64,{b64encode(content_bytes or b"").decode()}'
 
 
 def add_local_dependency(url: str, build_params: BuildParams):
@@ -213,7 +213,7 @@ class StylesheetWriter(ResourceWriter):
                                                              self.build_params.fetch_cache,
                                                              self.build_params.progress)
 
-            content = content_bytes.decode()
+            content = (content_bytes or b'').decode()
             if self._push_url(res.url):
                 content = self._embed(res.url, content)
                 self.url_stack.pop()
@@ -401,7 +401,8 @@ class ScriptWriter(ResourceWriter):
                                                      self.build_params.fetch_cache,
                                                      self.build_params.progress)
 
-            content = self._embed(self.build_params.resource_base_url, content_bytes.decode())
+            content = self._embed(self.build_params.resource_base_url,
+                                  (content_bytes or b'').decode())
             buffer.write(f'<script>\n{content}\n</script>')
 
         else:

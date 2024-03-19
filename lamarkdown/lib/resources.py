@@ -26,7 +26,7 @@ REMOTE_URL_SCHEME_REGEX = re.compile('(?!(file|data):)[a-z]+:')
 def read_url(url: str,
              cache,
              progress: Progress,
-             user_agent = DEFAULT_USER_AGENT) -> tuple[bool, bytes, str]:
+             user_agent = DEFAULT_USER_AGENT) -> tuple[bool, bytes | None, str | None]:
 
     NAME = 'fetching'
 
@@ -87,7 +87,9 @@ def read_url(url: str,
                         progress.error(NAME,
                                        msg = f'Server returned {status} code',
                                        output = content_bytes.decode(errors = 'ignore'))
-                        content_bytes = b''
+                        # content_bytes = b''
+                        # mime_type = ''
+                        content_bytes = None
                         mime_type = None
 
             except OSError as e:
@@ -97,7 +99,8 @@ def read_url(url: str,
                                    show_traceback = False)
                 else:
                     progress.error(NAME, exception = e)
-                content_bytes = b''
+                # content_bytes = b''
+                content_bytes = None
 
         else:
             progress.cache_hit(NAME, resource = url)
@@ -125,7 +128,8 @@ def read_url(url: str,
                            msg = f'Cannot read "{url}"',
                            exception = e,
                            show_traceback = False)
-            return (False, b'', '')
+            # return (False, b'', '')
+            return (False, None, None)
 
 
 
@@ -233,7 +237,7 @@ class UrlResourceSpec(ResourceSpec):
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both
             # use the same strings 'sha256', 'sha384' and 'sha512'.
             is_remote, content_bytes, _ = read_url(url, self.cache, progress)
-            hash = base64.b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
+            hash = base64.b64encode(hashlib.new(hash_type, content_bytes or b'').digest()).decode()
 
             if not is_remote:
                 progress.warning(
