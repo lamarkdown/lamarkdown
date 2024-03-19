@@ -9,6 +9,7 @@ import email.utils
 import hashlib
 import mimetypes
 import re
+import socket
 import time
 from typing import Callable
 import urllib.error
@@ -34,8 +35,9 @@ def read_url(url: str,
 
         if cache_entry is None:
             progress.progress(NAME, msg = url)
-            with urllib.request.urlopen(url) as conn:
-                try:
+            mime_type = None
+            try:
+                with urllib.request.urlopen(url) as conn:
                     content_bytes = conn.read()
 
                     try:
@@ -88,9 +90,14 @@ def read_url(url: str,
                         content_bytes = b''
                         mime_type = None
 
-                except OSError as e:
+            except OSError as e:
+                if isinstance(e, urllib.error.URLError) and isinstance(e.reason, socket.gaierror):
+                    progress.error(NAME,
+                                   msg = f'{e.reason.strerror} while reading "{url}"',
+                                   show_traceback = False)
+                else:
                     progress.error(NAME, exception = e)
-                    content_bytes = b''
+                content_bytes = b''
 
         else:
             progress.cache_hit(NAME, resource = url)
