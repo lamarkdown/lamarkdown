@@ -9,6 +9,7 @@ import email.utils
 import hashlib
 import mimetypes
 import re
+import socket
 import time
 from typing import Callable
 import urllib.error
@@ -25,7 +26,7 @@ REMOTE_URL_SCHEME_REGEX = re.compile('(?!(file|data):)[a-z]+:')
 def read_url(url: str,
              cache,
              progress: Progress,
-             user_agent = DEFAULT_USER_AGENT) -> tuple[bool, bytes, str]:
+             user_agent = DEFAULT_USER_AGENT) -> tuple[bool, bytes | None, str | None]:
 
     NAME = 'fetching'
 
@@ -34,8 +35,9 @@ def read_url(url: str,
 
         if cache_entry is None:
             progress.progress(NAME, msg = url)
-            with urllib.request.urlopen(url) as conn:
-                try:
+            mime_type = None
+            try:
+                with urllib.request.urlopen(url) as conn:
                     content_bytes = conn.read()
 
                     try:
@@ -85,12 +87,20 @@ def read_url(url: str,
                         progress.error(NAME,
                                        msg = f'Server returned {status} code',
                                        output = content_bytes.decode(errors = 'ignore'))
-                        content_bytes = b''
+                        # content_bytes = b''
+                        # mime_type = ''
+                        content_bytes = None
                         mime_type = None
 
-                except OSError as e:
+            except OSError as e:
+                if isinstance(e, urllib.error.URLError) and isinstance(e.reason, socket.gaierror):
+                    progress.error(NAME,
+                                   msg = f'{e.reason.strerror} while reading "{url}"',
+                                   show_traceback = False)
+                else:
                     progress.error(NAME, exception = e)
-                    content_bytes = b''
+                # content_bytes = b''
+                content_bytes = None
 
         else:
             progress.cache_hit(NAME, resource = url)
@@ -118,7 +128,8 @@ def read_url(url: str,
                            msg = f'Cannot read "{url}"',
                            exception = e,
                            show_traceback = False)
-            return (False, b'', '')
+            # return (False, b'', '')
+            return (False, None, None)
 
 
 
@@ -226,7 +237,7 @@ class UrlResourceSpec(ResourceSpec):
             # Note: relies on the fact that hashlib.new() and the HTML 'integrity' attribute both
             # use the same strings 'sha256', 'sha384' and 'sha512'.
             is_remote, content_bytes, _ = read_url(url, self.cache, progress)
-            hash = base64.b64encode(hashlib.new(hash_type, content_bytes).digest()).decode()
+            hash = base64.b64encode(hashlib.new(hash_type, content_bytes or b'').digest()).decode()
 
             if not is_remote:
                 progress.warning(

@@ -88,7 +88,7 @@ class ResourcesTestCase(unittest.TestCase):
 
         for status, headers,                             exp_result,            exp_cache_time in [
             (200,   {},                                  (True, content, mime), 86400),
-            (500,   {},                                  (True, b'',     None), None),
+            (500,   {},                                  (True, None,    None), None),
             (200,   {'cache-control':
                      'aa,no-cache,bb'},                  (True, content, mime), None),
             (200,   {'cache-control':
